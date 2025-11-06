@@ -1,4 +1,4 @@
-package com.cbnu11team.opensorce11;
+package com.cbnu11team.opensource11;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

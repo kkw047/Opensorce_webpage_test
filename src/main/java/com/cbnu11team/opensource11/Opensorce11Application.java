@@ -1,4 +1,4 @@
-package com.cbnu11team.opensorce11;
+package com.cbnu11team.opensource11;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
