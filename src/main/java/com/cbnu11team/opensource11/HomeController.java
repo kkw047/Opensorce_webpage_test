@@ -1,22 +1,33 @@
-package com.cbnu11team.opensorce11;
+package com.cbnu11team.opensource11;
 
+import com.cbnu11team.opensource11.club.ClubService;
+import com.cbnu11team.opensource11.club.CategoryService;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class HomeController {
 
-    // 1) 텍스트로 바로 확인 (http://localhost:8080/ok)
-    @GetMapping("/ok")
-    @ResponseBody
-    public String ok() {
-        return "OK - Spring Boot is running";
+    private final ClubService clubService;
+    private final CategoryService categoryService;
+
+    public HomeController(ClubService clubService, CategoryService categoryService) {
+        this.clubService = clubService;
+        this.categoryService = categoryService;
     }
 
-    // 2) 뷰 파일로 확인 (http://localhost:8080/)
     @GetMapping("/")
-    public String index() {
-        return "index"; // templates/index.html을 찾아서 렌더링
+    public String index(@RequestParam(required = false) String categoryId,
+                        @RequestParam(required = false) String q,
+                        Model model) {
+
+        model.addAttribute("categories", categoryService.getCategorySummary());
+        model.addAttribute("activeCategoryId", categoryId);
+        model.addAttribute("q", q);
+
+        model.addAttribute("clubs", clubService.findClubs(categoryId, q));
+        return "index";
     }
 }

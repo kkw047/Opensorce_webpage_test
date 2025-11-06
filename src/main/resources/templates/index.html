@@ -1,11 +1,98 @@
-<!doctype html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>첫 화면</title>
+  <title>메인</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; }
+    header { padding:16px 20px; border-bottom:1px solid #eee; display:flex; gap:12px; align-items:center; }
+    .brand { font-weight:700; font-size:20px; margin-right:auto; }
+    .page { display:grid; grid-template-columns: 220px 1fr; gap:24px; padding:20px; }
+    aside { border-right:1px solid #f0f0f0; padding-right:12px; }
+    .cat { display:flex; flex-direction:column; gap:8px; }
+    .cat a { padding:8px 10px; border-radius:8px; text-decoration:none; color:#333; }
+    .cat a.active { background:#eef4ff; color:#1d4ed8; font-weight:600; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:16px; }
+    .card { border:1px solid #eee; border-radius:12px; overflow:hidden; background:white; display:flex; flex-direction:column; }
+    .thumb { aspect-ratio: 4/3; background:#fafafa; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:12px; width:100%; object-fit:cover; }
+    .card .body { padding:12px; }
+    .title { font-weight:700; margin:0 0 6px; }
+    .meta { font-size:12px; color:#666; display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
 </head>
 <body>
-<h1>첫 화면입니다 </h1>
-<p><a href="/ok">/ok 텍스트 확인</a></p>
+<header>
+  <div class="brand">오픈소스 모임</div>
+
+  <form th:action="@{/}" method="get">
+    <input type="text" name="q" th:value="${q}" placeholder="검색…" />
+    <button type="submit">검색</button>
+  </form>
+
+  <a th:href="@{/login}">로그인</a>
+  <a th:href="@{/register}">회원가입</a>
+</header>
+
+<main class="page">
+
+  <!-- 왼쪽: 카테고리 -->
+  <aside>
+    <div class="cat">
+      <a th:href="@{/}" th:classappend="${activeCategoryId} == null ? ' active' : ''">전체</a>
+
+      <!-- categories: List<CategoryView> (id, name, count) -->
+      <a th:each="c : ${categories}"
+         th:text="${c.name} + ' (' + ${c.count} + ')'"
+         th:href="@{/(categoryId=${c.id}, q=${q})}"
+         th:classappend="${activeCategoryId} == ${c.id} ? ' active' : ''">
+        카테고리
+      </a>
+    </div>
+  </aside>
+
+  <!-- 오른쪽: 모임 카드 -->
+  <section>
+    <div class="grid">
+
+      <!-- clubs: List<ClubCard> -->
+      <article class="card" th:each="club : ${clubs}">
+        <!-- 이미지 (없으면 PLACEHOLDER 텍스트) -->
+        <div class="thumb"
+             th:if="${club.thumbnailUrl == null or #strings.isEmpty(club.thumbnailUrl)}">
+          이미지 없음
+        </div>
+        <img class="thumb" alt="thumbnail"
+             th:if="${club.thumbnailUrl != null and !#strings.isEmpty(club.thumbnailUrl)}"
+             th:src="${club.thumbnailUrl}" />
+
+        <div class="body">
+          <h3 class="title" th:text="${club.name}">모임 이름</h3>
+
+          <div class="meta">
+            <span th:text="'지역: ' + ${club.region}">지역</span>
+            <span th:text="'카테고리: ' + ${club.category}">카테고리</span>
+            <span th:text="'멤버: ' + ${club.memberCount}">멤버</span>
+            <span th:if="${club.recentActivityAt != null}"
+                  th:text="'최근 활동: ' + ${#temporals.format(club.recentActivityAt, 'yyyy-MM-dd')}">
+              최근 활동
+            </span>
+          </div>
+
+          <div style="margin-top:10px;">
+            <a th:href="@{/clubs/{id}(id=${club.id})}">상세 보기</a>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- 결과 없을 때 -->
+    <p th:if="${#lists.isEmpty(clubs)}" style="color:#666; margin-top:20px;">
+      표시할 모임이 없습니다.
+    </p>
+  </section>
+
+</main>
 </body>
 </html>
