@@ -2,38 +2,34 @@ package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Category;
 import com.cbnu11team.team11.repository.CategoryRepository;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.net.URI;
 import java.util.List;
 
-@Controller
+@RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/categories")
 public class CategoryController {
 
     private final CategoryRepository categoryRepository;
-    public CategoryController(CategoryRepository categoryRepository) {
-        this.categoryRepository = categoryRepository;
-    }
 
+    // 좌측 & 모임 만들기 폼 채우기
     @GetMapping
-    @ResponseBody
     public List<Category> list() {
         return categoryRepository.findAllByOrderByNameAsc();
     }
 
+    // 새로운 카테고리 추가 (+카테고리)
     @PostMapping
-    public ResponseEntity<?> add(@RequestParam("name") String name) {
-        String raw = name == null ? "" : name.trim();
-        if (raw.isEmpty()) return ResponseEntity.badRequest().body("카테고리명이 비어있음");
+    public Category create(@RequestParam String name) {
+        String n = name.trim();
+        if (n.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이름이 비었습니다.");
+        if (categoryRepository.existsByNameIgnoreCase(n))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 존재하는 카테고리");
 
-        if (categoryRepository.existsByNameIgnoreCase(raw)) {
-            return ResponseEntity.status(409).body("이미 존재하는 카테고리");
-        }
-
-        Category saved = categoryRepository.save(new Category(raw));
-        return ResponseEntity.created(URI.create("/api/categories/" + saved.getId())).build();
+        return categoryRepository.save(new Category(n)); // Category(String name) 생성자 사용
     }
 }

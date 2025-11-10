@@ -7,13 +7,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
+@Repository // 붙여도/빼도 동작
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    // 좌측 카테고리 필터/모임만들기 폼에서 사용
-    List<Category> findAllByOrderByNameAsc();
-
-    // 중복 검사
-    boolean existsByNameIgnoreCase(String name);
-
-    Optional<Category> findByNameIgnoreCase(String name);
+    List<Category> findAllByOrderByNameAsc();          // 좌측/모임만들기용
+    boolean existsByNameIgnoreCase(String name);       // 중복 검사
+    Optional<Category> findByNameIgnoreCase(String name); // 필요 시 사용
 }

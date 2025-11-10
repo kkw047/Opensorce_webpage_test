@@ -6,35 +6,47 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
-@Repository
+import java.util.List;
+
 public interface ClubRepository extends JpaRepository<Club, Long> {
 
-    // 메인 목록 + 카테고리까지 즉시 로딩(템플릿 Lazy 예외 방지)
-    @EntityGraph(attributePaths = {"categories"})
+    // 최신순 카드 목록 (카테고리 N+1 줄이기)
+    @EntityGraph(attributePaths = "categories")
     Page<Club> findAllByOrderByIdDesc(Pageable pageable);
 
-    // 서비스에서 호출하는 메서드 (컴파일 에러 해결용, 위와 동일 효과)
-    @EntityGraph(attributePaths = {"categories"})
-    @Query("select c from Club c")
-    Page<Club> findAllWithCategories(Pageable pageable);
-
-    // 지역/키워드 검색(카테고리 즉시 로딩)
-    @EntityGraph(attributePaths = {"categories"})
-    @Query("""
-           select c from Club c
-           where (:doVal is null or c.regionDo = :doVal)
-             and (:siVal is null or c.regionSi = :siVal)
-             and (
-                  :keyword is null
-                  or lower(c.name) like lower(concat('%', :keyword, '%'))
-                  or lower(c.description) like lower(concat('%', :keyword, '%'))
-                 )
-           """)
-    Page<Club> search(@Param("doVal") String regionDo,
-                      @Param("siVal") String regionSi,
-                      @Param("keyword") String keyword,
-                      Pageable pageable);
+    // 검색(키워드/지역/카테고리) + 최신순
+    @EntityGraph(attributePaths = "categories")
+    @Query(
+            value = """
+            select distinct c
+            from Club c
+            left join c.categories cat
+            where (:kw is null or lower(c.name) like lower(concat('%', :kw, '%'))
+                   or lower(c.description) like lower(concat('%', :kw, '%')))
+              and (:rdo is null or c.regionDo = :rdo)
+              and (:rsi is null or c.regionSi = :rsi)
+              and (:hasCat = false or cat.id in :categoryIds)
+            order by c.id desc
+        """,
+            countQuery = """
+            select count(distinct c)
+            from Club c
+            left join c.categories cat
+            where (:kw is null or lower(c.name) like lower(concat('%', :kw, '%'))
+                   or lower(c.description) like lower(concat('%', :kw, '%')))
+              and (:rdo is null or c.regionDo = :rdo)
+              and (:rsi is null or c.regionSi = :rsi)
+              and (:hasCat = false or cat.id in :categoryIds)
+        """
+    )
+    Page<Club> search(
+            @Param("kw") String keyword,
+            @Param("rdo") String regionDo,
+            @Param("rsi") String regionSi,
+            @Param("categoryIds") List<Long> categoryIds,
+            @Param("hasCat") boolean hasCat,
+            Pageable pageable
+    );
 }

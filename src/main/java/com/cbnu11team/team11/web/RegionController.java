@@ -1,30 +1,31 @@
 package com.cbnu11team.team11.web;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.springframework.web.bind.annotation.*;
+import com.cbnu11team.team11.repository.RegionKorRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 
+/**
+ * 프론트(region.js)에서 도/시군구 드롭다운 채우는 용도
+ */
 @RestController
-@RequestMapping("/api/regions")
+@RequiredArgsConstructor
 public class RegionController {
 
-    @PersistenceContext
-    private EntityManager em;
+    private final RegionKorRepository regionKorRepository;
 
-    @GetMapping("/dos")
+    @GetMapping("/regions/dos")
     public List<String> dos() {
-        return em.createQuery(
-                "select distinct r.regionDo from RegionKor r order by r.regionDo", String.class
-        ).getResultList();
+        return regionKorRepository.findDistinctRegionDoOrderByRegionDoAsc();
     }
 
-    @GetMapping("/sis")
-    public List<String> sis(@RequestParam("do") String doName) {
-        return em.createQuery(
-                "select distinct r.regionSi from RegionKor r where r.regionDo = :doName order by r.regionSi",
-                String.class
-        ).setParameter("doName", doName).getResultList();
+    @GetMapping("/regions/sis")
+    public List<String> sis(@RequestParam("do") String regionDo) {
+        if (regionDo == null || regionDo.isBlank()) return Collections.emptyList();
+        return regionKorRepository.findDistinctRegionSiByRegionDoOrderByRegionSiAsc(regionDo.trim());
     }
 }
