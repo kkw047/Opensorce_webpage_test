@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>모임 만들기</title>
+    <style>body{font-family:sans-serif; margin:20px; max-width:800px}</style>
+</head>
+<body>
+<h2>모임 만들기</h2>
+<form method="post" th:action="@{/clubs}">
+    <div>
+        <label>모임 이름</label><br/>
+        <input type="text" name="name" required style="width:100%"/>
+    </div>
+    <div>
+        <label>홍보 문구</label><br/>
+        <textarea name="description" rows="5" style="width:100%"></textarea>
+    </div>
+    <div>
+        <label>대표 이미지 URL</label><br/>
+        <input type="url" name="imageUrl" placeholder="https://..." style="width:100%"/>
+    </div>
+    <div>
+        <label>카테고리</label><br/>
+        <select name="categoryId" required>
+            <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+        </select>
+    </div>
+    <div>
+        <label>지역</label><br/>
+        <select id="doSelect" name="do" required>
+            <option th:each="d : ${dos}" th:value="${d}" th:text="${d}"></option>
+        </select>
+        <select id="siSelect" name="si" required>
+            <option value="">시/군/구</option>
+        </select>
+    </div>
+    <button type="submit">만들기</button>
+    <a href="/clubs">취소</a>
+</form>
+
+<script th:inline="javascript">
+    /* <![CDATA[ */
+    const allRegions = /*[[${allRegions}]]*/ [];
+    function fillSi(doName) {
+        const siSel = document.getElementById('siSelect');
+        siSel.innerHTML = '<option value="">시/군/구</option>';
+        allRegions.filter(r => r.regionDo === doName)
+            .forEach(r => {
+                const o = document.createElement('option');
+                o.value = r.regionSi; o.textContent = r.regionSi;
+                siSel.appendChild(o);
+            });
+    }
+    document.getElementById('doSelect').addEventListener('change', e => fillSi(e.target.value));
+    // 초기화
+    fillSi(document.getElementById('doSelect').value);
+    /* ]]> */
+</script>
+</body>
+</html>

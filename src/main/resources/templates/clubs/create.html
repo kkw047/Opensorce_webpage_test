@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>모임 만들기</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand" onclick="location.href='/'">우리모임</div>
+</header>
+
+<main class="create-wrap">
+    <div class="uploader">
+        <div id="preview" class="preview">이미지</div>
+        <label class="btn sm">
+            파일 선택
+            <input type="file" id="image" accept="image/*" hidden>
+        </label>
+        <div class="muted" id="fileName">선택된 파일 없음</div>
+    </div>
+
+    <div class="create-form">
+        <input id="name" type="text" placeholder="모임 이름">
+        <textarea id="desc" placeholder="홍보 문구"></textarea>
+
+        <div class="hstack">
+            <select id="selDo"></select>
+            <select id="selSi" disabled></select>
+        </div>
+
+        <div class="label">카테고리</div>
+        <div id="catBox" class="checklist"></div>
+
+        <div class="hstack">
+            <input id="newCat" type="text" placeholder="+ 카테고리">
+            <button id="btnAddCat" class="btn">추가</button>
+        </div>
+
+        <div class="hstack">
+            <button id="btnCreate" class="btn primary">만들기</button>
+            <button class="btn ghost" onclick="history.back()">취소</button>
+        </div>
+    </div>
+</main>
+
+<script th:src="@{/js/region.js}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        initRegion(document.getElementById('selDo'), document.getElementById('selSi'));
+        await loadCategories();
+    });
+
+    async function loadCategories(){
+        const box = document.getElementById('catBox');
+        box.innerHTML = '';
+        const res = await fetch('/api/categories');
+        const list = await res.json();
+        list.forEach(c=>{
+            const id='c-'+c.id;
+            box.insertAdjacentHTML('beforeend',
+                `<label class="chk"><input type="checkbox" value="${c.id}" id="${id}"><span>${c.name}</span></label>`);
+        });
+    }
+
+    // +카테고리
+    document.getElementById('btnAddCat').addEventListener('click', async ()=>{
+        const name = document.getElementById('newCat').value.trim();
+        if (!name) return;
+        const res = await fetch('/api/categories', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({name})
+        });
+        if (res.status === 201) { document.getElementById('newCat').value=''; await loadCategories(); }
+        else if (res.status === 409) { alert('이미 존재하는 카테고리입니다.'); }
+        else { alert('추가 실패'); }
+    });
+
+    // 이미지 미리보기
+    document.getElementById('image').addEventListener('change', (e)=>{
+        const f = e.target.files[0];
+        document.getElementById('fileName').textContent = f ? f.name : '선택된 파일 없음';
+        if (!f) return;
+        const rd = new FileReader();
+        rd.onload = ev => { document.getElementById('preview').innerHTML = `<img src="${ev.target.result}" alt="">`; };
+        rd.readAsDataURL(f);
+    });
+
+    // 만들기 (엔드포인트는 네 기존 /api/groups 또는 /clubs POST에 맞춰 연결)
+    document.getElementById('btnCreate').addEventListener('click', async ()=>{
+        const name = document.getElementById('name').value.trim();
+        const description = document.getElementById('desc').value.trim();
+        const regionDo = document.getElementById('selDo').value || null;
+        const regionSi = document.getElementById('selSi').value || null;
+        const categoryIds = Array.from(document.querySelectorAll('#catBox input:checked')).map(x=>Number(x.value));
+
+        const fd = new FormData();
+        const file = document.getElementById('image').files[0];
+        if (file) fd.append('image', file);
+        fd.append('name', name);
+        fd.append('description', description);
+        if (regionDo) fd.append('regionDo', regionDo);
+        if (regionSi) fd.append('regionSi', regionSi);
+        fd.append('categoryIds', JSON.stringify(categoryIds));
+
+        const res = await fetch('/api/groups', { method:'POST', body: fd });
+        if (res.ok) location.href='/clubs';
+        else alert('생성 실패');
+    });
+</script>
+</body>
+</html>

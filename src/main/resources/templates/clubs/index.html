@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>모임 메인</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand" onclick="location.href='/'">우리모임</div>
+    <div class="top-actions">
+        <button id="btnLogin" class="btn sm">로그인</button>
+        <button id="btnRegister" class="btn sm outline">회원가입</button>
+    </div>
+</header>
+
+<section class="filterbar">
+    <select id="selDo"></select>
+    <select id="selSi" disabled></select>
+    <input id="keyword" type="text" placeholder="검색어">
+    <button id="btnSearch" class="btn">검색</button>
+</section>
+
+<main class="page">
+    <aside class="sidebar">
+        <div class="menu">
+            <button class="tab active">메인</button>
+            <button class="tab" disabled>추천</button>
+            <button class="tab" disabled>캘린더</button>
+            <button class="tab" disabled>내모임</button>
+        </div>
+
+        <div class="card flat">
+            <div class="card-title">카테고리</div>
+            <div id="catBox" class="vlist">
+                <div class="muted">불러오는 중…</div>
+            </div>
+        </div>
+
+        <button class="btn primary full" onclick="location.href='/clubs/create'">모임 만들기</button>
+    </aside>
+
+    <section class="content">
+        <div class="grid">
+            <!-- 클럽 카드 -->
+            <div class="club-card" th:each="club : ${clubs}">
+                <div class="thumb">
+                    <img th:if="${club.imageData != null}" th:src="'data:image/*;base64,'+${club.imageData}" alt="">
+                    <div class="thumb-ph" th:if="${club.imageData == null}">이미지</div>
+                </div>
+                <div class="club-body">
+                    <div class="club-title" th:text="${club.name}">모임 이름</div>
+                    <div class="club-desc" th:text="${club.description}">홍보 문구</div>
+                    <div class="chips">
+                        <span class="chip" th:text="${club.regionDo}">도</span>
+                        <span class="chip" th:text="${club.regionSi}">시군구</span>
+                        <!-- [중요] 카테고리 컬렉션 접근 제거(여기서 LAZY 터졌었음) -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ===== 회원가입 모달 ===== -->
+<div id="registerModal" class="modal hidden">
+    <div class="modal-dim"></div>
+    <div class="modal-panel">
+        <div class="modal-title">회원가입</div>
+        <div class="form vstack">
+            <div class="hstack">
+                <input id="r-username" type="text" placeholder="아이디(4~20자)" class="grow">
+                <button id="btnCheckId" class="btn sm">중복검사</button>
+            </div>
+            <input id="r-password" type="password" placeholder="비밀번호(8자 이상)">
+            <div class="label">선호 카테고리</div>
+            <div id="r-cats" class="checklist"></div>
+            <div id="r-msg" class="msg"></div>
+            <button id="btnDoRegister" class="btn primary full">가입하기</button>
+            <button class="btn sm ghost" onclick="closeRegister()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 로그인 모달(간단) ===== -->
+<div id="loginModal" class="modal hidden">
+    <div class="modal-dim"></div>
+    <div class="modal-panel">
+        <div class="modal-title">로그인</div>
+        <div class="form vstack">
+            <input id="l-username" type="text" placeholder="아이디">
+            <input id="l-password" type="password" placeholder="비밀번호">
+            <button class="btn primary full">로그인</button>
+            <button class="btn sm ghost" onclick="closeLogin()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/region.js}"></script>
+<script>
+    // -------- 레이아웃 초기화 ----------
+    document.addEventListener('DOMContentLoaded', async () => {
+        initRegion(document.getElementById('selDo'), document.getElementById('selSi'));
+        await loadCategories('#catBox');      // 좌측 체크박스
+        await loadCategories('#r-cats', true); // 가입 모달 체크박스
+    });
+
+    // -------- 카테고리 로딩 ----------
+    async function loadCategories(targetSelector, asCheckbox=false) {
+        const box = document.querySelector(targetSelector);
+        box.innerHTML = '';
+        const res = await fetch('/api/categories');
+        const list = await res.json();
+        if (!list.length) { box.innerHTML = '<div class="muted">카테고리가 없습니다</div>'; return; }
+        if (asCheckbox) {
+            list.forEach(c => {
+                const id = `rc-${c.id}`;
+                box.insertAdjacentHTML('beforeend',
+                    `<label class="chk"><input type="checkbox" value="${c.id}" id="${id}"><span>${c.name}</span></label>`);
+            });
+        } else {
+            list.forEach(c => {
+                const id = `cat-${c.id}`;
+                box.insertAdjacentHTML('beforeend',
+                    `<label class="chk"><input type="checkbox" value="${c.id}" id="${id}"><span>${c.name}</span></label>`);
+            });
+        }
+    }
+
+    // -------- 검색 ----------
+    document.getElementById('btnSearch').addEventListener('click', () => {
+        const doVal = document.getElementById('selDo').value || '';
+        const siVal = document.getElementById('selSi').value || '';
+        const kw = document.getElementById('keyword').value || '';
+        const catIds = Array.from(document.querySelectorAll('#catBox input[type=checkbox]:checked'))
+            .map(el => el.value).join(',');
+        const qs = new URLSearchParams({
+            do: doVal, si: siVal, q: kw, categories: catIds
+        }).toString();
+        location.href = '/clubs?' + qs;
+    });
+
+    // -------- 회원가입 모달 ----------
+    document.getElementById('btnRegister').onclick = () => openRegister();
+    document.getElementById('btnLogin').onclick = () => openLogin();
+
+    function openRegister(){ document.getElementById('registerModal').classList.remove('hidden'); }
+    function closeRegister(){ document.getElementById('registerModal').classList.add('hidden'); }
+    function openLogin(){ document.getElementById('loginModal').classList.remove('hidden'); }
+    function closeLogin(){ document.getElementById('loginModal').classList.add('hidden'); }
+
+    // 아이디 중복검사
+    document.getElementById('btnCheckId').addEventListener('click', async () => {
+        const u = document.getElementById('r-username').value.trim();
+        if (!u) return showMsg('아이디를 입력하세요');
+        const res = await fetch('/api/auth/check-username?username=' + encodeURIComponent(u));
+        const data = await res.json();
+        if (data.exists) showMsg('이미 사용 중인 아이디입니다.', true);
+        else showMsg('사용 가능한 아이디입니다.', false);
+    });
+
+    function showMsg(msg, bad=false){
+        const el = document.getElementById('r-msg');
+        el.textContent = msg;
+        el.className = 'msg ' + (bad ? 'bad':'ok');
+    }
+
+    // 회원가입 (데모: 서버에 DTO 전달만, 상세 검증/저장은 서버 로직에 맞춰 확장)
+    document.getElementById('btnDoRegister').addEventListener('click', async () => {
+        const username = document.getElementById('r-username').value.trim();
+        const password = document.getElementById('r-password').value;
+        const categoryIds = Array.from(document.querySelectorAll('#r-cats input:checked')).map(x=>Number(x.value));
+        const res = await fetch('/api/auth/register', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ username, password, categoryIds })
+        });
+        if (res.ok){ closeRegister(); alert('가입 완료'); }
+        else {
+            const t = await res.text();
+            showMsg(t || '가입 실패', true);
+        }
+    });
+</script>
+</body>
+</html>

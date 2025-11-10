@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>마이페이지</title>
+</head>
+<body>
+<h1>마이페이지</h1>
+
+<div>
+    <p><strong>닉네임:</strong> <span th:text="${user.nickname}">닉네임</span></p>
+    <p><strong>이메일:</strong> <span th:text="${user.email}">email@example.com</span></p>
+    <p><strong>지역:</strong>
+        <span th:text="${user.regionDo}">충북</span>
+        <span th:text="${user.regionSi}">청주시</span>
+    </p>
+
+    <h3>관심 카테고리</h3>
+    <ul>
+        <li th:each="c : ${user.categories}"
+            th:text="${c.name}">카테고리명</li>
+    </ul>
+</div>
+
+<p><a th:href="@{/logout}">로그아웃</a></p>
+</body>
+</html>
