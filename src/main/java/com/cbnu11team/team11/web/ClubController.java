@@ -2,84 +2,104 @@ package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Category;
 import com.cbnu11team.team11.domain.Club;
-import com.cbnu11team.team11.repository.CategoryRepository;
-import com.cbnu11team.team11.repository.ClubRepository;
-import com.cbnu11team.team11.repository.RegionKorRepository;
+import com.cbnu11team.team11.service.ClubService;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
+@RequestMapping("/clubs")
 public class ClubController {
 
-    private final ClubRepository clubRepository;
-    private final CategoryRepository categoryRepository;
-    private final RegionKorRepository regionKorRepository;
+    private final ClubService clubService;
 
-    // 메인 (좌측 메뉴 + 검색 + 우측 카드)
-    @GetMapping({"/", "/clubs"})
-    public String index(Model model) {
-        // 초기 로딩 데이터
-        List<Category> categories = categoryRepository.findAll();
-        List<String> dos = regionKorRepository.findAllDistinctDo();
-        List<Club> clubs = clubRepository.search(null, null, null, false, Collections.emptyList(), PageRequest.of(0, 20));
+    // 메인 목록 + 필터
+    @GetMapping
+    public String index(@RequestParam(value = "page", defaultValue = "0") int page,
+                        @RequestParam(value = "kw", required = false) String kw,
+                        @RequestParam(value = "rdo", required = false) String rdo,
+                        @RequestParam(value = "rsi", required = false) String rsi,
+                        @RequestParam(value = "cats", required = false) List<Long> cats,
+                        Model model) {
 
-        model.addAttribute("categories", categories);
-        model.addAttribute("dos", dos);
+        PageRequest pageable = PageRequest.of(page, 12);
+
+        Page<Club> clubs = (kw != null || rdo != null || rsi != null || (cats != null && !cats.isEmpty()))
+                ? clubService.search(rdo, rsi, kw, cats, pageable)
+                : clubService.list(pageable);
+
+        List<Category> categories = clubService.findAllCategories();
+
         model.addAttribute("clubs", clubs);
+        model.addAttribute("categories", categories);
+
+        // 뷰에서 선택값 복원에 사용
+        model.addAttribute("kw", kw);
+        model.addAttribute("rdo", rdo);
+        model.addAttribute("rsi", rsi);
+        model.addAttribute("cats", cats); // ★ null일 수 있으니 뷰에서 null-safe 처리
+
         return "clubs/index";
     }
 
-    // 이미지 스트리밍 (Base64 금지 → Thymeleaf의 static access 에러 회피)
-    @ResponseBody
-    @GetMapping(value = "/clubs/{id}/image", produces = MediaType.IMAGE_JPEG_VALUE)
-    public byte[] image(@PathVariable Long id) {
-        return clubRepository.findById(id)
-                .map(Club::getImageData)
-                .orElse(new byte[0]);
+    // 생성 폼
+    @GetMapping("/create")
+    public String createForm(Model model) {
+        model.addAttribute("form", new ClubForm());
+        model.addAttribute("categories", clubService.findAllCategories());
+        return "clubs/create";
     }
 
-    // 우측 모임 카드 데이터(필터 결과)를 AJAX로 내려줌
-    @ResponseBody
-    @GetMapping("/api/clubs")
-    public List<Map<String, Object>> listApi(
-            @RequestParam(required = false) String regionDo,
-            @RequestParam(required = false) String regionSi,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false, name = "cat") List<Long> categoryIds
-    ) {
-        boolean hasCats = !CollectionUtils.isEmpty(categoryIds);
-        List<Club> result = clubRepository.search(
-                blankToNull(regionDo),
-                blankToNull(regionSi),
-                blankToNull(keyword),
-                hasCats,
-                hasCats ? categoryIds : Collections.emptyList(),
-                PageRequest.of(0, 50)
+    // 생성 처리
+    @PostMapping("/create")
+    public String create(@ModelAttribute("form") ClubForm form,
+                         @RequestParam(value = "image", required = false) MultipartFile image) {
+
+        // (선택) 이미지 저장 구현 필요 시 여기에. 지금은 경로만 null로 둔다.
+        String imagePath = null;
+
+        clubService.createClub(
+                form.getName(),
+                form.getDescription(),
+                form.getRegionDo(),
+                form.getRegionSi(),
+                form.getCategoryIds(),
+                imagePath
         );
-
-        return result.stream().map(c -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", c.getId());
-            m.put("name", c.getName());
-            m.put("description", c.getDescription());
-            m.put("regionDo", c.getRegionDo());
-            m.put("regionSi", c.getRegionSi());
-            m.put("imageUrl", "/clubs/" + c.getId() + "/image");
-            m.put("categories", c.getCategories().stream().map(Category::getName).collect(Collectors.toList()));
-            return m;
-        }).collect(Collectors.toList());
+        return "redirect:/clubs?created=1";
     }
 
-    private String blankToNull(String s) {
-        return (s == null || s.trim().isEmpty()) ? null : s.trim();
+    // ====== 지역 API (하드코딩 X, DB region_kor 사용) ======
+    @ResponseBody
+    @GetMapping(value = "/api/regions/do", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<String> apiDos() {
+        return clubService.getAllDos();
+    }
+
+    @ResponseBody
+    @GetMapping(value = "/api/regions/si", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<String> apiSis(@RequestParam("do") String regionDo) {
+        return StringUtils.hasText(regionDo) ? clubService.getSisByDo(regionDo) : Collections.emptyList();
+    }
+
+    // 폼 DTO (새 파일 추가 없이 내부 클래스로 둠)
+    @Data
+    public static class ClubForm {
+        private String name;
+        private String description;
+        private String regionDo;
+        private String regionSi;
+        private List<Long> categoryIds;
     }
 }

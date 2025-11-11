@@ -1,61 +1,122 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8">
     <title>모임 만들기</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .form-wrap { max-width: 900px; margin: 24px auto; padding: 16px; }
+        .row { display:flex; gap:12px; margin:8px 0; }
+        .row label { width:120px; padding-top:8px; }
+        .row input[type="text"], .row textarea, .row select { flex:1; padding:8px; }
+        .cats { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:8px; }
+        .preview { width:200px; height:120px; border:1px solid #555; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .preview img { width:100%; object-fit:cover; }
+    </style>
 </head>
 <body>
-<header class="topbar">
-    <div class="brand"><a th:href="@{/clubs}">← 우리모임</a></div>
-</header>
+<div class="form-wrap">
+    <h2>모임 만들기</h2>
 
-<main class="form-page">
-    <form th:action="@{/clubs}" method="post" enctype="multipart/form-data" class="card form">
-        <h2>모임 만들기</h2>
-
-        <label>모임 이미지
-            <input type="file" name="image" accept="image/*">
-        </label>
-
-        <label>모임 이름
-            <input type="text" name="name" required>
-        </label>
-
-        <label>홍보 문구
-            <textarea name="description" rows="4"></textarea>
-        </label>
+    <form th:action="@{/clubs/create}" method="post" th:object="${form}" enctype="multipart/form-data">
+        <div class="row">
+            <label>대표 이미지</label>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <input type="file" id="imageFile" name="image" accept="image/*">
+                <div class="preview" id="imgPreview">미리보기</div>
+            </div>
+        </div>
 
         <div class="row">
-            <label>지역(도)
-                <select id="createDo" name="regionDo" required></select>
-            </label>
-            <label>시/군/구
-                <select id="createSi" name="regionSi" required></select>
-            </label>
+            <label for="name">모임 이름</label>
+            <input id="name" type="text" th:field="*{name}" placeholder="모임 이름" required>
         </div>
 
-        <fieldset>
-            <legend>카테고리(복수 선택)</legend>
-            <div class="category-grid">
-                <label th:each="c: ${categories}">
-                    <input type="checkbox" name="categoryIds" th:value="${c.id}">
-                    <span th:text="${c.name}">카테고리</span>
-                </label>
-            </div>
-        </fieldset>
+        <div class="row">
+            <label for="description">홍보 문구</label>
+            <textarea id="description" th:field="*{description}" rows="4" placeholder="모임 소개/홍보 문구"></textarea>
+        </div>
 
-        <div class="actions">
-            <button class="primary" type="submit">만들기</button>
-            <a class="ghost" th:href="@{/clubs}">취소</a>
+        <div class="row">
+            <label>지역</label>
+            <select id="regionDo" th:field="*{regionDo}" required></select>
+            <select id="regionSi" th:field="*{regionSi}" required></select>
+        </div>
+
+        <div class="row">
+            <label>카테고리</label>
+            <div style="flex:1;">
+                <div class="cats">
+                    <div th:each="cat : ${categories}">
+                        <label>
+                            <input type="checkbox" th:value="${cat.id}" th:field="*{categoryIds}">
+                            <span th:text="${cat.name}">카테고리</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px; display:flex; gap:8px;">
+                    <input id="newCatName" type="text" placeholder="+ 새 카테고리 추가">
+                    <button type="button" id="addCatBtn">추가</button>
+                </div>
+                <small>※ 카테고리 추가는 즉시 저장되고, 체크박스가 목록에 갱신됩니다.</small>
+            </div>
+        </div>
+
+        <div class="row" style="justify-content:flex-end;">
+            <button type="submit">만들기</button>
+            <a th:href="@{/clubs}" style="margin-left:8px;">취소</a>
         </div>
     </form>
-</main>
+</div>
 
-<script src="/js/region.js"></script>
 <script>
-    window.addEventListener('DOMContentLoaded', () => {
-        window.__initRegions('createDo','createSi');
+    // 지역 드롭다운: DB 기반 API 사용
+    document.addEventListener('DOMContentLoaded', async () => {
+        const $do = document.getElementById('regionDo');
+        const $si = document.getElementById('regionSi');
+
+        const dos = await fetch('/clubs/api/regions/do').then(r=>r.json());
+        $do.innerHTML = '<option value="">도 선택</option>' + dos.map(d => `<option>${d}</option>`).join('');
+        $do.addEventListener('change', async () => {
+            const v = $do.value;
+            if(!v){ $si.innerHTML = '<option value="">시/군/구 선택</option>'; return; }
+            const sis = await fetch('/clubs/api/regions/si?do=' + encodeURIComponent(v)).then(r=>r.json());
+            $si.innerHTML = '<option value="">시/군/구 선택</option>' + sis.map(s => `<option>${s}</option>`).join('');
+        });
+    });
+
+    // 이미지 미리보기
+    const fileInput = document.getElementById('imageFile');
+    const preview = document.getElementById('imgPreview');
+    fileInput.addEventListener('change', () => {
+        const f = fileInput.files && fileInput.files[0];
+        if (!f) { preview.innerHTML = '미리보기'; return; }
+        const url = URL.createObjectURL(f);
+        preview.innerHTML = `<img src="${url}" alt="preview">`;
+    });
+
+    // 카테고리 즉시 추가
+    document.getElementById('addCatBtn').addEventListener('click', async () => {
+        const name = document.getElementById('newCatName').value.trim();
+        if (!name) return;
+        try {
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({name})
+            });
+            if (!res.ok) throw new Error('fail');
+            const cat = await res.json(); // {id, name}
+            const container = document.querySelector('.cats');
+            const wrap = document.createElement('div');
+            wrap.innerHTML = `<label><input type="checkbox" name="categoryIds" value="${cat.id}" checked>
+                            <span>${cat.name}</span></label>`;
+            container.prepend(wrap);
+            document.getElementById('newCatName').value = '';
+        } catch (e) {
+            alert('카테고리 추가 실패');
+        }
     });
 </script>
 </body>

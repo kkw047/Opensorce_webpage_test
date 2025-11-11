@@ -12,18 +12,11 @@ import java.util.List;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
 
-    /**
-     * 메인 목록: 최신 id 내림차순 + categories 미리 로딩
-     * open-in-view=false 환경에서 템플릿에서 club.categories 접근 시 Lazy 방지
-     */
+    /** 메인 목록: 최신 id 내림차순 + categories 미리 로딩 */
     @EntityGraph(attributePaths = {"categories"})
     Page<Club> findAllByOrderByIdDesc(Pageable pageable);
 
-    /**
-     * 검색: 도/시군구/키워드/카테고리(다중)
-     * - @EntityGraph 로 categories 미리 로딩 (Provider가 JOIN 또는 2nd query로 해결)
-     * - fetch join을 쓰지 않아 페이징 경고(HHH90003004) 제거
-     */
+    /** 검색: 도/시군구/키워드/카테고리(다중) */
     @EntityGraph(attributePaths = {"categories"})
     @Query("""
         select distinct c

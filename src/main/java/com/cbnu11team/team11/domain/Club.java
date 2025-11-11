@@ -3,46 +3,42 @@ package com.cbnu11team.team11.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.HashSet;
+import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
-@Table(name = "clubs")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Table(name = "club")
 public class Club {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable=false, length=100)
     private String name;
 
-    // 소개글: 길이 제약 완화
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "region_do", nullable = false, length = 50)
+    @Column(name="region_do", length=50)
     private String regionDo;
 
-    @Column(name = "region_si", nullable = false, length = 50)
+    @Column(name="region_si", length=50)
     private String regionSi;
 
-    // ✅ DB의 longblob(LONGBLOB)과 매칭
-    @Lob
-    @Column(name = "image_data", columnDefinition = "LONGBLOB")
-    private byte[] imageData;
+    private String imagePath; // (선택) 파일 저장 시 경로
 
-    @ManyToMany
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "club_categories",
             joinColumns = @JoinColumn(name = "club_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     @Builder.Default
-    private Set<Category> categories = new HashSet<>();
+    private Set<Category> categories = new LinkedHashSet<>();
 }

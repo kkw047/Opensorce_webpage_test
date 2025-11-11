@@ -1,146 +1,106 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
-    <meta charset="UTF-8"/>
-    <title>모임 메인</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta charset="UTF-8">
+    <title>모임 목록</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .layout { display:grid; grid-template-columns: 260px 1fr; gap:16px; padding:16px; }
+        .sidebar { border:1px solid #444; padding:12px; }
+        .grid { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:12px; }
+        .card { border:1px solid #444; padding:12px; border-radius:8px; }
+        .muted { color:#aaa; font-size:12px; }
+        .pill { display:inline-block; padding:2px 8px; border:1px solid #666; border-radius:999px; margin-right:4px; font-size:12px; }
+        .row { display:flex; gap:8px; margin:8px 0; }
+    </style>
 </head>
 <body>
-
-<!-- 1. 맨위: 로그인/회원가입 버튼 (팝업) -->
-<header class="topbar">
-    <div class="brand">TEAM11 모임</div>
-    <div class="auth-actions">
-        <button id="btnLoginOpen" type="button">로그인</button>
-        <button id="btnRegOpen" type="button">회원가입</button>
-    </div>
-</header>
-
-<!-- 2. 검색: 도/시군구 + 키워드 -->
-<section class="searchbar">
-    <div class="region-row">
-        <label for="searchDo">도</label>
-        <select id="searchDo"></select>
-
-        <label for="searchSi">시/군/구</label>
-        <select id="searchSi"></select>
-    </div>
-    <div class="keyword-row">
-        <input id="searchKeyword" type="text" placeholder="키워드 (모임명/소개)"/>
-        <button id="btnSearch" type="button">검색</button>
-        <button id="btnReset" type="button">전체보기</button>
-    </div>
-</section>
-
-<main class="layout">
-    <!-- 3. 좌측 메뉴바 (세로) -->
+<div class="layout">
     <aside class="sidebar">
-        <nav class="main-menu">
-            <a class="active">메인</a>
-            <a>추천</a>
-            <a>캘린더</a>
-            <a>내 모임</a>
-        </nav>
+        <h3>메뉴</h3>
+        <ul>
+            <li><a th:href="@{/clubs}">메인</a></li>
+            <li><a href="#">추천</a></li>
+            <li><a href="#">캘린더</a></li>
+            <li><a href="#">내 모임</a></li>
+        </ul>
+        <hr>
+        <h4>카테고리 필터</h4>
 
-        <section class="cats">
-            <h4>카테고리</h4>
-            <div class="cat-list">
-                <div th:each="cat : ${categories}">
-                    <label>
-                        <input type="checkbox" name="cat" th:value="${cat.id}"/>
-                        <span th:text="${cat.name}">카테고리</span>
-                    </label>
-                </div>
+        <form th:action="@{/clubs}" method="get" id="filterForm">
+            <div class="row">
+                <select id="regionDo" name="rdo"></select>
+                <select id="regionSi" name="rsi"></select>
             </div>
-        </section>
+            <div class="row">
+                <input type="text" name="kw" th:value="${kw}" placeholder="키워드">
+            </div>
 
-        <div class="make-club">
-            <a th:href="@{/clubs/create}" class="btn">모임 만들기</a>
-        </div>
+            <div style="max-height:180px; overflow:auto; border:1px solid #333; padding:6px;">
+                <label th:each="cat : ${categories}" style="display:block; margin-bottom:4px;">
+                    <input type="checkbox" name="cats"
+                           th:value="${cat.id}"
+                           th:checked="${cats != null and #lists.contains(cats, cat.id)}"><!-- ★ null-safe -->
+                    <span th:text="${cat.name}">카테고리</span>
+                </label>
+            </div>
+
+            <div class="row" style="justify-content:space-between;">
+                <button type="submit">검색</button>
+                <a th:href="@{/clubs/create}">모임 만들기</a>
+            </div>
+        </form>
     </aside>
 
-    <!-- 4. 우측 모임 카드 -->
-    <section class="cards" id="clubCards">
-        <!-- 초기 서버 렌더링 (JS로도 대체됨) -->
-        <article class="card" th:each="c : ${clubs}">
-            <div class="thumb">
-                <img th:src="@{|/clubs/${c.id}/image|}" alt="club image"/>
-            </div>
-            <div class="info">
+    <main>
+        <div th:if="${param.created}"><strong>모임이 생성되었습니다.</strong></div>
+
+        <div class="grid">
+            <div class="card" th:each="c : ${clubs.content}">
+                <div class="muted" th:text="${c.regionDo} + ' ' + ${c.regionSi}">지역</div>
                 <h3 th:text="${c.name}">모임명</h3>
-                <p class="desc" th:text="${c.description}">소개</p>
-                <p class="region">
-                    <span th:text="${c.regionDo}">도</span>
-                    <span th:text="${c.regionSi}">시군구</span>
-                </p>
-                <div class="chips">
-                    <span class="chip" th:each="k : ${c.categories}" th:text="${k.name}">카테고리</span>
+                <p th:text="${c.description}">설명</p>
+                <div>
+                    <span class="pill" th:each="cat : ${c.categories}" th:text="${cat.name}">카테고리</span>
                 </div>
             </div>
-        </article>
-    </section>
-</main>
+        </div>
 
-<!-- 로그인 모달 -->
-<div class="modal" id="loginModal" hidden>
-    <div class="modal__content">
-        <h3>로그인</h3>
-        <form id="loginForm">
-            <label>이메일
-                <input name="email" type="email" required/>
-            </label>
-            <label>비밀번호
-                <input name="password" type="password" required/>
-            </label>
-            <div class="modal__actions">
-                <button type="submit">로그인</button>
-                <button type="button" data-close>닫기</button>
-            </div>
-            <p class="form-msg" id="loginMsg"></p>
-        </form>
-    </div>
+        <div class="row" style="justify-content:center; margin-top:16px;">
+            <a th:if="${!clubs.first}"
+               th:href="@{/clubs(page=${clubs.number - 1}, kw=${kw}, rdo=${rdo}, rsi=${rsi}, cats=${cats})}">이전</a>
+            <span style="padding:0 8px;" th:text="${clubs.number + 1} + ' / ' + ${clubs.totalPages}">1 / 1</span>
+            <a th:if="${!clubs.last}"
+               th:href="@{/clubs(page=${clubs.number + 1}, kw=${kw}, rdo=${rdo}, rsi=${rsi}, cats=${cats})}">다음</a>
+        </div>
+    </main>
 </div>
 
-<!-- 회원가입 모달 -->
-<div class="modal" id="regModal" hidden>
-    <div class="modal__content">
-        <h3>회원가입</h3>
-        <form id="regForm">
-            <label>닉네임
-                <input name="nickname" required/>
-            </label>
-            <label>이메일
-                <input name="email" type="email" required/>
-            </label>
-            <label>비밀번호
-                <input name="password" type="password" required minlength="6"/>
-            </label>
-
-            <fieldset class="cat-select">
-                <legend>관심 카테고리(복수 선택)</legend>
-                <div th:each="cat : ${categories}">
-                    <label>
-                        <input type="checkbox" name="categoryIds" th:value="${cat.id}"/>
-                        <span th:text="${cat.name}">카테고리</span>
-                    </label>
-                </div>
-            </fieldset>
-
-            <div class="modal__actions">
-                <button type="submit">가입</button>
-                <button type="button" data-close>닫기</button>
-            </div>
-            <p class="form-msg" id="regMsg"></p>
-        </form>
-    </div>
-</div>
-
-<script th:src="@{/js/region.js}" src="/js/region.js"></script>
-<script th:src="@{/js/main.js}" src="/js/main.js"></script>
 <script>
-    // 지역 셀렉트 초기화
-    window.__initRegions('searchDo', 'searchSi');
+    // 지역 드롭다운: DB 기반 API 사용
+    document.addEventListener('DOMContentLoaded', async () => {
+        const $do = document.getElementById('regionDo');
+        const $si = document.getElementById('regionSi');
+        const params = new URLSearchParams(location.search);
+        const selDo = params.get('rdo') || '';
+        const selSi = params.get('rsi') || '';
+
+        const dos = await fetch('/clubs/api/regions/do').then(r=>r.json());
+        $do.innerHTML = '<option value="">도(전체)</option>' + dos.map(d => `<option ${d===selDo?'selected':''}>${d}</option>`).join('');
+        await refreshSi();
+
+        $do.addEventListener('change', refreshSi);
+        async function refreshSi(){
+            const v = $do.value;
+            if(!v){
+                $si.innerHTML = '<option value="">시/군/구(전체)</option>';
+                return;
+            }
+            const sis = await fetch('/clubs/api/regions/si?do=' + encodeURIComponent(v)).then(r=>r.json());
+            $si.innerHTML = '<option value="">시/군/구(전체)</option>' +
+                sis.map(s => `<option ${s===selSi?'selected':''}>${s}</option>`).join('');
+        }
+    });
 </script>
 </body>
 </html>
