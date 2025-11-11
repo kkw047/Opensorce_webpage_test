@@ -1,10 +1,11 @@
 package com.cbnu11team.team11.web;
 
-import com.cbnu11team.team11.domain.club.Club;
-import com.cbnu11team.team11.domain.club.ClubRepository;
-import com.cbnu11team.team11.domain.category.Category;
-import com.cbnu11team.team11.domain.category.CategoryRepository;
-import com.cbnu11team.team11.domain.region.RegionKorRepository;
+import com.cbnu11team.team11.domain.Club;
+import com.cbnu11team.team11.domain.Category;
+import com.cbnu11team.team11.domain.RegionKor;
+import com.cbnu11team.team11.repository.CategoryRepository;
+import com.cbnu11team.team11.repository.ClubRepository;
+import com.cbnu11team.team11.repository.RegionKorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,12 +14,17 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
- * 클럽 목록/검색 화면 컨트롤러
- * 주의: 이 컨트롤러는 "/"를 매핑하지 않습니다. (HomeController가 루트를 전담)
+ * 모임(클럽) 목록 화면
+ * - 루트("/")는 HomeController가 /clubs로 리다이렉트
+ * - 여기서는 /clubs GET만 처리
  */
 @Controller
 @RequestMapping("/clubs")
@@ -27,49 +33,62 @@ public class ClubController {
 
     private final ClubRepository clubRepository;
     private final CategoryRepository categoryRepository;
-    private final RegionKorRepository regionKorRepository; // distinct do 리스트용
+    private final RegionKorRepository regionKorRepository;
 
-    /**
-     * 목록 페이지
-     * 기존 로그 패턴에 맞춰 단순 페이지네이션 + 정렬만 적용 (필터 로직은 필요 시 추가)
-     */
     @GetMapping
     public String index(
-            int page,
-            int size,
-            String regionDo,
-            String regionSi,
-            String category,
-            List<String> keywords,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "12") int size,
+            @RequestParam(name = "regionDo", required = false) String regionDo,
+            @RequestParam(name = "regionSi", required = false) String regionSi,
+            @RequestParam(name = "category", required = false) String category, // 쿼리스트링은 문자열이므로 String으로 받고 아래서 Long 변환
+            @RequestParam(name = "keywords", required = false) String keywords,
             Model model
     ) {
-        // 기본값 보정
         int p = Math.max(page, 0);
-        int s = (size <= 0) ? 10 : size;
+        int s = size > 0 ? size : 12;
 
-        // 단순 정렬(id desc) + 페이징
+        // 단순 목록 (정렬: id desc)
         Page<Club> clubsPage = clubRepository.findAll(
                 PageRequest.of(p, s, Sort.by(Sort.Direction.DESC, "id"))
         );
 
-        // 사이드 필터용 데이터
+        // 카테고리(이름 오름차순)
         List<Category> categories = categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
-        List<String> regionDoList = regionKorRepository.findDistinctRegionDo();
+
+        // 지역(도) 목록: 리포지토리 커스텀 메서드에 의존하지 않고 전체 로드 후 distinct/sort
+        List<String> regionDoList = regionKorRepository.findAll().stream()
+                .map(RegionKor::getRegionDo)
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.toList());
+
+        // 선택된 카테고리 id(Long) 파싱 (템플릿에서 selected 비교용)
+        Long categoryId = null;
+        if (category != null && !category.isBlank()) {
+            try {
+                categoryId = Long.parseLong(category.trim());
+            } catch (NumberFormatException ignore) {
+                categoryId = null;
+            }
+        }
 
         model.addAttribute("clubsPage", clubsPage);
         model.addAttribute("categories", categories);
         model.addAttribute("regionDoList", regionDoList);
 
-        // 뷰에서 네비 active 처리용
+        // 네비 active 표시용
         model.addAttribute("activeMenu", "clubs");
 
-        // 현재 검색 파라미터(뷰에서 유지/표시용)
+        // 현재 파라미터(뷰 유지/표시용)
         model.addAttribute("page", p);
         model.addAttribute("size", s);
-        model.addAttribute("regionDo", regionDo);
-        model.addAttribute("regionSi", regionSi);
-        model.addAttribute("category", category);
-        model.addAttribute("keywords", keywords);
+        model.addAttribute("regionDo", regionDo == null ? "" : regionDo);
+        model.addAttribute("regionSi", regionSi == null ? "" : regionSi);
+        model.addAttribute("category", category == null ? "" : category);
+        model.addAttribute("categoryId", categoryId);
+        model.addAttribute("keywords", keywords == null ? "" : keywords);
 
         return "clubs/index";
     }

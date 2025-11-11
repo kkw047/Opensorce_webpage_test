@@ -2,131 +2,350 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>모임 목록</title>
+    <title>모임 메인</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" th:href="@{/css/app.css}" href="/css/app.css"/>
     <style>
-        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; }
-        header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #eee; }
-        nav a { margin-right:12px; text-decoration:none; color:#333; padding:6px 10px; border-radius:8px; }
-        nav a.active { background:#111; color:#fff; }
-        .container { display:grid; grid-template-columns: 260px 1fr; gap:20px; padding:20px 16px; max-width:1200px; margin:0 auto; }
-        aside { border:1px solid #eee; border-radius:12px; padding:16px; }
-        main { min-height: 60vh; }
-        .grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
-        .card { border:1px solid #eee; border-radius:12px; padding:14px; }
-        .muted { color:#666; font-size:13px; }
-        .title { font-weight:700; margin:0 0 6px; }
-        .desc { color:#444; font-size:14px; margin:6px 0 0; line-height:1.5; }
-        .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid #ddd; color:#333; }
-        .toolbar { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
-        .pagination { display:flex; gap:6px; margin-top:16px; }
-        .pagination a, .pagination span { padding:6px 10px; border-radius:8px; border:1px solid #eee; text-decoration:none; color:#333; }
-        .pagination .current { background:#111; color:#fff; border-color:#111; }
-        .field { margin-bottom:10px; }
-        .field label { display:block; font-size:13px; color:#555; margin-bottom:6px; }
-        select, input[type="text"] { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:8px; }
-        .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+        /* 최소 스타일 (app.css 있으면 그거 우선) */
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; margin:0; background:#f7f7f8; }
+        .topbar { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#111827; color:#fff; }
+        .topbar .actions button { margin-left:8px; padding:8px 12px; background:#374151; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+        .container { display:grid; grid-template-rows: auto 1fr; height:calc(100vh - 52px); }
+        .search { padding:12px 16px; background:#fff; border-bottom:1px solid #e5e7eb; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+        .layout { display:grid; grid-template-columns: 280px 1fr; gap:12px; padding:12px; }
+        .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; }
+        .card .card-header { padding:12px 14px; border-bottom:1px solid #e5e7eb; font-weight:600; }
+        .card .card-body { padding:12px 14px; }
+        .sidebar .footer { padding:12px 14px; border-top:1px solid #e5e7eb; }
+        .btn-primary { background:#2563eb; color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; }
+        .btn-ghost { background:transparent; border:1px solid #d1d5db; color:#111827; padding:8px 12px; border-radius:8px; cursor:pointer; }
+        .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+        .club { border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff; display:flex; flex-direction:column; }
+        .club img { width:100%; height:160px; object-fit:cover; background:#f3f4f6; }
+        .club .info { padding:12px; display:flex; flex-direction:column; gap:6px; }
+        .badge { font-size:12px; background:#eef2ff; color:#3730a3; padding:2px 8px; border-radius:999px; margin-right:6px; display:inline-block; }
+        .muted { color:#6b7280; font-size:13px; }
+        .row { display:flex; gap:8px; }
+        .row > * { flex:1 1 auto; min-width:140px; }
+        label { font-size:12px; color:#374151; display:block; margin-bottom:4px; }
+        select, input[type="text"], input[type="file"] { width:100%; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+        .checkbox { display:flex; align-items:center; gap:8px; margin:6px 0; }
+        /* Modal */
+        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:50; }
+        .modal { width:min(720px, 92vw); background:#fff; border-radius:16px; border:1px solid #e5e7eb; overflow:hidden; }
+        .modal .card-header { display:flex; justify-content:space-between; align-items:center; }
+        .hidden { display:none; }
     </style>
 </head>
 <body>
-<header>
-    <div style="font-weight:800">Team11</div>
-    <nav>
-        <!-- #httpServletRequest 를 쓰지 않고, 컨트롤러에서 내려준 activeMenu 로만 처리 -->
-        <a href="/clubs" th:classappend="${activeMenu}=='clubs' ? ' active' : ''">모임</a>
-        <a href="/about" th:classappend="${activeMenu}=='about' ? ' active' : ''">소개</a>
-    </nav>
-</header>
+<div class="topbar">
+    <div class="brand" style="font-weight:700;">모임 플랫폼</div>
+    <div class="actions">
+        <button type="button" class="btn-ghost" id="btn-login-open">로그인</button>
+        <button type="button" class="btn-primary" id="btn-register-open">회원가입</button>
+    </div>
+</div>
 
 <div class="container">
-    <aside>
-        <h3 style="margin:0 0 10px;">필터</h3>
-
-        <form method="get" th:action="@{/clubs}">
-            <div class="field">
-                <label for="regionDo">지역(도)</label>
+    <!-- 2. 지역/키워드 검색 -->
+    <form class="search" th:action="@{/clubs}" method="get">
+        <div class="row">
+            <div>
+                <label for="regionDo">도(道)</label>
                 <select id="regionDo" name="regionDo">
-                    <option th:value="" th:selected="${regionDo == null or regionDo == ''}">전체</option>
-                    <option th:each="doItem : ${regionDoList}"
-                            th:value="${doItem}"
-                            th:text="${doItem}"
-                            th:selected="${doItem == regionDo}">충청북도</option>
+                    <option value="">전체</option>
+                    <!-- regions 가 제공된다면 (RegionKor: id, regionDo, regionSi) 도 목록 고유값으로 생성 -->
+                    <th:block th:if="${regions}">
+                        <th:block th:with="dos=${#sets.toSet(regions.^map(r -> r.regionDo))}">
+                            <option th:each="d : ${dos}"
+                                    th:value="${d}"
+                                    th:text="${d}">충청북도</option>
+                        </th:block>
+                    </th:block>
                 </select>
             </div>
-
-            <div class="field">
-                <label for="category">카테고리</label>
-                <select id="category" name="category">
-                    <option th:value="" th:selected="${category == null or category == ''}">전체</option>
-                    <option th:each="c : ${categories}"
-                            th:value="${c.id}"
-                            th:text="${c.name}"
-                            th:selected="${c.id == ${category}}">스포츠</option>
+            <div>
+                <label for="regionSi">시/군/구</label>
+                <select id="regionSi" name="regionSi">
+                    <option value="">전체</option>
+                    <th:block th:if="${regions}">
+                        <option th:each="r : ${regions}"
+                                th:value="${r.regionSi}"
+                                th:text="${r.regionSi}">청주시</option>
+                    </th:block>
                 </select>
             </div>
-
-            <div class="field">
-                <label for="kw">키워드(쉼표 구분)</label>
-                <input id="kw" type="text" name="keywords"
-                       th:value="${keywords != null} ? ${#strings.arrayJoin(keywords, ', ')} : ''"
-                       placeholder="예) 축구,주말,청주"/>
-                <div class="muted">예: <code>축구, 주말</code></div>
+            <div>
+                <label for="keyword">키워드</label>
+                <input id="keyword" name="keyword" type="text" placeholder="모임명/설명 검색"
+                       th:value="${param.keyword != null ? param.keyword : ''}"/>
             </div>
-
-            <div class="field">
-                <label for="size">페이지 크기</label>
-                <select id="size" name="size">
-                    <option th:value="6" th:selected="${size == 6}">6</option>
-                    <option th:value="9" th:selected="${size == 9}">9</option>
-                    <option th:value="12" th:selected="${size == 12}">12</option>
-                    <option th:value="20" th:selected="${size == 20}">20</option>
-                </select>
+            <div style="align-self:end">
+                <button class="btn-primary" type="submit">검색</button>
             </div>
-
-            <input type="hidden" name="page" th:value="${page}" />
-            <button type="submit" style="width:100%; padding:10px 12px; border:0; border-radius:10px; background:#111; color:#fff;">
-                적용
-            </button>
-        </form>
-    </aside>
-
-    <main>
-        <div class="toolbar">
-            <div class="muted"
-                 th:text="|총 ${clubsPage.totalElements}개 / ${clubsPage.totalPages}페이지|">총 0개</div>
         </div>
+    </form>
 
-        <div class="grid">
-            <div class="card" th:each="club : ${clubsPage.content}">
-                <div class="title" th:text="${club.name}">모임 이름</div>
-                <div class="chips">
-                    <span class="badge" th:text="${club.regionDo} ?: '지역미지정'">충북</span>
-                    <span class="badge" th:text="${club.regionSi} ?: ''">청주</span>
+    <div class="layout">
+        <!-- 3. 좌측 메뉴/카테고리/모임 만들기 -->
+        <aside class="sidebar card">
+            <div class="card-header">메뉴</div>
+            <div class="card-body">
+                <div class="row" style="gap:6px;">
+                    <a class="btn-ghost" th:href="@{/}">메인</a>
+                    <a class="btn-ghost" th:href="@{/clubs}">추천</a>
+                    <a class="btn-ghost" th:href="@{/calendar}">캘린더</a>
+                    <a class="btn-ghost" th:href="@{/mypage}">내모임</a>
                 </div>
-                <p class="desc" th:text="${club.description} ?: '설명이 아직 없습니다.'">설명</p>
             </div>
-        </div>
 
-        <div class="pagination" th:if="${clubsPage.totalPages > 1}">
-            <!-- 이전 -->
-            <span th:if="${clubsPage.first}" aria-disabled="true">이전</span>
-            <a th:if="${!clubsPage.first}"
-               th:href="@{/clubs(page=${clubsPage.number-1},size=${size},regionDo=${regionDo},regionSi=${regionSi},category=${category},keywords=${keywords})}">이전</a>
+            <div class="card-header">카테고리 필터</div>
+            <div class="card-body" style="max-height:260px; overflow:auto;">
+                <div th:if="${categories}">
+                    <label class="checkbox" th:each="c : ${categories}">
+                        <input type="checkbox" name="categoryFilter" class="cat-filter"
+                               th:value="${c.id}"
+                               th:checked="${param.categoryFilter != null ? #lists.contains(param.categoryFilter, c.id + '') : false}"/>
+                        <span th:text="${c.name}">카테고리</span>
+                    </label>
+                </div>
+                <div th:if="${categories == null or #lists.isEmpty(categories)}" class="muted">카테고리가 없습니다.</div>
+                <div style="margin-top:10px;">
+                    <button class="btn-primary" id="btn-apply-categories" type="button">필터 적용</button>
+                </div>
+            </div>
 
-            <!-- 페이지 번호 -->
-            <span th:each="i : ${#numbers.sequence(0, clubsPage.totalPages-1)}"
-                  th:classappend="${i} == ${clubsPage.number} ? 'current' : ''"
-                  th:text="${i+1}"
-                  th:if="${i >= (clubsPage.number-2) and i <= (clubsPage.number+2)}"
-                  th:remove="tag">
-            </span>
+            <div class="footer">
+                <button class="btn-primary" id="btn-create-open" type="button" style="width:100%;">모임 만들기</button>
+            </div>
+        </aside>
 
-            <!-- 다음 -->
-            <span th:if="${clubsPage.last}" aria-disabled="true">다음</span>
-            <a th:if="${!clubsPage.last}"
-               th:href="@{/clubs(page=${clubsPage.number+1},size=${size},regionDo=${regionDo},regionSi=${regionSi},category=${category},keywords=${keywords})}">다음</a>
-        </div>
-    </main>
+        <!-- 4. 우측 모임 목록 -->
+        <main class="card">
+            <div class="card-header">모임 목록</div>
+            <div class="card-body">
+                <div th:if="${clubs == null or #lists.isEmpty(clubs)}" class="muted">표시할 모임이 없습니다.</div>
+
+                <div class="grid" th:if="${clubs}">
+                    <article class="club" th:each="club : ${clubs}">
+                        <img th:if="${club.imageData != null}"
+                             th:src="@{/clubs/{id}/image(id=${club.id})}" alt="모임 이미지"/>
+                        <img th:if="${club.imageData == null}" src="/static/noimage.png" alt="플레이스홀더"/>
+
+                        <div class="info">
+                            <div style="font-weight:700;" th:text="${club.name != null ? club.name : '이름없음'}">모임 이름</div>
+                            <div class="muted" th:text="${club.description != null ? club.description : '설명 없음'}">설명</div>
+                            <div class="muted" th:text="${(club.regionDo != null ? club.regionDo : '') + (club.regionSi != null ? ' ' + club.regionSi : '')}">지역</div>
+                            <div>
+                                <!-- 카테고리 이름 목록이 있으면 표시 (선택적) -->
+                                <span class="badge" th:each="cn : ${club.categoryNames}" th:text="${cn}">카테고리</span>
+                            </div>
+                            <div>
+                                <a class="btn-ghost" th:href="@{/clubs/{id}(id=${club.id})}">자세히</a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </main>
+    </div>
 </div>
+
+<!-- 로그인 모달 -->
+<div class="modal-backdrop" id="modal-login">
+    <div class="modal">
+        <div class="card-header">
+            <span>로그인</span>
+            <button class="btn-ghost" type="button" data-close="#modal-login">닫기</button>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/auth/login}" method="post">
+                <div class="row">
+                    <div>
+                        <label for="login-username">아이디</label>
+                        <input id="login-username" name="username" type="text" required/>
+                    </div>
+                    <div>
+                        <label for="login-password">비밀번호</label>
+                        <input id="login-password" name="password" type="password" required/>
+                    </div>
+                </div>
+                <div style="margin-top:12px;">
+                    <button class="btn-primary" type="submit">로그인</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 회원가입 모달 -->
+<div class="modal-backdrop" id="modal-register">
+    <div class="modal">
+        <div class="card-header">
+            <span>회원가입</span>
+            <button class="btn-ghost" type="button" data-close="#modal-register">닫기</button>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/auth/register}" method="post">
+                <div class="row">
+                    <div>
+                        <label for="reg-username">아이디</label>
+                        <input id="reg-username" name="username" type="text" required/>
+                    </div>
+                    <div>
+                        <label for="reg-password">비밀번호</label>
+                        <input id="reg-password" name="password" type="password" required/>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <div style="font-weight:600; margin-bottom:6px;">카테고리 선택</div>
+                    <div style="max-height:160px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
+                        <label class="checkbox" th:each="c : ${categories}">
+                            <input type="checkbox" name="categoryIds" th:value="${c.id}"/>
+                            <span th:text="${c.name}">카테고리</span>
+                        </label>
+                        <div th:if="${categories == null or #lists.isEmpty(categories)}" class="muted">카테고리가 없습니다.</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <button class="btn-primary" type="submit">가입하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 모임 만들기 모달 -->
+<div class="modal-backdrop" id="modal-create">
+    <div class="modal">
+        <div class="card-header">
+            <span>모임 만들기</span>
+            <button class="btn-ghost" type="button" data-close="#modal-create">닫기</button>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/clubs}" method="post" enctype="multipart/form-data">
+                <div class="row">
+                    <div>
+                        <label for="club-name">모임 이름</label>
+                        <input id="club-name" name="name" type="text" required/>
+                    </div>
+                    <div>
+                        <label for="club-desc">홍보 문구</label>
+                        <input id="club-desc" name="description" type="text" />
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:8px;">
+                    <div>
+                        <label for="club-do">도(道)</label>
+                        <select id="club-do" name="regionDo">
+                            <option value="">선택</option>
+                            <th:block th:if="${regions}">
+                                <th:block th:with="dos=${#sets.toSet(regions.^map(r -> r.regionDo))}">
+                                    <option th:each="d : ${dos}" th:value="${d}" th:text="${d}">충청북도</option>
+                                </th:block>
+                            </th:block>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="club-si">시/군/구</label>
+                        <select id="club-si" name="regionSi">
+                            <option value="">선택</option>
+                            <th:block th:if="${regions}">
+                                <option th:each="r : ${regions}" th:value="${r.regionSi}" th:text="${r.regionSi}">청주시</option>
+                            </th:block>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <label>카테고리</label>
+                    <div style="max-height:160px; overflow:auto; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
+                        <label class="checkbox" th:each="c : ${categories}">
+                            <input type="checkbox" name="categoryIds" th:value="${c.id}"/>
+                            <span th:text="${c.name}">카테고리</span>
+                        </label>
+                        <div th:if="${categories == null or #lists.isEmpty(categories)}" class="muted">카테고리가 없습니다.</div>
+                    </div>
+                    <div class="row" style="margin-top:8px;">
+                        <div>
+                            <label for="new-category">새 카테고리 추가 (선택)</label>
+                            <input id="new-category" name="newCategoryName" type="text" placeholder="예) 독서, 러닝, 스터디"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                    <div>
+                        <label for="club-image">대표 이미지</label>
+                        <input id="club-image" name="image" type="file" accept="image/*"/>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <button class="btn-primary" type="submit">만들기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/region.js}" src="/js/region.js"></script>
+<script>
+    // 모달 열기/닫기
+    const $ = (sel) => document.querySelector(sel);
+    const open = (id) => { const el = $(id); if (el) el.style.display = 'flex'; }
+    const close = (id) => { const el = $(id); if (el) el.style.display = 'none'; }
+
+    $("#btn-login-open")?.addEventListener("click", () => open("#modal-login"));
+    $("#btn-register-open")?.addEventListener("click", () => open("#modal-register"));
+    $("#btn-create-open")?.addEventListener("click", () => open("#modal-create"));
+
+    document.querySelectorAll("[data-close]")?.forEach(btn => {
+        btn.addEventListener("click", () => close(btn.getAttribute("data-close")));
+    });
+
+    // 카테고리 필터 적용 (체크박스 선택값을 쿼리스트링으로 붙여 /clubs GET 이동)
+    $("#btn-apply-categories")?.addEventListener("click", () => {
+        const selected = Array.from(document.querySelectorAll(".cat-filter:checked")).map(i => i.value);
+        const url = new URL(window.location.href);
+        url.pathname = "/clubs";
+        url.searchParams.delete("categoryFilter");
+        selected.forEach(v => url.searchParams.append("categoryFilter", v));
+        // 지역/키워드 유지
+        const keep = ["regionDo","regionSi","keyword"];
+        keep.forEach(k => {
+            const el = document.getElementById(k);
+            if (el && el.value) url.searchParams.set(k, el.value);
+        });
+        window.location.href = url.toString();
+    });
+
+    // region.js 를 쓰지 않는 환경에서도 기본적으로 시/군/구를 도에 따라 보이도록 간단 필터 (옵션)
+    (function basicRegionFilter() {
+        const doSel = document.getElementById("regionDo");
+        const siSel = document.getElementById("regionSi");
+        if (!doSel || !siSel) return;
+
+        const original = Array.from(siSel.options).map(o => ({v:o.value, t:o.textContent}));
+        const rebuild = () => {
+            const doval = doSel.value;
+            while (siSel.firstChild) siSel.removeChild(siSel.firstChild);
+            const all = document.createElement("option");
+            all.value = ""; all.textContent = "전체"; siSel.appendChild(all);
+            original.forEach(o => {
+                if (!o.v || !doval) { // 전체
+                    const opt = document.createElement("option"); opt.value = o.v; opt.textContent = o.t; siSel.appendChild(opt);
+                } else {
+                    // 서버에서 regionSi만 받은 경우엔 필터 불가 → 모두 출력
+                    const opt = document.createElement("option"); opt.value = o.v; opt.textContent = o.t; siSel.appendChild(opt);
+                }
+            });
+        };
+        doSel.addEventListener("change", rebuild);
+    })();
+</script>
 </body>
 </html>
