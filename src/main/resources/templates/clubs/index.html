@@ -1,106 +1,157 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>메인</title>
-    <link rel="stylesheet" href="/css/app.css">
+    <title>Team11 – 모임 플랫폼</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script defer th:src="@{/js/main.js}"></script>
 </head>
 <body>
-<div class="layout">
-    <header class="topbar">
-        <div class="brand">TEAM11</div>
-        <div class="actions">
-            <span id="welcomeArea" class="welcome"></span>
-            <button id="btnLogin">로그인</button>
-            <button id="btnRegister">회원가입</button>
-            <button id="btnLogout" style="display:none;">로그아웃</button>
-        </div>
-    </header>
+<div class="container">
+    <div class="app">
 
-    <section class="searchbar">
-        <select id="selDo"><option value="">도(전체)</option></select>
-        <select id="selSi"><option value="">시/군/구(전체)</option></select>
-        <input id="kw" type="text" placeholder="키워드를 입력하세요" />
-        <button id="btnSearch">검색</button>
-    </section>
+        <!-- 1.1 Header -->
+        <header class="header">
+            <div class="brand">
+                <span class="dot"></span>
+                <span>Team11 모임</span>
+            </div>
+            <div class="header-actions">
+                <button id="openLogin" class="btn">로그인</button>
+                <button id="openRegister" class="btn btn-primary">회원가입</button>
+            </div>
+        </header>
 
-    <div class="content">
+        <!-- 1.2 Search -->
+        <section class="search">
+            <select id="srchDo" class="input">
+                <option value="">도(전체)</option>
+            </select>
+            <select id="srchSi" class="input">
+                <option value="">시/군/구(전체)</option>
+            </select>
+            <input id="srchKw" class="input" type="text" placeholder="키워드 (이름/설명)">
+            <button id="btnSearch" class="btn btn-primary">검색</button>
+        </section>
+
+        <!-- 1.3 Sidebar -->
         <aside class="sidebar">
-            <div class="menu">
-                <div class="menu-main">
-                    <button class="menu-btn active" data-tab="main">메인</button>
-                    <button class="menu-btn" data-tab="recommend" disabled>추천</button>
-                    <button class="menu-btn" data-tab="calendar" disabled>캘린더</button>
-                    <button class="menu-btn" data-tab="my" disabled>내 모임</button>
+            <div>
+                <div style="font-weight:800;margin-bottom:8px">메인 메뉴</div>
+                <div class="menu">
+                    <div id="menuMain" class="item active">메인</div>
+                    <div id="menuRec" class="item">추천</div>
+                    <div id="menuCal" class="item">캘린더</div>
+                    <div id="menuMine" class="item">내 모임</div>
                 </div>
-                <div class="menu-cat">
-                    <h4>카테고리</h4>
-                    <div id="catList" class="cat-list"></div>
-                </div>
-                <div class="menu-bottom">
-                    <button id="btnNewClub" class="primary">모임 만들기</button>
-                </div>
+            </div>
+
+            <div>
+                <div style="font-weight:800;margin:10px 0 8px">카테고리 필터</div>
+                <div id="sideCats" class="cat-list"><div class="muted">로딩중…</div></div>
+            </div>
+
+            <div style="margin-top:auto">
+                <button id="menuMake" class="btn btn-primary" style="width:100%">모임 만들기</button>
             </div>
         </aside>
 
-        <main class="mainpanel">
-            <div id="cards" class="cards"></div>
-            <div id="pager" class="pager"></div>
+        <!-- 1.4 Content -->
+        <main id="content" class="content">
+            <div class="card">
+                <h2 style="margin:0 0 10px 0;">모임</h2>
+                <div id="clubList" class="cards"></div>
+            </div>
         </main>
+
     </div>
 </div>
 
-<!-- 로그인 모달 -->
+<!-- ===== 로그인 모달 ===== -->
 <div id="loginModal" class="modal">
-    <div class="modal-body">
-        <h3>로그인</h3>
-        <label>아이디</label>
-        <input id="loginId" type="text" minlength="4" maxlength="20">
-        <label>비밀번호</label>
-        <input id="loginPw" type="password" minlength="8" maxlength="64">
-        <div class="modal-actions">
-            <button id="doLogin" class="primary">로그인</button>
-            <button class="ghost" data-close="#loginModal">닫기</button>
+    <div class="dialog">
+        <div class="head">
+            <div style="font-weight:700">로그인</div>
+            <button class="btn" data-close="loginModal">닫기</button>
         </div>
-        <div id="loginErr" class="error"></div>
+        <div class="body">
+            <form th:action="@{/auth/login}" method="post" class="grid" style="gap:12px">
+                <div class="form-row">
+                    <label>아이디</label>
+                    <input class="input" type="text" name="loginId" required>
+                </div>
+                <div class="form-row">
+                    <label>비밀번호</label>
+                    <input class="input" type="password" name="password" required>
+                </div>
+                <div class="foot" style="padding:0;text-align:right">
+                    <button class="btn btn-primary" type="submit">로그인</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<!-- 회원가입 모달 -->
+<!-- ===== 회원가입 모달 ===== -->
 <div id="registerModal" class="modal">
-    <div class="modal-body">
-        <h3>회원가입</h3>
-        <label>아이디</label>
-        <div class="row">
-            <input id="regId" type="text" minlength="4" maxlength="20">
-            <button id="btnCheckId" class="ghost">중복검사</button>
+    <div class="dialog">
+        <div class="head">
+            <div style="font-weight:700">회원가입</div>
+            <button class="btn" data-close="registerModal">닫기</button>
         </div>
-        <label>비밀번호</label>
-        <input id="regPw" type="password" minlength="8" maxlength="64">
-        <label>이메일</label>
-        <div class="row">
-            <input id="regEmail" type="email">
-            <button id="btnCheckEmail" class="ghost">중복검사</button>
+        <div class="body">
+            <form th:action="@{/auth/register}" method="post" class="grid" style="gap:12px">
+                <div class="form-grid">
+                    <div class="form-row">
+                        <label>이메일</label>
+                        <input class="input" type="email" name="email" required>
+                    </div>
+                    <div class="form-row">
+                        <label>닉네임</label>
+                        <input class="input" type="text" name="nickname" required>
+                    </div>
+                    <div class="form-row">
+                        <label>아이디</label>
+                        <div style="display:flex;gap:8px">
+                            <input id="regLoginId" class="input" type="text" name="loginId" required>
+                            <button id="btnCheckId" class="btn" type="button">중복검사</button>
+                        </div>
+                        <span id="idHelp" class="help" style="color:#64748b"></span>
+                    </div>
+                    <div class="form-row">
+                        <label>비밀번호</label>
+                        <input class="input" type="password" name="password" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label>관심 카테고리 (체크 다중 선택)</label>
+                    <div id="regCats" class="cat-list"><div class="muted">로딩중…</div></div>
+                </div>
+
+                <div class="foot" style="padding:0;text-align:right">
+                    <button class="btn btn-primary" type="submit">가입하기</button>
+                </div>
+            </form>
         </div>
-        <label>닉네임</label>
-        <input id="regNick" type="text" maxlength="50">
-        <div>
-            <h4>관심 카테고리</h4>
-            <div id="regCats" class="cat-list"></div>
-        </div>
-        <div class="modal-actions">
-            <button id="doRegister" class="primary">가입하기</button>
-            <button class="ghost" data-close="#registerModal">닫기</button>
-        </div>
-        <div id="regMsg" class="error"></div>
     </div>
 </div>
 
-<script type="module" src="/js/main.js"></script>
-<script>
-    document.addEventListener('click', (e)=>{
-        const btn = e.target.closest('[data-close]');
-        if(btn){ document.querySelector(btn.getAttribute('data-close')).classList.remove('show'); }
+<script th:inline="javascript">
+    // 아이디 중복검사 (서버에서 /auth/check-login-id?loginId=… 제공 가정)
+    document.addEventListener('DOMContentLoaded', ()=>{
+        const btn = document.getElementById('btnCheckId');
+        if(!btn) return;
+        btn.addEventListener('click', async ()=>{
+            const v = document.getElementById('regLoginId').value.trim();
+            const help = document.getElementById('idHelp');
+            if(!v){ help.textContent='아이디를 입력하세요'; help.style.color='#ef4444'; return; }
+            try{
+                const r = await fetch(/*[[@{/auth/check-login-id}]]*/'/auth/check-login-id?loginId='+encodeURIComponent(v));
+                if(r.ok){ help.textContent='사용 가능한 아이디입니다.'; help.style.color='#16a34a'; }
+                else { help.textContent='이미 사용 중입니다.'; help.style.color='#ef4444'; }
+            }catch{ help.textContent='확인 실패'; help.style.color='#ef4444'; }
+        });
     });
 </script>
 </body>

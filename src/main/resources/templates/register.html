@@ -3,25 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <title>회원가입</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script defer th:src="@{/js/main.js}"></script>
 </head>
 <body>
-<a th:href="@{/}">← 메인</a>
-<h2>회원가입</h2>
+<main style="max-width:720px;margin:40px auto;padding:0 16px;">
+    <form class="card grid" th:action="@{/auth/register}" method="post">
+        <h2 style="margin:0;">회원가입</h2>
+        <p class="help">이메일/닉네임/아이디/비밀번호와 관심 카테고리를 선택하세요.</p>
+        <hr>
 
-<form th:action="@{/register}" method="post">
-    <div><label>아이디</label> <input name="username" minlength="4" maxlength="20" required></div>
-    <div><label>비밀번호</label> <input type="password" name="password" minlength="8" maxlength="64" required></div>
-    <div><label>이메일</label> <input type="email" name="email" required></div>
+        <div class="grid cols-2">
+            <div class="grid">
+                <label class="label">이메일</label>
+                <input class="input" type="email" name="email" placeholder="you@example.com" required>
+            </div>
+            <div class="grid">
+                <label class="label">닉네임</label>
+                <input class="input" type="text" name="nickname" placeholder="별명" required>
+            </div>
+        </div>
 
-    <fieldset>
-        <legend>관심 카테고리</legend>
-        <label th:each="c : ${categories}" style="margin-right:12px;display:inline-block">
-            <input type="checkbox" name="categoryIds" th:value="${c.id}">
-            <span th:text="${c.name}">cat</span>
-        </label>
-    </fieldset>
+        <div class="grid cols-2">
+            <div class="grid">
+                <label class="label">아이디</label>
+                <div style="display:flex; gap:8px;">
+                    <input id="loginId" class="input" type="text" name="loginId" placeholder="영문/숫자 조합" required>
+                    <button id="btnCheckId" class="btn" type="button">중복검사</button>
+                </div>
+                <span id="idHelp" class="help"></span>
+            </div>
+            <div class="grid">
+                <label class="label">비밀번호</label>
+                <input class="input" type="password" name="password" placeholder="8자 이상" required>
+            </div>
+        </div>
 
-    <button type="submit">가입하기</button>
-</form>
+        <div class="grid">
+            <label class="label">관심 카테고리</label>
+            <div id="regCategoryPills" class="pills">
+                <label class="pill" th:each="c : ${categories}">
+                    <input type="checkbox" name="categoryIds" th:value="${c.id}">
+                    <span th:text="${'# ' + c.name}"># 러닝</span>
+                </label>
+            </div>
+            <div class="grid cols-3">
+                <input id="regNewCatName" class="input" type="text" placeholder="+ 새 카테고리 이름">
+                <button id="regAddCat" class="btn" type="button">+ 카테고리 추가</button>
+                <span class="help">필요 시 새 카테고리를 추가할 수 있습니다.</span>
+            </div>
+        </div>
+
+        <div style="text-align:right;">
+            <a class="btn btn-ghost" th:href="@{/}">취소</a>
+            <button class="btn btn-primary" type="submit">가입하기</button>
+        </div>
+    </form>
+</main>
+
+<script th:inline="javascript">
+    Team11UI.setupPills('#regCategoryPills');
+
+    // 새 카테고리
+    document.getElementById('regAddCat').addEventListener('click', async ()=>{
+        const v = document.getElementById('regNewCatName').value.trim();
+        if(!v) return;
+        try{
+            const cat = await Team11UI.createCategory(/*[[@{/api/categories}]]*/'/api/categories', v);
+            Team11UI.appendCategoryPill('#regCategoryPills', cat.id, cat.name);
+            document.getElementById('regNewCatName').value='';
+        }catch(e){
+            alert(e.message || '카테고리를 추가할 수 없습니다.');
+        }
+    });
+
+    // 아이디 중복검사 (간단 예시: 사용 중이면 409 반환하도록 서버에서 구현되어 있다고 가정)
+    document.getElementById('btnCheckId').addEventListener('click', async ()=>{
+        const v = document.getElementById('loginId').value.trim();
+        const help = document.getElementById('idHelp');
+        if(!v){ help.textContent='아이디를 입력하세요.'; help.style.color = '#ef4444'; return; }
+        try{
+            const res = await fetch(/*[[@{/auth/check-login-id}]]*/'/auth/check-login-id' + `?loginId=${encodeURIComponent(v)}`);
+            if(res.ok){
+                help.textContent='사용 가능한 아이디입니다.';
+                help.style.color = '#16a34a';
+            }else{
+                help.textContent='이미 사용 중인 아이디입니다.';
+                help.style.color = '#ef4444';
+            }
+        }catch{
+            help.textContent='확인에 실패했습니다.';
+            help.style.color = '#ef4444';
+        }
+    });
+</script>
 </body>
 </html>

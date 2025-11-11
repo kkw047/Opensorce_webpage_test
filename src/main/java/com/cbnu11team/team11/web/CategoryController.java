@@ -1,27 +1,39 @@
 package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Category;
+import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.service.ClubService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/categories")
 public class CategoryController {
 
-    private final ClubService clubService;
+    private final CategoryRepository categoryRepository;
+    private final ClubService clubService; // 기존 컨트롤러에서 이 메서드 호출하던 호환 위해 유지
 
-    @GetMapping
-    public List<Category> list() {
-        return clubService.findAllCategories();
+    public CategoryController(CategoryRepository categoryRepository, ClubService clubService) {
+        this.categoryRepository = categoryRepository;
+        this.clubService = clubService;
     }
 
-    // 모임 만들기에서만 사용(프론트 제어)
+    record NameReq(String name) {}
+    record CatDto(Long id, String name) {
+        static CatDto of(Category c){ return new CatDto(c.getId(), c.getName()); }
+    }
+
+    @GetMapping
+    public List<CatDto> list() {
+        return categoryRepository.findAll().stream().map(CatDto::of).toList();
+    }
+
     @PostMapping
-    public Category create(@RequestBody Category req) {
-        return clubService.createCategoryIfNotExists(req.getName());
+    @Transactional
+    public CatDto create(@RequestBody NameReq req) {
+        Category c = clubService.createCategoryIfNotExists(req.name());
+        return CatDto.of(c);
     }
 }

@@ -1,18 +1,16 @@
 package com.cbnu11team.team11.web;
 
-import com.cbnu11team.team11.domain.Category; // ⬅ 추가
 import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.service.ClubService;
 import com.cbnu11team.team11.service.FileStorageService;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +28,8 @@ class ClubApiController {
     private final FileStorageService storage;
 
     @GetMapping
-    public Page<ClubCard> search(
+    @Transactional(readOnly = true) // LazyInitializationException 방지
+    public Page<ClubDtos.ClubCard> search(
             @RequestParam(value = "rdo", required = false) String rdo,
             @RequestParam(value = "rsi", required = false) String rsi,
             @RequestParam(value = "kw", required = false) String kw,
@@ -39,8 +38,14 @@ class ClubApiController {
             @RequestParam(value = "size", defaultValue = "12") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Club> p = clubService.search(rdo, rsi, StringUtils.hasText(kw) ? kw.trim() : null, cats, pageable);
-        return p.map(ClubCard::from);
+        Page<Club> p = clubService.search(
+                rdo,
+                rsi,
+                StringUtils.hasText(kw) ? kw.trim() : null,
+                cats,
+                pageable
+        );
+        return p.map(ClubDtos::toCard);
     }
 
     @PostMapping(consumes = {"multipart/form-data"})
@@ -53,34 +58,9 @@ class ClubApiController {
             @RequestParam(value = "newCategoryNames", required = false) List<String> newCategoryNames,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
-        String imageUrl = storage.store(image);
+        String imageUrl = (image != null && !image.isEmpty()) ? storage.store(image) : null;
         Club c = clubService.createClub(name, description, regionDo, regionSi, categoryIds, imageUrl, newCategoryNames);
         return ResponseEntity.ok(Map.of("id", c.getId()));
-    }
-
-    @Getter @Setter
-    static class ClubCard {
-        private Long id;
-        private String name;
-        private String description;
-        private String imageUrl;
-        private String regionDo;
-        private String regionSi;
-        private List<String> categories;
-
-        static ClubCard from(Club c) {
-            ClubCard cc = new ClubCard();
-            cc.id = c.getId();
-            cc.name = c.getName();
-            cc.description = c.getDescription();
-            cc.imageUrl = c.getImageUrl();
-            cc.regionDo = c.getRegionDo();
-            cc.regionSi = c.getRegionSi();
-            cc.categories = c.getCategories().stream().map(Category::getName).toList();
-            // 필요시 아래처럼 람다로도 가능(별도 import 없이 동작)
-            // cc.categories = c.getCategories().stream().map(cat -> cat.getName()).toList();
-            return cc;
-        }
     }
 }
 

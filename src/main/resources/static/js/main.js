@@ -1,244 +1,289 @@
-import { loadDos, loadSis } from './region.js';
+/* ====== Modal helpers (Login / Register) ====== */
+function openModal(id){ document.getElementById(id)?.classList.add('open'); }
+function closeModal(id){ document.getElementById(id)?.classList.remove('open'); }
+document.addEventListener('click', (e)=>{
+    if(e.target.classList.contains('modal')) e.target.classList.remove('open');
+});
 
-const $ = (s, r=document)=>r.querySelector(s);
-const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
-
-const state = {
-    page: 0,
-    size: 12,
-    selectedCats: new Set(),
-    rdo: '',
-    rsi: '',
-    kw: '',
-    me: null
-};
-
-function openModal(id){ $(id).classList.add('show'); }
-function closeModal(id){ $(id).classList.remove('show'); }
-
-function toastErr(el, msg){ el.textContent = msg; setTimeout(()=>el.textContent='', 3000); }
-
-async function refreshMe(){
-    const res = await fetch('/api/auth/me');
-    state.me = await res.json();
-    const welcome = $('#welcomeArea');
-    const btnLogin = $('#btnLogin'), btnReg = $('#btnRegister'), btnLogout = $('#btnLogout');
-    if(state.me.authenticated){
-        welcome.textContent = `안녕하세요, ${state.me.nickname}님`;
-        btnLogin.style.display='none'; btnReg.style.display='none'; btnLogout.style.display='';
-    }else{
-        welcome.textContent = '';
-        btnLogin.style.display=''; btnReg.style.display=''; btnLogout.style.display='none';
-    }
+/* ====== Common fetch helpers ====== */
+async function jget(url){
+    const r = await fetch(url, {headers:{'Accept':'application/json'}});
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+async function jpost(url, body){
+    const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!r.ok) throw new Error(await r.text());
+    return r.json();
 }
 
-async function initTopBar(){
-    $('#btnLogin').addEventListener('click', ()=>openModal('#loginModal'));
-    $('#btnRegister').addEventListener('click', async ()=>{
-        await ensureRegCats(); openModal('#registerModal');
-    });
-    $('#btnLogout').addEventListener('click', async ()=>{
-        await fetch('/api/auth/logout', {method:'POST'});
-        await refreshMe();
-        await fetchAndRender();
-    });
-    $$('#loginModal [data-close]').forEach(b=>b.addEventListener('click',e=>closeModal('#loginModal')));
-    $$('#registerModal [data-close]').forEach(b=>b.addEventListener('click',e=>closeModal('#registerModal')));
+/* ====== Regions & Categories ====== */
+async function loadDos(){ return jget('/api/regions/do'); }
+async function loadSis(rdo){ return jget('/api/regions/si?rdo='+encodeURIComponent(rdo)); }
+async function loadCategories(){ return jget('/api/categories'); } // GET 목록 (서버에서 제공)
 
-    $('#doLogin').addEventListener('click', doLogin);
-    $('#btnCheckId').addEventListener('click', checkId);
-    $('#btnCheckEmail').addEventListener('click', checkEmail);
-    $('#doRegister').addEventListener('click', doRegister);
+/* ====== Clubs search & render ====== */
+async function searchClubs(params){
+    const qs = new URLSearchParams(params);
+    return jget('/api/clubs?'+qs.toString()); // GET 검색 (Page JSON 가정: {content:[], totalElements...})
 }
 
-async function doLogin(){
-    const loginId = $('#loginId').value.trim();
-    const password = $('#loginPw').value;
-    const err = $('#loginErr');
-    try{
-        const res = await fetch('/api/auth/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({loginId, password})});
-        if(!res.ok){ const j = await res.json(); throw new Error(j.error||'로그인 실패'); }
-        closeModal('#loginModal'); await refreshMe();
-    }catch(e){ toastErr(err, e.message); }
+function clubCard(c){
+    const cats = (c.categories||[]).map(k=>`<span class="badge"># ${k.name||k}</span>`).join('');
+    const cover = c.imageUrl || '';
+    return `
+    <div class="club">
+      <img class="cover" src="${cover}" alt="">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="font-weight:700">${c.name}</div>
+        <div class="badge">${c.regionDo||''} ${c.regionSi||''}</div>
+      </div>
+      <div style="color:#475569;font-size:14px">${(c.description||'').substring(0,120)}</div>
+      <div class="badges">${cats}</div>
+    </div>
+  `;
 }
 
-async function checkId(){
-    const v = $('#regId').value.trim();
-    const r = await fetch('/api/auth/check-id?loginId='+encodeURIComponent(v));
-    const j = await r.json();
-    $('#regMsg').textContent = j.duplicated ? '이미 사용중인 아이디입니다.' : '사용 가능한 아이디입니다.';
-    setTimeout(()=>$('#regMsg').textContent='',2000);
-}
-async function checkEmail(){
-    const v = $('#regEmail').value.trim();
-    const r = await fetch('/api/auth/check-email?email='+encodeURIComponent(v));
-    const j = await r.json();
-    $('#regMsg').textContent = j.duplicated ? '이미 사용중인 이메일입니다.' : '사용 가능한 이메일입니다.';
-    setTimeout(()=>$('#regMsg').textContent='',2000);
+function renderClubs(list){
+    const root = document.getElementById('clubList');
+    root.innerHTML = list.map(clubCard).join('') || '<div class="card">검색 결과가 없습니다.</div>';
 }
 
-async function ensureRegCats(){
-    const wrap = $('#regCats');
-    if(wrap.childElementCount>0) return;
-    const res = await fetch('/api/categories');
-    const cats = await res.json();
-    wrap.innerHTML='';
-    cats.forEach(c=>{
-        const lab = document.createElement('label');
-        lab.className='chk';
-        lab.innerHTML = `<input type="checkbox" value="${c.id}"> <span>${c.name}</span>`;
-        wrap.appendChild(lab);
-    });
+/* ====== Sidebar categories (filter only) ====== */
+async function mountSidebarCategories(){
+    const cats = await loadCategories();
+    const holder = document.getElementById('sideCats');
+    holder.innerHTML = cats.map(c=>`
+    <label class="cat-row">
+      <input type="checkbox" name="sideCat" value="${c.id}">
+      <span># ${c.name}</span>
+    </label>
+  `).join('');
 }
 
-async function doRegister(){
-    const loginId = $('#regId').value.trim();
-    const password = $('#regPw').value;
-    const email = $('#regEmail').value.trim();
-    const nickname = $('#regNick').value.trim();
-    const categoryIds = $$('#regCats input[type=checkbox]:checked').map(i=>Number(i.value));
-    const err = $('#regMsg');
-    try{
-        const res = await fetch('/api/auth/register', {method:'POST', headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({loginId,password,email,nickname,categoryIds})});
-        if(!res.ok){ const j = await res.json().catch(()=>({})); throw new Error(j.error||'회원가입 실패'); }
-        closeModal('#registerModal'); await refreshMe();
-    }catch(e){ toastErr(err, e.message); }
-}
+/* ====== Search row wiring ====== */
+async function mountSearchBar(){
+    const selDo = document.getElementById('srchDo');
+    const selSi = document.getElementById('srchSi');
+    const kw = document.getElementById('srchKw');
+    const btn = document.getElementById('btnSearch');
 
-async function initSearchBar(){
-    const selDo = $('#selDo'), selSi = $('#selSi');
-    await loadDos(selDo);
-    selDo.addEventListener('change', ()=>loadSis(selDo.value, selSi,true));
-    $('#btnSearch').addEventListener('click', ()=>{
-        state.rdo = selDo.value; state.rsi = selSi.value; state.kw = $('#kw').value.trim(); state.page=0;
-        fetchAndRender();
-    });
-}
-
-async function initSidebar(){
-    // 카테고리
-    const res = await fetch('/api/categories');
-    const cats = await res.json();
-    const box = $('#catList');
-    box.innerHTML = '';
-    cats.forEach(c=>{
-        const id = 'cat_'+c.id;
-        const lab = document.createElement('label');
-        lab.className='chk';
-        lab.innerHTML = `<input id="${id}" type="checkbox" value="${c.id}"> <span>${c.name}</span>`;
-        const i = lab.querySelector('input');
-        i.addEventListener('change', ()=>{
-            if(i.checked) state.selectedCats.add(Number(c.id));
-            else state.selectedCats.delete(Number(c.id));
-            state.page=0; fetchAndRender();
-        });
-        box.appendChild(lab);
+    const dos = await loadDos();
+    selDo.innerHTML = '<option value="">도(전체)</option>' + dos.map(d=>`<option value="${d}">${d}</option>`).join('');
+    selDo.addEventListener('change', async ()=>{
+        const v = selDo.value;
+        selSi.innerHTML = '<option value="">시/군/구(전체)</option>';
+        if(v){
+            const sis = await loadSis(v);
+            selSi.innerHTML = '<option value="">시/군/구(전체)</option>' + sis.map(s=>`<option value="${s}">${s}</option>`).join('');
+        }
     });
 
-    // 모임 만들기 → 우측 패널로 폼 로드
-    $('#btnNewClub').addEventListener('click', async ()=>{
-        const main = $('#cards'); const pager = $('#pager');
-        const html = await (await fetch('/clubs/create')).text();
-        main.innerHTML = html; pager.innerHTML='';
-        wireCreateForm(); // 폼 스크립트 바인딩
-    });
+    btn.addEventListener('click', runSearch);
+    kw.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); runSearch(); }});
 }
 
-function renderPager(totalPages){
-    const pager = $('#pager'); pager.innerHTML='';
-    const makeBtn = (p, lab)=> {
-        const b = document.createElement('button'); b.textContent = lab;
-        b.addEventListener('click', ()=>{ state.page = p; fetchAndRender(); });
-        return b;
-    };
-    if(state.page>0) pager.appendChild(makeBtn(state.page-1, '이전'));
-    pager.appendChild(document.createTextNode(` ${state.page+1} / ${Math.max(1,totalPages)} `));
-    if(state.page+1<totalPages) pager.appendChild(makeBtn(state.page+1, '다음'));
-}
+/* run search uses both search-row & sidebar checked categories */
+async function runSearch(){
+    const rdo = document.getElementById('srchDo').value || '';
+    const rsi = document.getElementById('srchSi').value || '';
+    const kw  = document.getElementById('srchKw').value || '';
+    const catChecked = Array.from(document.querySelectorAll('input[name="sideCat"]:checked')).map(i=>i.value);
 
-function renderCards(page){
-    const box = $('#cards'); box.innerHTML='';
-    page.content.forEach(c=>{
-        const div = document.createElement('div');
-        div.className='card';
-        div.innerHTML = `
-      <img src="${c.imageUrl || 'https://picsum.photos/seed/'+c.id+'/400/240'}" alt="">
-      <div class="card-body">
-        <div style="font-weight:600">${c.name}</div>
-        <div style="color:#6b7280;font-size:13px">${c.regionDo} ${c.regionSi}</div>
-        <div class="badges">${(c.categories||[]).map(n=>`<span class="badge">${n}</span>`).join('')}</div>
-      </div>`;
-        box.appendChild(div);
-    });
-    renderPager(page.totalPages);
-}
-
-async function fetchAndRender(){
     const params = new URLSearchParams();
-    if(state.rdo) params.set('rdo', state.rdo);
-    if(state.rsi) params.set('rsi', state.rsi);
-    if(state.kw) params.set('kw', state.kw);
-    if(state.selectedCats.size>0) Array.from(state.selectedCats).forEach(id=>params.append('cats', String(id)));
-    params.set('page', String(state.page));
-    params.set('size', String(state.size));
+    if(rdo) params.set('rdo', rdo);
+    if(rsi) params.set('rsi', rsi);
+    if(kw)  params.set('kw', kw);
+    catChecked.forEach(v=>params.append('cats', v));
+    params.set('page','0'); params.set('size','12');
 
-    const res = await fetch('/api/clubs?'+params.toString());
-    const page = await res.json();
-    renderCards(page);
+    const page = await searchClubs(params);
+    const list = page.content || page; // fallback
+    renderClubs(list);
 }
 
-/* ----- 모임 만들기 폼 바인딩 (우측 패널) ----- */
-function wireCreateForm(){
-    const form = $('#clubForm'); if(!form) return;
+/* ====== Create Club panel (2) ====== */
+function showCreatePanel(){
+    const panel = document.getElementById('content');
+    panel.innerHTML = `
+    <div class="card">
+      <h2 style="margin:0 0 10px 0;">모임 만들기</h2>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>모임 이름</label>
+          <input id="c_name" class="input" type="text" placeholder="예) 주말 러닝 메이트">
+        </div>
+        <div class="form-row">
+          <label>이미지 URL</label>
+          <input id="c_img" class="input" type="url" placeholder="https://...">
+        </div>
+        <div class="form-row" style="grid-column:1/-1">
+          <label>홍보 문구</label>
+          <textarea id="c_desc" class="input textarea" placeholder="간단한 소개"></textarea>
+        </div>
 
-    const formDo = $('#formDo'), formSi = $('#formSi');
-    // 기존 템플릿 렌더에 도 리스트가 있음. 도 변경 시 시/군/구 채우기
-    formDo.addEventListener('change', ()=>loadSis(formDo.value, formSi, false));
+        <div class="form-row">
+          <label>지역(도)</label>
+          <select id="c_do" class="input"></select>
+        </div>
+        <div class="form-row">
+          <label>지역(시/군/구)</label>
+          <select id="c_si" class="input"><option value="">도 먼저 선택</option></select>
+        </div>
 
-    // 신규 카테고리 chips
-    const input = $('#newCatInput');
-    const chips = $('#newCatChips');
-    const hidden = $('#newCategoryNames');
-    const bag = new Set();
-    function renderChips(){
-        chips.innerHTML=''; hidden.value = Array.from(bag).join(',');
-        bag.forEach(nm=>{
-            const span = document.createElement('span');
-            span.className='chip'; span.textContent = nm;
-            span.addEventListener('click', ()=>{ bag.delete(nm); renderChips(); });
-            chips.appendChild(span);
+        <div class="form-row" style="grid-column:1/-1">
+          <label>카테고리</label>
+          <div id="c_pills" class="pills"></div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px">
+            <input id="c_newcat" class="input" type="text" placeholder="+ 새 카테고리 이름 (모임 만들기에서만 추가 가능)">
+            <button id="c_addcat" class="btn" type="button">+ 카테고리 추가</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <div><img id="c_preview" class="preview" alt=""></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" id="c_cancel">취소</button>
+          <button class="btn btn-primary" id="c_submit">만들기</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+    // wire image preview
+    const imgInput = document.getElementById('c_img');
+    const preview  = document.getElementById('c_preview');
+    imgInput.addEventListener('input', ()=>{ preview.src = imgInput.value.trim(); });
+
+    // load dos & sis
+    (async()=>{
+        const dos = await loadDos();
+        const selDo = document.getElementById('c_do');
+        const selSi = document.getElementById('c_si');
+        selDo.innerHTML = '<option value="">선택</option>' + dos.map(d=>`<option value="${d}">${d}</option>`).join('');
+        selDo.addEventListener('change', async ()=>{
+            const v = selDo.value;
+            selSi.innerHTML = '<option value="">선택</option>';
+            if(v){
+                const sis = await loadSis(v);
+                selSi.innerHTML = '<option value="">선택</option>' + sis.map(s=>`<option value="${s}">${s}</option>`).join('');
+            }
         });
-    }
-    input.addEventListener('keydown', (e)=>{
-        if(e.key==='Enter'){ e.preventDefault();
-            const v=input.value.trim(); if(v){ bag.add(v); input.value=''; renderChips(); }
-        }
+    })();
+
+    // load categories as chips
+    (async()=>{
+        const cats = await loadCategories();
+        const holder = document.getElementById('c_pills');
+        holder.innerHTML = cats.map(c=>`
+      <label class="pill"><input type="checkbox" value="${c.id}"><span># ${c.name}</span></label>
+    `).join('');
+        // chip toggle
+        holder.querySelectorAll('.pill').forEach(p=>{
+            const input = p.querySelector('input');
+            const apply = ()=>p.classList.toggle('active', input.checked);
+            p.addEventListener('click', (e)=>{ if(e.target.tagName!=='INPUT'){ input.checked = !input.checked; apply(); }});
+            apply();
+        });
+    })();
+
+    // add new category (ONLY here)
+    document.getElementById('c_addcat').addEventListener('click', async ()=>{
+        const v = document.getElementById('c_newcat').value.trim();
+        if(!v) return;
+        try{
+            const cat = await jpost('/api/categories', {name:v});
+            const holder = document.getElementById('c_pills');
+            // avoid dup
+            if(holder.querySelector(`input[value="${cat.id}"]`)) return;
+            const el = document.createElement('label');
+            el.className='pill active';
+            el.innerHTML = `<input type="checkbox" value="${cat.id}" checked><span># ${cat.name}</span>`;
+            holder.prepend(el);
+            document.getElementById('c_newcat').value='';
+        }catch(e){ alert('카테고리 추가 실패'); }
     });
 
-    $('#cancelCreate').addEventListener('click', fetchAndRender);
+    // cancel -> back to list
+    document.getElementById('c_cancel').addEventListener('click', async (e)=>{ e.preventDefault(); await initialList(); });
 
-    form.addEventListener('submit', async (e)=>{
+    // submit
+    document.getElementById('c_submit').addEventListener('click', async (e)=>{
         e.preventDefault();
-        const fd = new FormData(form);
-        // hidden newCategoryNames → 배열로 변환
-        const namesCSV = fd.get('newCategoryNames');
-        if(namesCSV){ String(namesCSV).split(',').filter(Boolean).forEach(v=>fd.append('newCategoryNames', v)); }
+        const name = document.getElementById('c_name').value.trim();
+        if(!name){ alert('모임 이름을 입력하세요'); return; }
+
+        const body = {
+            name,
+            description: document.getElementById('c_desc').value.trim(),
+            regionDo: document.getElementById('c_do').value || null,
+            regionSi: document.getElementById('c_si').value || null,
+            imageUrl: document.getElementById('c_img').value.trim() || null,
+            categoryIds: Array.from(document.querySelectorAll('#c_pills input:checked')).map(i=>Number(i.value)),
+            newCategoryNames: [] // 만들기 화면에서만 +버튼으로 생성함
+        };
+
         try{
-            const res = await fetch('/api/clubs', {method:'POST', body:fd});
-            if(!res.ok){ throw new Error('생성 실패'); }
-            await fetchAndRender(); // 생성 후 목록으로 복귀
-        }catch(err){
-            const msg = $('#createMsg'); msg.textContent = err.message; setTimeout(()=>msg.textContent='',3000);
+            await jpost('/api/clubs', body); // 서버의 ClubService.createClub 시그니처 가정
+            alert('모임이 생성되었습니다.');
+            await initialList();
+        }catch(e){
+            alert('모임 생성 실패: ' + (e.message||''));
         }
     });
 }
 
-/* ----- 부트스트랩 ----- */
-(async function boot(){
-    await refreshMe();
-    await initTopBar();
-    await initSearchBar();
-    await initSidebar();
-    await fetchAndRender();
-})();
+/* ====== Left menu actions ====== */
+function mountMenu(){
+    const main = document.getElementById('menuMain');
+    const rec  = document.getElementById('menuRec');
+    const cal  = document.getElementById('menuCal');
+    const mine = document.getElementById('menuMine');
+    const mk   = document.getElementById('menuMake');
+
+    function setActive(el){
+        document.querySelectorAll('.menu .item').forEach(i=>i.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    main.addEventListener('click', async()=>{ setActive(main); await initialList(); });
+    rec.addEventListener('click', ()=>{ setActive(rec); alert('추천은 다음 단계에서 붙일게'); });
+    cal.addEventListener('click', ()=>{ setActive(cal); alert('캘린더는 다음 단계에서 붙일게'); });
+    mine.addEventListener('click', ()=>{ setActive(mine); alert('내 모임은 로그인 연동 후 제공'); });
+    mk.addEventListener('click', ()=>{ setActive(mk); showCreatePanel(); });
+}
+
+/* ====== Login/Register Modals ====== */
+function mountAuth(){
+    document.getElementById('openLogin').addEventListener('click', ()=>openModal('loginModal'));
+    document.getElementById('openRegister').addEventListener('click', ()=>openModal('registerModal'));
+    document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(b.dataset.close); }));
+
+    // Register: categories in modal
+    (async()=>{
+        const cats = await loadCategories();
+        const holder = document.getElementById('regCats');
+        holder.innerHTML = cats.map(c=>`
+      <label class="cat-row">
+        <input type="checkbox" name="categoryIds" value="${c.id}">
+        <span># ${c.name}</span>
+      </label>
+    `).join('');
+    })();
+}
+
+/* ====== Initial list ====== */
+async function initialList(){
+    const page = await searchClubs(new URLSearchParams([['page','0'],['size','12']]));
+    renderClubs(page.content || page);
+}
+
+/* ====== Boot ====== */
+window.addEventListener('DOMContentLoaded', async ()=>{
+    mountAuth();
+    mountMenu();
+    await mountSidebarCategories();
+    await mountSearchBar();
+    await initialList();
+});

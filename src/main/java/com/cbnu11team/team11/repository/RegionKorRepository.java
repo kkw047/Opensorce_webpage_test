@@ -9,18 +9,9 @@ import java.util.List;
 
 public interface RegionKorRepository extends JpaRepository<RegionKor, Long> {
 
-    @Query("""
-           select distinct r.regionDo
-           from RegionKor r
-           order by r.regionDo asc
-           """)
+    @Query("select distinct r.regionDo from RegionKor r where r.regionDo is not null order by r.regionDo asc")
     List<String> findAllDos();
 
-    @Query("""
-           select distinct r.regionSi
-           from RegionKor r
-           where r.regionDo = :rdo
-           order by r.regionSi asc
-           """)
-    List<String> findSisByDo(@Param("rdo") String regionDo);
+    @Query("select distinct r.regionSi from RegionKor r where r.regionDo = :rdo and r.regionSi is not null order by r.regionSi asc")
+    List<String> findSisByDo(@Param("rdo") String rdo);
 }

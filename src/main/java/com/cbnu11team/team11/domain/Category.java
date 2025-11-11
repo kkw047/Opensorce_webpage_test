@@ -1,24 +1,34 @@
 package com.cbnu11team.team11.domain;
 
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "categories")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // 중복 조인 방지(SET 동작 안정)
 public class Category {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(length = 50, nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @Column(name = "created_at", nullable = false, columnDefinition = "datetime default current_timestamp")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public Category() {}
+    public Category(String name) { this.name = name; }
+
+    @PrePersist
+    public void onCreate() {
+        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+    }
+
+    // getters/setters
+    public Long getId() { return id; }
+    public String getName() { return name; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setId(Long id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
