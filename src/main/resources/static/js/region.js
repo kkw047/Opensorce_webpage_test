@@ -17,9 +17,13 @@
     }
 
     async function fillSi(doSel, siSel) {
+        const val = doSel.value;
+        const sis = val ? await fetchJSON('/api/regions/sis?do=' + encodeURIComponent(val)) : [];
         siSel.innerHTML = '';
-        if (!doSel.value) return;
-        const sis = await fetchJSON('/api/regions/sis?do=' + encodeURIComponent(doSel.value));
+        const all = document.createElement('option');
+        all.value = ''; all.textContent = '전체';
+        siSel.appendChild(all);
+
         sis.forEach(s => {
             const o = document.createElement('option');
             o.value = o.textContent = s;

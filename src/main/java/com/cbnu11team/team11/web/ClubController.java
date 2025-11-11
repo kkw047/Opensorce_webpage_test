@@ -1,33 +1,22 @@
 package com.cbnu11team.team11.web;
 
-import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.domain.Category;
-import com.cbnu11team.team11.domain.RegionKor;
+import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.repository.ClubRepository;
 import com.cbnu11team.team11.repository.RegionKorRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * 모임(클럽) 목록 화면
- * - 루트("/")는 HomeController가 /clubs로 리다이렉트
- * - 여기서는 /clubs GET만 처리
- */
 @Controller
-@RequestMapping("/clubs")
 @RequiredArgsConstructor
 public class ClubController {
 
@@ -35,61 +24,62 @@ public class ClubController {
     private final CategoryRepository categoryRepository;
     private final RegionKorRepository regionKorRepository;
 
-    @GetMapping
-    public String index(
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "12") int size,
-            @RequestParam(name = "regionDo", required = false) String regionDo,
-            @RequestParam(name = "regionSi", required = false) String regionSi,
-            @RequestParam(name = "category", required = false) String category, // 쿼리스트링은 문자열이므로 String으로 받고 아래서 Long 변환
-            @RequestParam(name = "keywords", required = false) String keywords,
-            Model model
-    ) {
-        int p = Math.max(page, 0);
-        int s = size > 0 ? size : 12;
+    // 메인 (좌측 메뉴 + 검색 + 우측 카드)
+    @GetMapping({"/", "/clubs"})
+    public String index(Model model) {
+        // 초기 로딩 데이터
+        List<Category> categories = categoryRepository.findAll();
+        List<String> dos = regionKorRepository.findAllDistinctDo();
+        List<Club> clubs = clubRepository.search(null, null, null, false, Collections.emptyList(), PageRequest.of(0, 20));
 
-        // 단순 목록 (정렬: id desc)
-        Page<Club> clubsPage = clubRepository.findAll(
-                PageRequest.of(p, s, Sort.by(Sort.Direction.DESC, "id"))
+        model.addAttribute("categories", categories);
+        model.addAttribute("dos", dos);
+        model.addAttribute("clubs", clubs);
+        return "clubs/index";
+    }
+
+    // 이미지 스트리밍 (Base64 금지 → Thymeleaf의 static access 에러 회피)
+    @ResponseBody
+    @GetMapping(value = "/clubs/{id}/image", produces = MediaType.IMAGE_JPEG_VALUE)
+    public byte[] image(@PathVariable Long id) {
+        return clubRepository.findById(id)
+                .map(Club::getImageData)
+                .orElse(new byte[0]);
+    }
+
+    // 우측 모임 카드 데이터(필터 결과)를 AJAX로 내려줌
+    @ResponseBody
+    @GetMapping("/api/clubs")
+    public List<Map<String, Object>> listApi(
+            @RequestParam(required = false) String regionDo,
+            @RequestParam(required = false) String regionSi,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false, name = "cat") List<Long> categoryIds
+    ) {
+        boolean hasCats = !CollectionUtils.isEmpty(categoryIds);
+        List<Club> result = clubRepository.search(
+                blankToNull(regionDo),
+                blankToNull(regionSi),
+                blankToNull(keyword),
+                hasCats,
+                hasCats ? categoryIds : Collections.emptyList(),
+                PageRequest.of(0, 50)
         );
 
-        // 카테고리(이름 오름차순)
-        List<Category> categories = categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+        return result.stream().map(c -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", c.getId());
+            m.put("name", c.getName());
+            m.put("description", c.getDescription());
+            m.put("regionDo", c.getRegionDo());
+            m.put("regionSi", c.getRegionSi());
+            m.put("imageUrl", "/clubs/" + c.getId() + "/image");
+            m.put("categories", c.getCategories().stream().map(Category::getName).collect(Collectors.toList()));
+            return m;
+        }).collect(Collectors.toList());
+    }
 
-        // 지역(도) 목록: 리포지토리 커스텀 메서드에 의존하지 않고 전체 로드 후 distinct/sort
-        List<String> regionDoList = regionKorRepository.findAll().stream()
-                .map(RegionKor::getRegionDo)
-                .filter(Objects::nonNull)
-                .distinct()
-                .sorted(Comparator.naturalOrder())
-                .collect(Collectors.toList());
-
-        // 선택된 카테고리 id(Long) 파싱 (템플릿에서 selected 비교용)
-        Long categoryId = null;
-        if (category != null && !category.isBlank()) {
-            try {
-                categoryId = Long.parseLong(category.trim());
-            } catch (NumberFormatException ignore) {
-                categoryId = null;
-            }
-        }
-
-        model.addAttribute("clubsPage", clubsPage);
-        model.addAttribute("categories", categories);
-        model.addAttribute("regionDoList", regionDoList);
-
-        // 네비 active 표시용
-        model.addAttribute("activeMenu", "clubs");
-
-        // 현재 파라미터(뷰 유지/표시용)
-        model.addAttribute("page", p);
-        model.addAttribute("size", s);
-        model.addAttribute("regionDo", regionDo == null ? "" : regionDo);
-        model.addAttribute("regionSi", regionSi == null ? "" : regionSi);
-        model.addAttribute("category", category == null ? "" : category);
-        model.addAttribute("categoryId", categoryId);
-        model.addAttribute("keywords", keywords == null ? "" : keywords);
-
-        return "clubs/index";
+    private String blankToNull(String s) {
+        return (s == null || s.trim().isEmpty()) ? null : s.trim();
     }
 }

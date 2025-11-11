@@ -2,30 +2,26 @@ package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.repository.RegionKorRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
-/**
- * 프론트(region.js)에서 도/시군구 드롭다운 채우는 용도
- */
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/regions")
 public class RegionController {
 
     private final RegionKorRepository regionKorRepository;
 
-    @GetMapping("/regions/dos")
+    // /api/regions/dos -> ["강원특별자치도", "경기도", ...]
+    @GetMapping("/dos")
     public List<String> dos() {
-        return regionKorRepository.findDistinctRegionDoOrderByRegionDoAsc();
+        return regionKorRepository.findAllDistinctDo();
     }
 
-    @GetMapping("/regions/sis")
+    // /api/regions/sis?do=경기도 -> ["수원시", "용인시", ...]
+    @GetMapping("/sis")
     public List<String> sis(@RequestParam("do") String regionDo) {
-        if (regionDo == null || regionDo.isBlank()) return Collections.emptyList();
-        return regionKorRepository.findDistinctRegionSiByRegionDoOrderByRegionSiAsc(regionDo.trim());
+        return regionKorRepository.findSisByDo(regionDo);
     }
 }

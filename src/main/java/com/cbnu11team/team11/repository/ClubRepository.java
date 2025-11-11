@@ -12,41 +12,39 @@ import java.util.List;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
 
-    // 최신순 카드 목록 (카테고리 N+1 줄이기)
-    @EntityGraph(attributePaths = "categories")
+    /**
+     * 메인 목록: 최신 id 내림차순 + categories 미리 로딩
+     * open-in-view=false 환경에서 템플릿에서 club.categories 접근 시 Lazy 방지
+     */
+    @EntityGraph(attributePaths = {"categories"})
     Page<Club> findAllByOrderByIdDesc(Pageable pageable);
 
-    // 검색(키워드/지역/카테고리) + 최신순
-    @EntityGraph(attributePaths = "categories")
-    @Query(
-            value = """
-            select distinct c
-            from Club c
-            left join c.categories cat
-            where (:kw is null or lower(c.name) like lower(concat('%', :kw, '%'))
-                   or lower(c.description) like lower(concat('%', :kw, '%')))
-              and (:rdo is null or c.regionDo = :rdo)
-              and (:rsi is null or c.regionSi = :rsi)
-              and (:hasCat = false or cat.id in :categoryIds)
-            order by c.id desc
-        """,
-            countQuery = """
-            select count(distinct c)
-            from Club c
-            left join c.categories cat
-            where (:kw is null or lower(c.name) like lower(concat('%', :kw, '%'))
-                   or lower(c.description) like lower(concat('%', :kw, '%')))
-              and (:rdo is null or c.regionDo = :rdo)
-              and (:rsi is null or c.regionSi = :rsi)
-              and (:hasCat = false or cat.id in :categoryIds)
-        """
-    )
-    Page<Club> search(
-            @Param("kw") String keyword,
-            @Param("rdo") String regionDo,
-            @Param("rsi") String regionSi,
+    /**
+     * 검색: 도/시군구/키워드/카테고리(다중)
+     * - @EntityGraph 로 categories 미리 로딩 (Provider가 JOIN 또는 2nd query로 해결)
+     * - fetch join을 쓰지 않아 페이징 경고(HHH90003004) 제거
+     */
+    @EntityGraph(attributePaths = {"categories"})
+    @Query("""
+        select distinct c
+        from Club c
+        left join c.categories cat
+        where (:regionDo is null or c.regionDo = :regionDo)
+          and (:regionSi is null or c.regionSi = :regionSi)
+          and (
+                :keyword is null
+             or lower(c.name) like lower(concat('%', :keyword, '%'))
+             or lower(c.description) like lower(concat('%', :keyword, '%'))
+          )
+          and (:hasCats = false or cat.id in :categoryIds)
+        order by c.id desc
+    """)
+    List<Club> search(
+            @Param("regionDo") String regionDo,
+            @Param("regionSi") String regionSi,
+            @Param("keyword") String keyword,
+            @Param("hasCats") boolean hasCats,
             @Param("categoryIds") List<Long> categoryIds,
-            @Param("hasCat") boolean hasCat,
             Pageable pageable
     );
 }
