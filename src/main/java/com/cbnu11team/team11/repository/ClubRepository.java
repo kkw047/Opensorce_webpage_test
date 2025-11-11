@@ -3,41 +3,51 @@ package com.cbnu11team.team11.repository;
 import com.cbnu11team.team11.domain.Club;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface ClubRepository extends JpaRepository<Club, Long> {
 
-    /** 메인 목록: 최신 id 내림차순 + categories 미리 로딩 */
-    @EntityGraph(attributePaths = {"categories"})
-    Page<Club> findAllByOrderByIdDesc(Pageable pageable);
-
-    /** 검색: 도/시군구/키워드/카테고리(다중) */
-    @EntityGraph(attributePaths = {"categories"})
-    @Query("""
-        select distinct c
-        from Club c
-        left join c.categories cat
-        where (:regionDo is null or c.regionDo = :regionDo)
-          and (:regionSi is null or c.regionSi = :regionSi)
-          and (
-                :keyword is null
-             or lower(c.name) like lower(concat('%', :keyword, '%'))
-             or lower(c.description) like lower(concat('%', :keyword, '%'))
-          )
-          and (:hasCats = false or cat.id in :categoryIds)
-        order by c.id desc
-    """)
-    List<Club> search(
-            @Param("regionDo") String regionDo,
-            @Param("regionSi") String regionSi,
-            @Param("keyword") String keyword,
+    @Query(
+            value = """
+            select distinct c
+            from Club c
+            where (:rdo is null or c.regionDo = :rdo)
+              and (:rsi is null or c.regionSi = :rsi)
+              and (
+                    :kw is null or
+                    lower(c.name) like concat('%', lower(:kw), '%') or
+                    lower(coalesce(cast(c.description as string), '')) like concat('%', lower(:kw), '%')
+                  )
+              and ( :hasCats = false or exists (
+                    select 1 from c.categories cat
+                    where cat.id in :cats
+                  ))
+            """,
+            countQuery = """
+            select count(distinct c)
+            from Club c
+            where (:rdo is null or c.regionDo = :rdo)
+              and (:rsi is null or c.regionSi = :rsi)
+              and (
+                    :kw is null or
+                    lower(c.name) like concat('%', lower(:kw), '%') or
+                    lower(coalesce(cast(c.description as string), '')) like concat('%', lower(:kw), '%')
+                  )
+              and ( :hasCats = false or exists (
+                    select 1 from c.categories cat
+                    where cat.id in :cats
+                  ))
+            """
+    )
+    Page<Club> search(
+            @Param("rdo") String regionDo,
+            @Param("rsi") String regionSi,
+            @Param("kw")  String keyword,
             @Param("hasCats") boolean hasCats,
-            @Param("categoryIds") List<Long> categoryIds,
+            @Param("cats") List<Long> categoryIds,
             Pageable pageable
     );
 }

@@ -1,105 +1,106 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>모임 목록</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-    <style>
-        .layout { display:grid; grid-template-columns: 260px 1fr; gap:16px; padding:16px; }
-        .sidebar { border:1px solid #444; padding:12px; }
-        .grid { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:12px; }
-        .card { border:1px solid #444; padding:12px; border-radius:8px; }
-        .muted { color:#aaa; font-size:12px; }
-        .pill { display:inline-block; padding:2px 8px; border:1px solid #666; border-radius:999px; margin-right:4px; font-size:12px; }
-        .row { display:flex; gap:8px; margin:8px 0; }
-    </style>
+    <title>메인</title>
+    <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
 <div class="layout">
-    <aside class="sidebar">
-        <h3>메뉴</h3>
-        <ul>
-            <li><a th:href="@{/clubs}">메인</a></li>
-            <li><a href="#">추천</a></li>
-            <li><a href="#">캘린더</a></li>
-            <li><a href="#">내 모임</a></li>
-        </ul>
-        <hr>
-        <h4>카테고리 필터</h4>
+    <header class="topbar">
+        <div class="brand">TEAM11</div>
+        <div class="actions">
+            <span id="welcomeArea" class="welcome"></span>
+            <button id="btnLogin">로그인</button>
+            <button id="btnRegister">회원가입</button>
+            <button id="btnLogout" style="display:none;">로그아웃</button>
+        </div>
+    </header>
 
-        <form th:action="@{/clubs}" method="get" id="filterForm">
-            <div class="row">
-                <select id="regionDo" name="rdo"></select>
-                <select id="regionSi" name="rsi"></select>
-            </div>
-            <div class="row">
-                <input type="text" name="kw" th:value="${kw}" placeholder="키워드">
-            </div>
+    <section class="searchbar">
+        <select id="selDo"><option value="">도(전체)</option></select>
+        <select id="selSi"><option value="">시/군/구(전체)</option></select>
+        <input id="kw" type="text" placeholder="키워드를 입력하세요" />
+        <button id="btnSearch">검색</button>
+    </section>
 
-            <div style="max-height:180px; overflow:auto; border:1px solid #333; padding:6px;">
-                <label th:each="cat : ${categories}" style="display:block; margin-bottom:4px;">
-                    <input type="checkbox" name="cats"
-                           th:value="${cat.id}"
-                           th:checked="${cats != null and #lists.contains(cats, cat.id)}"><!-- ★ null-safe -->
-                    <span th:text="${cat.name}">카테고리</span>
-                </label>
-            </div>
-
-            <div class="row" style="justify-content:space-between;">
-                <button type="submit">검색</button>
-                <a th:href="@{/clubs/create}">모임 만들기</a>
-            </div>
-        </form>
-    </aside>
-
-    <main>
-        <div th:if="${param.created}"><strong>모임이 생성되었습니다.</strong></div>
-
-        <div class="grid">
-            <div class="card" th:each="c : ${clubs.content}">
-                <div class="muted" th:text="${c.regionDo} + ' ' + ${c.regionSi}">지역</div>
-                <h3 th:text="${c.name}">모임명</h3>
-                <p th:text="${c.description}">설명</p>
-                <div>
-                    <span class="pill" th:each="cat : ${c.categories}" th:text="${cat.name}">카테고리</span>
+    <div class="content">
+        <aside class="sidebar">
+            <div class="menu">
+                <div class="menu-main">
+                    <button class="menu-btn active" data-tab="main">메인</button>
+                    <button class="menu-btn" data-tab="recommend" disabled>추천</button>
+                    <button class="menu-btn" data-tab="calendar" disabled>캘린더</button>
+                    <button class="menu-btn" data-tab="my" disabled>내 모임</button>
+                </div>
+                <div class="menu-cat">
+                    <h4>카테고리</h4>
+                    <div id="catList" class="cat-list"></div>
+                </div>
+                <div class="menu-bottom">
+                    <button id="btnNewClub" class="primary">모임 만들기</button>
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <div class="row" style="justify-content:center; margin-top:16px;">
-            <a th:if="${!clubs.first}"
-               th:href="@{/clubs(page=${clubs.number - 1}, kw=${kw}, rdo=${rdo}, rsi=${rsi}, cats=${cats})}">이전</a>
-            <span style="padding:0 8px;" th:text="${clubs.number + 1} + ' / ' + ${clubs.totalPages}">1 / 1</span>
-            <a th:if="${!clubs.last}"
-               th:href="@{/clubs(page=${clubs.number + 1}, kw=${kw}, rdo=${rdo}, rsi=${rsi}, cats=${cats})}">다음</a>
-        </div>
-    </main>
+        <main class="mainpanel">
+            <div id="cards" class="cards"></div>
+            <div id="pager" class="pager"></div>
+        </main>
+    </div>
 </div>
 
+<!-- 로그인 모달 -->
+<div id="loginModal" class="modal">
+    <div class="modal-body">
+        <h3>로그인</h3>
+        <label>아이디</label>
+        <input id="loginId" type="text" minlength="4" maxlength="20">
+        <label>비밀번호</label>
+        <input id="loginPw" type="password" minlength="8" maxlength="64">
+        <div class="modal-actions">
+            <button id="doLogin" class="primary">로그인</button>
+            <button class="ghost" data-close="#loginModal">닫기</button>
+        </div>
+        <div id="loginErr" class="error"></div>
+    </div>
+</div>
+
+<!-- 회원가입 모달 -->
+<div id="registerModal" class="modal">
+    <div class="modal-body">
+        <h3>회원가입</h3>
+        <label>아이디</label>
+        <div class="row">
+            <input id="regId" type="text" minlength="4" maxlength="20">
+            <button id="btnCheckId" class="ghost">중복검사</button>
+        </div>
+        <label>비밀번호</label>
+        <input id="regPw" type="password" minlength="8" maxlength="64">
+        <label>이메일</label>
+        <div class="row">
+            <input id="regEmail" type="email">
+            <button id="btnCheckEmail" class="ghost">중복검사</button>
+        </div>
+        <label>닉네임</label>
+        <input id="regNick" type="text" maxlength="50">
+        <div>
+            <h4>관심 카테고리</h4>
+            <div id="regCats" class="cat-list"></div>
+        </div>
+        <div class="modal-actions">
+            <button id="doRegister" class="primary">가입하기</button>
+            <button class="ghost" data-close="#registerModal">닫기</button>
+        </div>
+        <div id="regMsg" class="error"></div>
+    </div>
+</div>
+
+<script type="module" src="/js/main.js"></script>
 <script>
-    // 지역 드롭다운: DB 기반 API 사용
-    document.addEventListener('DOMContentLoaded', async () => {
-        const $do = document.getElementById('regionDo');
-        const $si = document.getElementById('regionSi');
-        const params = new URLSearchParams(location.search);
-        const selDo = params.get('rdo') || '';
-        const selSi = params.get('rsi') || '';
-
-        const dos = await fetch('/clubs/api/regions/do').then(r=>r.json());
-        $do.innerHTML = '<option value="">도(전체)</option>' + dos.map(d => `<option ${d===selDo?'selected':''}>${d}</option>`).join('');
-        await refreshSi();
-
-        $do.addEventListener('change', refreshSi);
-        async function refreshSi(){
-            const v = $do.value;
-            if(!v){
-                $si.innerHTML = '<option value="">시/군/구(전체)</option>';
-                return;
-            }
-            const sis = await fetch('/clubs/api/regions/si?do=' + encodeURIComponent(v)).then(r=>r.json());
-            $si.innerHTML = '<option value="">시/군/구(전체)</option>' +
-                sis.map(s => `<option ${s===selSi?'selected':''}>${s}</option>`).join('');
-        }
+    document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-close]');
+        if(btn){ document.querySelector(btn.getAttribute('data-close')).classList.remove('show'); }
     });
 </script>
 </body>

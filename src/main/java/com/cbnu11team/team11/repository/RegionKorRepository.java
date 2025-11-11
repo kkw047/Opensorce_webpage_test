@@ -9,11 +9,18 @@ import java.util.List;
 
 public interface RegionKorRepository extends JpaRepository<RegionKor, Long> {
 
-    // 도 목록 (중복 제거 + 정렬)
-    @Query("select distinct r.regionDo from RegionKor r order by r.regionDo")
-    List<String> findAllDistinctDo();
+    @Query("""
+           select distinct r.regionDo
+           from RegionKor r
+           order by r.regionDo asc
+           """)
+    List<String> findAllDos();
 
-    // 특정 도의 시/군/구 목록 (중복 제거 + 정렬)
-    @Query("select distinct r.regionSi from RegionKor r where r.regionDo = :regionDo order by r.regionSi")
-    List<String> findSisByDo(@Param("regionDo") String regionDo);
+    @Query("""
+           select distinct r.regionSi
+           from RegionKor r
+           where r.regionDo = :rdo
+           order by r.regionSi asc
+           """)
+    List<String> findSisByDo(@Param("rdo") String regionDo);
 }

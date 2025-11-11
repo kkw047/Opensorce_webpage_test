@@ -3,22 +3,22 @@ package com.cbnu11team.team11.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.time.LocalDateTime;
 
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
 @Entity
 @Table(name = "categories")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true) // 중복 조인 방지(SET 동작 안정)
 public class Category {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(length = 50, nullable = false, unique = true)
     private String name;
 
-    @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<Club> clubs = new LinkedHashSet<>();
+    @Column(name = "created_at", nullable = false, columnDefinition = "datetime default current_timestamp")
+    private LocalDateTime createdAt;
 }

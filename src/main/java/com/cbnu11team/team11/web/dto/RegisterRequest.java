@@ -1,14 +1,14 @@
 package com.cbnu11team.team11.web.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 
-@Getter @Setter
+import java.util.List;
+
+@Data
 public class RegisterRequest {
-    @NotBlank
     private String loginId;
-
-    @NotBlank
     private String password;
+    private String email;
+    private String nickname;
+    private List<Long> categoryIds;
 }

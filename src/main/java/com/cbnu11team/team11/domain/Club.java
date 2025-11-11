@@ -7,31 +7,36 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+@Entity
+@Table(name = "clubs")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder
-@Entity
-@Table(name = "club")
 public class Club {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable=false, length=100)
+    @Column(length = 100, nullable = false)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
     private String description;
 
-    @Column(name="region_do", length=50)
+    @Column(name = "image_url", length = 255)
+    private String imageUrl;
+
+    @Column(name = "region_do", length = 50, nullable = false)
     private String regionDo;
 
-    @Column(name="region_si", length=50)
+    @Column(name = "region_si", length = 80, nullable = false)
     private String regionSi;
 
-    private String imagePath; // (선택) 파일 저장 시 경로
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
-    @Builder.Default
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "created_at", columnDefinition = "timestamp default current_timestamp")
+    private LocalDateTime createdAt;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

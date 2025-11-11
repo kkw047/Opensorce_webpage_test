@@ -4,105 +4,120 @@ import com.cbnu11team.team11.domain.Category;
 import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.repository.ClubRepository;
+import com.cbnu11team.team11.repository.RegionKorRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ClubService {
 
     private final ClubRepository clubRepository;
     private final CategoryRepository categoryRepository;
-    private final JdbcTemplate jdbcTemplate; // region_kor에서 지역 목록 뽑는다(새 파일 추가 없음)
+    private final RegionKorRepository regionKorRepository;
 
-    // --- 목록/검색 ---
-    @Transactional(readOnly = true)
-    public Page<Club> list(Pageable pageable) {
-        return clubRepository.findAllByOrderByIdDesc(pageable);
-    }
-
+    /* ---------- 검색 ---------- */
     @Transactional(readOnly = true)
     public Page<Club> search(String rdo, String rsi, String kw, List<Long> cats, Pageable pageable) {
-        boolean hasCats = (cats != null && !cats.isEmpty());
-        List<Club> list = clubRepository.search(
-                nullIfBlank(rdo),
-                nullIfBlank(rsi),
-                nullIfBlank(kw),
-                hasCats,
-                hasCats ? cats : Collections.emptyList(),
-                pageable
-        );
-        // 수동 페이징(검색은 List 반환이므로)
-        int from = (int) pageable.getOffset();
-        int to = Math.min(from + pageable.getPageSize(), list.size());
-        List<Club> page = from > list.size() ? Collections.emptyList() : list.subList(from, to);
-        return new PageImpl<>(page, pageable, list.size());
+        String regionDo = emptyToNull(rdo);
+        String regionSi = emptyToNull(rsi);
+        String keyword  = emptyToNull(kw);
+
+        boolean hasCats = cats != null && !cats.isEmpty();
+        List<Long> catParam = hasCats ? cats : List.of(-1L); // 파라미터 바인딩 보장용 더미
+
+        return clubRepository.search(regionDo, regionSi, keyword, hasCats, catParam, pageable);
     }
 
-    // --- 생성 ---
-    public Club createClub(String name, String desc, String rdo, String rsi, List<Long> categoryIds, String imagePath) {
-        Club club = Club.builder()
-                .name(name)
-                .description(desc)
-                .regionDo(rdo)
-                .regionSi(rsi)
-                .imagePath(imagePath)
-                .build();
+    /* ---------- 생성 ---------- */
+    @Transactional
+    public Club createClub(String name,
+                           String description,
+                           String regionDo,
+                           String regionSi,
+                           List<Long> categoryIds,
+                           String imageUrl,
+                           List<String> newCategoryNames) {
 
-        if (categoryIds != null && !categoryIds.isEmpty()) {
-            List<Category> cats = categoryRepository.findAllById(categoryIds);
-            club.getCategories().addAll(cats);
+        // 중복 방지: 선택 카테고리 + 새 카테고리 모두 Set으로 정규화
+        Set<Long> idSet = new LinkedHashSet<>();
+        if (categoryIds != null) idSet.addAll(categoryIds);
+
+        if (newCategoryNames != null) {
+            for (String raw : newCategoryNames) {
+                if (!StringUtils.hasText(raw)) continue;
+                String norm = raw.trim();
+                Category cat = categoryRepository.findByName(norm).orElseGet(() -> {
+                    Category c = new Category();
+                    c.setName(norm);
+                    return categoryRepository.save(c);
+                });
+                idSet.add(cat.getId());
+            }
         }
-        return clubRepository.save(club);
+
+        List<Category> categories = idSet.isEmpty()
+                ? List.of()
+                : categoryRepository.findAllById(idSet);
+
+        Club c = new Club();
+        c.setName(name);
+        c.setDescription(description);
+        c.setRegionDo(regionDo);
+        c.setRegionSi(regionSi);
+        c.setImageUrl(imageUrl);
+        c.setCategories(new HashSet<>(categories)); // ManyToMany: Set으로 중복 차단
+
+        return clubRepository.save(c);
     }
 
-    // --- 카테고리 ---
-    @Transactional(readOnly = true)
-    public List<Category> findAllCategories() {
-        return categoryRepository.findAllByOrderByNameAsc();
+    /* ---------- 카테고리 유틸 (모달에서 '카테고리 추가'용) ---------- */
+    @Transactional
+    public Category createCategoryIfNotExists(String rawName) {
+        if (!StringUtils.hasText(rawName)) {
+            throw new IllegalArgumentException("카테고리 이름이 비어 있습니다.");
+        }
+        String name = rawName.trim();
+        return categoryRepository.findByName(name).orElseGet(() -> {
+            try {
+                Category c = new Category();
+                c.setName(name);
+                return categoryRepository.save(c);
+            } catch (DataIntegrityViolationException e) {
+                // 동시성으로 인해 유니크 제약 위반 시 재조회
+                return categoryRepository.findByName(name)
+                        .orElseThrow(() -> e);
+            }
+        });
     }
 
-    public Category createCategoryIfNotExists(String name) {
-        String trimmed = name == null ? "" : name.trim();
-        if (trimmed.isEmpty()) throw new IllegalArgumentException("empty category");
-        return categoryRepository.findByName(trimmed)
-                .orElseGet(() -> categoryRepository.save(Category.builder().name(trimmed).build()));
-    }
-
-    // --- 지역(도/시군구) : region_kor 테이블 사용 ---
+    /* ---------- 지역 목록 ---------- */
     @Transactional(readOnly = true)
     public List<String> getAllDos() {
-        try {
-            return jdbcTemplate.queryForList(
-                    "SELECT DISTINCT region_do FROM region_kor ORDER BY region_do", String.class);
-        } catch (EmptyResultDataAccessException e) {
-            return Collections.emptyList();
-        }
+        return regionKorRepository.findAllDos();
     }
 
     @Transactional(readOnly = true)
     public List<String> getSisByDo(String regionDo) {
-        if (regionDo == null || regionDo.isBlank()) return Collections.emptyList();
-        try {
-            return jdbcTemplate.queryForList(
-                    "SELECT DISTINCT region_si FROM region_kor WHERE region_do=? ORDER BY region_si",
-                    String.class, regionDo);
-        } catch (EmptyResultDataAccessException e) {
-            return Collections.emptyList();
-        }
+        if (!StringUtils.hasText(regionDo)) return List.of();
+        return regionKorRepository.findSisByDo(regionDo);
     }
 
-    private String nullIfBlank(String s) {
+    /* ---------- 카테고리 ---------- */
+    @Transactional(readOnly = true)
+    public List<Category> findAllCategories() {
+        return categoryRepository.findAll();
+    }
+
+    private static String emptyToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
     }
 }
