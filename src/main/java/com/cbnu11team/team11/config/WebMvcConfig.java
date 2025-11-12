@@ -1,20 +1,26 @@
 package com.cbnu11team.team11.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.*;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
-
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String root = System.getProperty("user.dir").replace("\\", "/");
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + root + "/" + uploadDir + "/");
+        // /uploads/** → 프로젝트 루트의 /uploads 디렉터리
+        Path upload = Paths.get(System.getProperty("user.dir"), "uploads");
+        String location = upload.toUri().toString();
+        registry.addResourceHandler("/uploads/**").addResourceLocations(location);
+
+        registry.addResourceHandler("/css/**")
+                .addResourceLocations("classpath:/static/css/");
+        registry.addResourceHandler("/js/**")
+                .addResourceLocations("classpath:/static/js/");
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("classpath:/static/images/");
     }
 }

@@ -1,34 +1,42 @@
 package com.cbnu11team.team11.domain;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "categories",
+        uniqueConstraints = @UniqueConstraint(name = "ux_categories_name", columnNames = "name"))
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Category {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(length = 50, nullable = false)
     private String name;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    /** DB DEFAULT CURRENT_TIMESTAMP 사용 */
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public Category() {}
-    public Category(String name) { this.name = name; }
+    @ManyToMany(mappedBy = "categories")
+    @ToString.Exclude
+    private Set<Club> clubs = new LinkedHashSet<>();
 
-    @PrePersist
-    public void onCreate() {
-        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
+    @ManyToMany(mappedBy = "categories")
+    @ToString.Exclude
+    private Set<User> users = new LinkedHashSet<>();
+
+    public Category(Long id, String name, LocalDateTime createdAt) {
+        this.id = id;
+        this.name = name;
+        this.createdAt = createdAt;
     }
-
-    // getters/setters
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setId(Long id) { this.id = id; }
-    public void setName(String name) { this.name = name; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

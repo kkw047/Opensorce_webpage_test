@@ -8,18 +8,16 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/regions")
+@RequestMapping("/regions")
 public class RegionController {
 
     private final ClubService clubService;
 
     @GetMapping("/dos")
-    public List<String> dos() {
-        return clubService.getAllDos();
-    }
+    public List<String> dos() { return clubService.getAllDos(); }
 
     @GetMapping("/sis")
-    public List<String> sis(@RequestParam("do") String regionDo) {
+    public List<String> sis(@RequestParam String regionDo) {
         return clubService.getSisByDo(regionDo);
     }
 }

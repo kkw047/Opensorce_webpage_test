@@ -1,88 +1,68 @@
 package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Club;
+import com.cbnu11team.team11.domain.User;
+import com.cbnu11team.team11.repository.UserRepository;
 import com.cbnu11team.team11.service.ClubService;
-import com.cbnu11team.team11.service.FileStorageService;
+import com.cbnu11team.team11.web.dto.ClubForm;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.Map;
-
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/clubs")
-class ClubApiController {
-
-    private final ClubService clubService;
-    private final FileStorageService storage;
-
-    @GetMapping
-    @Transactional(readOnly = true) // LazyInitializationException 방지
-    public Page<ClubDtos.ClubCard> search(
-            @RequestParam(value = "rdo", required = false) String rdo,
-            @RequestParam(value = "rsi", required = false) String rsi,
-            @RequestParam(value = "kw", required = false) String kw,
-            @RequestParam(value = "cats", required = false) List<Long> cats,
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "12") int size
-    ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
-        Page<Club> p = clubService.search(
-                rdo,
-                rsi,
-                StringUtils.hasText(kw) ? kw.trim() : null,
-                cats,
-                pageable
-        );
-        return p.map(ClubDtos::toCard);
-    }
-
-    @PostMapping(consumes = {"multipart/form-data"})
-    public ResponseEntity<?> create(
-            @RequestParam String name,
-            @RequestParam(required = false) String description,
-            @RequestParam("regionDo") String regionDo,
-            @RequestParam("regionSi") String regionSi,
-            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
-            @RequestParam(value = "newCategoryNames", required = false) List<String> newCategoryNames,
-            @RequestPart(value = "image", required = false) MultipartFile image
-    ) {
-        String imageUrl = (image != null && !image.isEmpty()) ? storage.store(image) : null;
-        Club c = clubService.createClub(name, description, regionDo, regionSi, categoryIds, imageUrl, newCategoryNames);
-        return ResponseEntity.ok(Map.of("id", c.getId()));
-    }
-}
+import java.util.*;
 
 @Controller
 @RequiredArgsConstructor
-class ClubPageController {
+@RequestMapping("/clubs")
+public class ClubController {
 
     private final ClubService clubService;
+    private final UserRepository userRepository;
 
-    // 메인 페이지
-    @GetMapping("/")
-    public String index(Model model) {
+    @GetMapping
+    public String index(@RequestParam(value = "q", required = false) String q,
+                        @RequestParam(value = "do", required = false) String regionDo,
+                        @RequestParam(value = "si", required = false) String regionSi,
+                        @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
+                        @RequestParam(value = "page", required = false, defaultValue = "0") int page,
+                        @RequestParam(value = "size", required = false, defaultValue = "12") int size,
+                        Model model) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        var result = clubService.search(q, regionDo, regionSi, categoryIds, pageable);
+
         model.addAttribute("dos", clubService.getAllDos());
         model.addAttribute("categories", clubService.findAllCategories());
+        model.addAttribute("selectedDo", regionDo);
+        model.addAttribute("selectedSi", regionSi);
+        model.addAttribute("selectedCategoryIds", categoryIds == null ? List.of() : categoryIds);
+        model.addAttribute("q", q);
+        model.addAttribute("page", result);
+
         return "clubs/index";
     }
 
-    // 우측 패널로 로드되는 모임 만들기 폼
-    @GetMapping("/clubs/create")
-    public String createForm(Model model) {
-        model.addAttribute("dos", clubService.getAllDos());
-        model.addAttribute("categories", clubService.findAllCategories());
-        return "clubs/create";
+    @PostMapping
+    public String create(@ModelAttribute ClubForm form, HttpSession session) {
+        User owner = null;
+        Object uid = session.getAttribute("LOGIN_USER_ID");
+        if (uid instanceof Long id) {
+            owner = userRepository.findById(id).orElse(null);
+        }
+
+        clubService.createClub(owner,
+                form.name(),
+                form.description(),
+                form.regionDo(),
+                form.regionSi(),
+                form.categoryIds(),
+                form.newCategoryName(),
+                form.imageFile());
+
+        // 생성 후, 현재 필터 유지 없이 메인으로 이동
+        return "redirect:/clubs";
     }
 }

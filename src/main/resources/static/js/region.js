@@ -1,22 +1,29 @@
-export async function loadDos(selectEl) {
-    selectEl.innerHTML = `<option value="">도(전체)</option>`;
-    const res = await fetch('/api/regions/dos');
-    const list = await res.json();
-    list.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d; opt.textContent = d;
-        selectEl.appendChild(opt);
-    });
-}
+// 공용: 도 선택 시 시/군/구 채우기
+document.addEventListener('DOMContentLoaded', () => {
+    const pairs = [
+        {doSel: '#searchDo', siSel: '#searchSi'},
+        {doSel: '#createDo', siSel: '#createSi'},
+        {doSel: '#regDo', siSel: '#regSi'}
+    ];
 
-export async function loadSis(doValue, selectEl, includeAll = true) {
-    selectEl.innerHTML = includeAll ? `<option value="">시/군/구(전체)</option>` : `<option value="">선택</option>`;
-    if (!doValue) return;
-    const res = await fetch('/api/regions/sis?do=' + encodeURIComponent(doValue));
-    const list = await res.json();
-    list.forEach(si => {
-        const opt = document.createElement('option');
-        opt.value = si; opt.textContent = si;
-        selectEl.appendChild(opt);
+    async function fillSi(doValue, siSelect) {
+        siSelect.innerHTML = '<option value="">전체</option>';
+        if (!doValue) return;
+        const res = await fetch('/api/regions/sis?do=' + encodeURIComponent(doValue));
+        const arr = await res.json();
+        siSelect.innerHTML = '';
+        arr.forEach(s => {
+            const op = document.createElement('option');
+            op.value = s; op.textContent = s; siSelect.appendChild(op);
+        });
+    }
+
+    pairs.forEach(p => {
+        const doEl = document.querySelector(p.doSel);
+        const siEl = document.querySelector(p.siSel);
+        if (!doEl || !siEl) return;
+        // 초기값 적용
+        if (doEl.value) fillSi(doEl.value, siEl);
+        doEl.addEventListener('change', () => fillSi(doEl.value, siEl));
     });
-}
+});

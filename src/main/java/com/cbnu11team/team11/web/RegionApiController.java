@@ -13,13 +13,13 @@ public class RegionApiController {
 
     private final ClubService clubService;
 
-    @GetMapping("/do")
-    public List<String> getDos() {
+    @GetMapping("/dos")
+    public List<String> dos() {
         return clubService.getAllDos();
     }
 
-    @GetMapping("/si")
-    public List<String> getSis(@RequestParam("rdo") String rdo) {
-        return clubService.getSisByDo(rdo);
+    @GetMapping("/sis")
+    public List<String> sis(@RequestParam("do") String regionDo) {
+        return clubService.getSisByDo(regionDo);
     }
 }

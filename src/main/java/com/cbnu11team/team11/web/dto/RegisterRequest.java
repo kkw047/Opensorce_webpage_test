@@ -1,14 +1,13 @@
 package com.cbnu11team.team11.web.dto;
 
-import lombok.Data;
-
 import java.util.List;
 
-@Data
-public class RegisterRequest {
-    private String loginId;
-    private String password;
-    private String email;
-    private String nickname;
-    private List<Long> categoryIds;
-}
+public record RegisterRequest(
+        String loginId,
+        String email,
+        String password,
+        String nickname,
+        String regionDo,
+        String regionSi,
+        List<Long> categoryIds
+) {}

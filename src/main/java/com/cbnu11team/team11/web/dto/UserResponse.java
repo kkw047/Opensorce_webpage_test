@@ -1,11 +1,13 @@
 package com.cbnu11team.team11.web.dto;
 
-import lombok.*;
+import java.util.List;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class UserResponse {
-    private Long id;
-    private String loginId;
-    private String email;
-    private String nickname;
-}
+public record UserResponse(
+        Long id,
+        String loginId,
+        String email,
+        String nickname,
+        String regionDo,
+        String regionSi,
+        List<String> categories
+) {}

@@ -1,39 +1,42 @@
 package com.cbnu11team.team11.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.*;
 import java.util.UUID;
 
 @Service
 public class FileStorageService {
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
+    private final Path root;
 
-    public String store(MultipartFile file) {
-        if (file == null || file.isEmpty()) return null;
+    public FileStorageService() {
+        this.root = Paths.get(System.getProperty("user.dir"), "uploads");
         try {
-            Path root = Paths.get(System.getProperty("user.dir")).resolve(uploadDir);
             Files.createDirectories(root);
-            String ext = getExt(file.getOriginalFilename());
-            String filename = UUID.randomUUID().toString().replace("-", "") + (ext.isEmpty() ? "" : "." + ext);
-            Path dest = root.resolve(filename);
-            try (InputStream in = file.getInputStream()) {
-                Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
-            }
-            return "/uploads/" + filename;
         } catch (IOException e) {
-            throw new RuntimeException("파일 저장 실패", e);
+            throw new RuntimeException("Failed to create uploads directory", e);
         }
     }
 
-    private String getExt(String name) {
-        if (name == null) return "";
-        int i = name.lastIndexOf('.');
-        return (i >= 0) ? name.substring(i + 1) : "";
+    /** 파일 저장 후, 웹에서 접근 가능한 URL("/uploads/파일명") 리턴 */
+    public String save(MultipartFile file) {
+        if (file == null || file.isEmpty()) return null;
+        String ext = getExt(file.getOriginalFilename());
+        String name = UUID.randomUUID().toString().replace("-", "") + (ext.isEmpty() ? "" : "." + ext);
+        try {
+            Files.copy(file.getInputStream(), root.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+            return "/uploads/" + name;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file", e);
+        }
+    }
+
+    private String getExt(String filename) {
+        if (filename == null) return "";
+        int i = filename.lastIndexOf('.');
+        return (i == -1) ? "" : filename.substring(i + 1);
     }
 }

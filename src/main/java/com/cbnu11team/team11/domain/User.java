@@ -8,25 +8,28 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users",
+        indexes = @Index(name = "ix_users_region_do", columnList = "region_do"))
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 로그인용 ID (중복검사)
+    /** 로그인용 별도 아이디(선택) */
     @Column(name = "login_id", length = 50, unique = true)
     private String loginId;
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(length = 255, nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, length = 100)
+    @Column(length = 100, nullable = false)
     private String password;
 
-    @Column(nullable = false, length = 50)
+    @Column(length = 50, nullable = false)
     private String nickname;
 
     @Column(name = "region_do", length = 50)
@@ -35,13 +38,13 @@ public class User {
     @Column(name = "region_si", length = 50)
     private String regionSi;
 
-    @Column(name = "created_at", columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", columnDefinition = "timestamp default current_timestamp on update current_timestamp")
+    @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany
     @JoinTable(
             name = "user_categories",
             joinColumns = @JoinColumn(name = "user_id"),

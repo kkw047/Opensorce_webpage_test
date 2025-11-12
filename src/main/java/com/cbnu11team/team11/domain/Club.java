@@ -8,9 +8,14 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "clubs")
+@Table(name = "clubs", indexes = {
+        @Index(name = "ix_clubs_region_do", columnList = "region_do"),
+        @Index(name = "ix_clubs_created_at", columnList = "created_at")
+})
 @Getter @Setter
-@NoArgsConstructor @AllArgsConstructor @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Club {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,7 +24,9 @@ public class Club {
     @Column(length = 100, nullable = false)
     private String name;
 
+    /** DV: longtext */
     @Lob
+    @Column(columnDefinition = "longtext")
     private String description;
 
     @Column(name = "image_url", length = 255)
@@ -28,17 +35,20 @@ public class Club {
     @Column(name = "region_do", length = 50, nullable = false)
     private String regionDo;
 
-    @Column(name = "region_si", length = 80, nullable = false)
+    @Column(name = "region_si", length = 50, nullable = false)
     private String regionSi;
+
+    /** DV에 category_id(FK) 컬럼은 남아있지만, 다대다로 일관 구현 → 매핑하지 않음 */
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
+    @ToString.Exclude
     private User owner;
 
-    @Column(name = "created_at", columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany
     @JoinTable(
             name = "club_categories",
             joinColumns = @JoinColumn(name = "club_id"),
