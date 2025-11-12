@@ -1,29 +1,69 @@
-// 공용: 도 선택 시 시/군/구 채우기
-document.addEventListener('DOMContentLoaded', () => {
-    const pairs = [
-        {doSel: '#searchDo', siSel: '#searchSi'},
-        {doSel: '#createDo', siSel: '#createSi'},
-        {doSel: '#regDo', siSel: '#regSi'}
-    ];
+// region.js — 도/시군구 공통 바인딩 (검색/회원가입/모임만들기 전부 지원)
 
-    async function fillSi(doValue, siSelect) {
-        siSelect.innerHTML = '<option value="">전체</option>';
-        if (!doValue) return;
-        const res = await fetch('/api/regions/sis?do=' + encodeURIComponent(doValue));
-        const arr = await res.json();
-        siSelect.innerHTML = '';
-        arr.forEach(s => {
-            const op = document.createElement('option');
-            op.value = s; op.textContent = s; siSelect.appendChild(op);
-        });
+async function getJSON(url) {
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+}
+
+function fillSelect(selectEl, items, placeholderText) {
+    if (!selectEl) return;
+    selectEl.innerHTML = "";
+    // placeholder
+    if (placeholderText !== undefined) {
+        const ph = document.createElement("option");
+        ph.value = "";
+        ph.textContent = placeholderText;
+        selectEl.appendChild(ph);
     }
-
-    pairs.forEach(p => {
-        const doEl = document.querySelector(p.doSel);
-        const siEl = document.querySelector(p.siSel);
-        if (!doEl || !siEl) return;
-        // 초기값 적용
-        if (doEl.value) fillSi(doEl.value, siEl);
-        doEl.addEventListener('change', () => fillSi(doEl.value, siEl));
+    // options
+    (items || []).forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        selectEl.appendChild(opt);
     });
+}
+
+async function wireDoSi(doId, siId, opts = {}) {
+    const doSel = document.getElementById(doId);
+    const siSel = document.getElementById(siId);
+    if (!doSel || !siSel) return;
+
+    const phDo = doSel.dataset.placeholder || "전체";
+    const phSi = siSel.dataset.placeholder || "전체";
+
+    try {
+        // 도 목록
+        const dos = await getJSON("/api/regions/dos");
+        fillSelect(doSel, dos, phDo);
+
+        if (opts.initialDo && dos.includes(opts.initialDo)) {
+            doSel.value = opts.initialDo;
+        }
+
+        const refreshSi = async () => {
+            const selDo = doSel.value;
+            if (!selDo) { fillSelect(siSel, [], phSi); return; }
+            const sis = await getJSON("/api/regions/si?do=" + encodeURIComponent(selDo));
+            fillSelect(siSel, sis, phSi);
+            if (opts.initialSi && sis.includes(opts.initialSi)) {
+                siSel.value = opts.initialSi;
+            }
+        };
+
+        doSel.addEventListener("change", refreshSi);
+        await refreshSi();
+    } catch (e) {
+        console.error("Region wiring failed", e);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // 메인 검색바
+    wireDoSi("searchDo", "searchSi", { initialDo: window.selectedDo, initialSi: window.selectedSi });
+    // 회원가입 모달
+    wireDoSi("regDo", "regSi");
+    // 우측 '모임 만들기' 패널
+    wireDoSi("createDo", "createSi", { phDo: "도 선택", phSi: "시/군/구" });
 });
