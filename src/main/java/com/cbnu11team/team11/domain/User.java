@@ -19,7 +19,6 @@ public class User {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 로그인용 별도 아이디(선택) */
     @Column(name = "login_id", length = 50, unique = true)
     private String loginId;
 
