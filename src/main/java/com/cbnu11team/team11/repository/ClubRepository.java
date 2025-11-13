@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificationExecutor<Club> {
 
@@ -17,4 +18,9 @@ public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificat
     List<Club> findByOwner(User owner);
 
     List<Club> findByRegionDoAndRegionSi(String regionDo, String regionSi);
+
+    //상세 페이지용
+    @EntityGraph(attributePaths = {"owner", "categories", "members", "members.user"})
+    @Override
+    Optional<Club> findById(Long id);
 }

@@ -52,4 +52,10 @@ public class User {
     )
     @Builder.Default
     private Set<Category> categories = new LinkedHashSet<>();
+
+    // 유저가 가입한 모임 목록 (User -> ClubMember 1:N 관계)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    @ToString.Exclude
+    private Set<ClubMember> clubMemberships = new LinkedHashSet<>();
 }

@@ -4,243 +4,58 @@
     <meta charset="UTF-8">
     <title>모임 메인</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-    <script defer th:src="@{/js/region.js}"></script>
-    <script defer th:src="@{/js/main.js}"></script>
 </head>
 <body class="bg-deep">
 
-<header class="topbar">
-    <div class="logo">TEAM11</div>
-    <div class="actions">
-      <span th:if="${session.LOGIN_USER_NICKNAME != null}">
-        안녕하세요, <b th:text="${session.LOGIN_USER_NICKNAME}">닉</b>님!
-      </span>
-        <button class="btn" id="openLoginBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">로그인</button>
-        <button class="btn" id="openRegisterBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">회원가입</button>
-        <form th:if="${session.LOGIN_USER_NICKNAME != null}" th:action="@{/logout}" method="post" style="display:inline">
-            <button class="btn">로그아웃</button>
-        </form>
-    </div>
-</header>
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
 
 <div class="wrap">
-    <!-- 좌측 사이드 -->
-    <aside class="sidebar">
-        <nav class="menu-vert">
-            <a class="menu-item active">메인</a>
-            <a class="menu-item" title="준비중">추천</a>
-            <a class="menu-item" title="준비중">캘린더</a>
-            <a class="menu-item" title="준비중">내모임</a>
-        </nav>
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
 
-        <section class="card soft">
-            <h4 class="card-title">카테고리</h4>
-            <form id="categoryFilterForm" method="get" th:action="@{/clubs}">
-                <input type="hidden" name="q" th:value="${q}">
-                <input type="hidden" name="do" th:value="${selectedDo}">
-                <input type="hidden" name="si" th:value="${selectedSi}">
-
-                <div class="checklist scroll-y">
-                    <label th:each="c : ${categories}" class="checkrow">
-                        <input type="checkbox" name="categoryIds"
-                               th:value="${c.id}"
-                               th:checked="${#lists.contains(selectedCategoryIds, c.id)}">
-                        <span th:text="${c.name}">카테고리</span>
-                    </label>
-                </div>
-
-                <button class="btn block mt8">필터 적용</button>
-            </form>
-        </section>
-
-        <button class="btn primary block mt12" id="openCreatePanelBtn">모임 만들기</button>
-    </aside>
-
-    <!-- 우측 컨텐츠 -->
     <main class="content">
-        <!-- 검색바 -->
-        <form class="toolbar" method="get" th:action="@{/clubs}">
-            <div>
-                <div class="label">도(광역)</div>
-                <select id="searchDo" name="do">
-                    <option value="">전체</option>
-                    <option th:each="d : ${dos}"
-                            th:text="${d}"
-                            th:value="${d}"
-                            th:selected="${d == selectedDo}">충북</option>
-                </select>
-            </div>
-            <div>
-                <div class="label">시/군/구</div>
-                <select id="searchSi" name="si">
-                    <option value="">전체</option>
-                    <!-- region.js가 do 선택에 따라 옵션을 채움 -->
-                </select>
-            </div>
-            <div class="flex1">
-                <div class="label">키워드</div>
-                <input type="text" name="q" th:value="${q}" placeholder="모임 이름으로 검색">
-            </div>
+        <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
 
-            <!-- 선택된 카테고리 유지용 hidden -->
-            <div th:if="${selectedCategoryIds != null}">
-                <input type="hidden" name="categoryIds"
-                       th:each="cid : ${selectedCategoryIds}"
-                       th:value="${cid}">
-            </div>
-
-            <button class="btn">검색</button>
-        </form>
-
-        <!-- 카드 리스트 -->
         <div class="grid">
-            <div class="card club" th:each="c : ${page.content}">
-                <img th:if="${c.imageUrl != null}" th:src="${c.imageUrl}" alt="">
-                <div class="card-body">
-                    <div class="club-title" th:text="${c.name}">모임명</div>
-                    <div class="muted" th:text="${c.regionDo + ' ' + c.regionSi}">지역</div>
-                    <div class="chips">
-                        <span class="chip" th:each="k : ${c.categories}" th:text="${'#' + k.name}">#카테고리</span>
-                    </div>
+            <a class="card club" th:each="c : ${page.content}" th:href="@{/clubs/{id}(id=${c.id})}">
+                <img th:if="${c.imageUrl != null}" th:src="${c.imageUrl}" alt="모임 사진">
+                <div th:if="${c.imageUrl == null}" style="height: 160px; background: #0b1b17;"></div> <div class="card-body">
+                <div class="club-title" th:text="${c.name}">모임명</div>
+                <div class="muted" th:text="${c.regionDo + ' ' + c.regionSi}">지역</div>
+                <div class="chips">
+                    <span class="chip" th:each="k : ${c.categories}" th:text="${'#' + k.name}">#카테고리</span>
                 </div>
             </div>
+            </a>
         </div>
 
-        <!-- 페이지네이션 -->
-        <div class="pager">
+        <div class="pager" th:if="${page.totalPages > 1}">
             <a class="btn" th:if="${!page.first}"
-               th:href="@{/clubs(
-                 page=${page.number - 1},
-                 size=${page.size},
-                 q=${q},
-                 do=${selectedDo},
-                 si=${selectedSi},
-                 categoryIds=${selectedCategoryIds}
-               )}">이전</a>
+               th:href="@{/clubs(page=${page.number - 1}, size=${page.size}, q=${q}, do=${selectedDo}, si=${selectedSi}, categoryIds=${selectedCategoryIds})}">이전</a>
 
             <span>페이지 <b th:text="${page.number + 1}">1</b> / <span th:text="${page.totalPages}">1</span></span>
 
             <a class="btn" th:if="${!page.last}"
-               th:href="@{/clubs(
-                 page=${page.number + 1},
-                 size=${page.size},
-                 q=${q},
-                 do=${selectedDo},
-                 si=${selectedSi},
-                 categoryIds=${selectedCategoryIds}
-               )}">다음</a>
+               th:href="@{/clubs(page=${page.number + 1}, size=${page.size}, q=${q}, do=${selectedDo}, si=${selectedSi}, categoryIds=${selectedCategoryIds})}">다음</a>
         </div>
     </main>
 </div>
 
-<!-- ===== 모임 만들기: 오버레이 (기본 hidden) ===== -->
-<div class="overlay" id="createOverlay" hidden>
-    <div class="overlay-backdrop" id="createBackdrop"></div>
+<div th:replace="~{fragments/common :: modals}"></div>
 
-    <aside class="create-panel">
-        <div class="panel-head">
-            <h3>모임 만들기</h3>
-            <button class="iconbtn" id="closeCreatePanelBtn" aria-label="닫기">✕</button>
-        </div>
-
-        <form id="createForm" th:action="@{/clubs}" method="post" enctype="multipart/form-data" class="panel-body">
-            <!-- 지역 선택 (위쪽) -->
-            <div class="row-2">
-                <label>
-                    <div class="label">도 선택</div>
-                    <select id="createDo" name="regionDo" required>
-                        <option value="" selected disabled>도 선택</option>
-                        <option th:each="d : ${dos}" th:text="${d}" th:value="${d}">충북</option>
-                    </select>
-                </label>
-                <label>
-                    <div class="label">시/군/구</div>
-                    <select id="createSi" name="regionSi" required>
-                        <option value="" selected disabled>시/군/구</option>
-                    </select>
-                </label>
-            </div>
-
-            <!-- 이미지 -->
-            <div class="preview" id="imagePreview">이미지 미리보기</div>
-            <label class="filebtn">
-                <input type="file" name="imageFile" id="imageFile" accept="image/*" hidden>
-                <span>📁 파일 선택</span>
-            </label>
-
-            <!-- 기본 정보 -->
-            <input type="text" name="name" placeholder="모임 이름" required>
-            <textarea name="description" placeholder="홍보/소개 문구" rows="4"></textarea>
-
-            <!-- 카테고리 -->
-            <div class="label">카테고리(복수 선택)</div>
-            <div class="checklist tall scroll-y">
-                <label th:each="c : ${categories}" class="checkrow">
-                    <input type="checkbox" name="categoryIds" th:value="${c.id}">
-                    <span th:text="${c.name}">카테고리</span>
-                </label>
-            </div>
-
-            <!-- 새 카테고리 (쉼표 다중 → 칩) -->
-            <div class="row-2">
-                <input id="newCategoryInput" type="text" placeholder="+ 새 카테고리(예: 러닝, 영화, 보드)">
-                <button class="btn" type="button" id="addCategoryBtn">추가</button>
-            </div>
-            <div id="newCategoryChips" class="chips"></div>
-            <div id="newCategoryHidden"></div>
-
-            <button class="btn primary block mt12" type="submit">생성</button>
-        </form>
-    </aside>
+<div id="toast"
+     th:if="${error != null or msg != null}"
+     th:text="${error ?: msg}"
+     class="toast show">
 </div>
 
-<!-- 로그인 / 회원가입 모달 (그대로) -->
-<div class="modal" id="loginModal" hidden>
-    <div class="modal-card">
-        <h3>로그인</h3>
-        <form class="form-grid" th:action="@{/login}" method="post">
-            <input type="text" name="loginIdOrEmail" placeholder="아이디 또는 이메일" required>
-            <input type="password" name="password" placeholder="비밀번호" required>
-            <button class="btn primary">로그인</button>
-            <button class="btn" type="button" data-close="#loginModal">닫기</button>
-        </form>
-    </div>
-</div>
+<div th:replace="~{fragments/common :: scripts}"></div>
 
-<div class="modal" id="registerModal" hidden>
-    <div class="modal-card">
-        <h3>회원가입</h3>
-        <form class="form-grid" th:action="@{/register}" method="post">
-            <input type="email" name="email" placeholder="이메일" required>
-            <input type="password" name="password" placeholder="비밀번호" required>
-            <input type="text" name="nickname" placeholder="닉네임" required>
-
-            <div class="row-2">
-                <select id="regDo" name="regionDo" required>
-                    <option value="" selected disabled>도 선택</option>
-                    <option th:each="d : ${dos}" th:text="${d}" th:value="${d}">충북</option>
-                </select>
-                <select id="regSi" name="regionSi" required>
-                    <option value="" selected disabled>시/군/구</option>
-                </select>
-            </div>
-
-            <div class="label mt8">선호 카테고리 (복수 선택)</div>
-            <div class="checklist scroll-y">
-                <label th:each="c : ${categories}" class="checkrow">
-                    <input type="checkbox" name="categoryIds" th:value="${c.id}">
-                    <span th:text="${c.name}">카테고리</span>
-                </label>
-            </div>
-
-            <button class="btn primary">가입</button>
-            <button class="btn" type="button" data-close="#registerModal">닫기</button>
-        </form>
-    </div>
-</div>
-
-<!-- 토스트 -->
-<div id="toast" th:if="${toast}" th:text="${toast}" class="toast show"></div>
+<script th:if="${openLogin}">
+    document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
+</script>
+<script th:if="${openRegister}">
+    document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
+</script>
 
 </body>
 </html>
