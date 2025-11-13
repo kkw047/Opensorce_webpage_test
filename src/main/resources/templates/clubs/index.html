@@ -12,9 +12,9 @@
 <header class="topbar">
     <div class="logo">TEAM11</div>
     <div class="actions">
-    <span th:if="${session.LOGIN_USER_NICKNAME != null}">
-      안녕하세요, <b th:text="${session.LOGIN_USER_NICKNAME}">닉</b>님!
-    </span>
+      <span th:if="${session.LOGIN_USER_NICKNAME != null}">
+        안녕하세요, <b th:text="${session.LOGIN_USER_NICKNAME}">닉</b>님!
+      </span>
         <button class="btn" id="openLoginBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">로그인</button>
         <button class="btn" id="openRegisterBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">회원가입</button>
         <form th:if="${session.LOGIN_USER_NICKNAME != null}" th:action="@{/logout}" method="post" style="display:inline">
@@ -62,21 +62,33 @@
         <form class="toolbar" method="get" th:action="@{/clubs}">
             <div>
                 <div class="label">도(광역)</div>
-                <select id="searchDo" name="do" th:value="${selectedDo}">
+                <select id="searchDo" name="do">
                     <option value="">전체</option>
-                    <option th:each="d : ${dos}" th:text="${d}" th:value="${d}">충북</option>
+                    <option th:each="d : ${dos}"
+                            th:text="${d}"
+                            th:value="${d}"
+                            th:selected="${d == selectedDo}">충북</option>
                 </select>
             </div>
             <div>
                 <div class="label">시/군/구</div>
-                <select id="searchSi" name="si" th:value="${selectedSi}">
+                <select id="searchSi" name="si">
                     <option value="">전체</option>
+                    <!-- region.js가 do 선택에 따라 옵션을 채움 -->
                 </select>
             </div>
             <div class="flex1">
                 <div class="label">키워드</div>
                 <input type="text" name="q" th:value="${q}" placeholder="모임 이름으로 검색">
             </div>
+
+            <!-- 선택된 카테고리 유지용 hidden -->
+            <div th:if="${selectedCategoryIds != null}">
+                <input type="hidden" name="categoryIds"
+                       th:each="cid : ${selectedCategoryIds}"
+                       th:value="${cid}">
+            </div>
+
             <button class="btn">검색</button>
         </form>
 
@@ -97,10 +109,26 @@
         <!-- 페이지네이션 -->
         <div class="pager">
             <a class="btn" th:if="${!page.first}"
-               th:href="@{|/clubs?page=${page.number - 1}&size=${page.size}&q=${q}&do=${selectedDo}&si=${selectedSi}${selectedCategoryIds.isEmpty()? '' : selectedCategoryIds.stream().map(x -> '&categoryIds=' + x).collect(@java.util.stream.Collectors@joining())}|}">이전</a>
+               th:href="@{/clubs(
+                 page=${page.number - 1},
+                 size=${page.size},
+                 q=${q},
+                 do=${selectedDo},
+                 si=${selectedSi},
+                 categoryIds=${selectedCategoryIds}
+               )}">이전</a>
+
             <span>페이지 <b th:text="${page.number + 1}">1</b> / <span th:text="${page.totalPages}">1</span></span>
+
             <a class="btn" th:if="${!page.last}"
-               th:href="@{|/clubs?page=${page.number + 1}&size=${page.size}&q=${q}&do=${selectedDo}&si=${selectedSi}${selectedCategoryIds.isEmpty()? '' : selectedCategoryIds.stream().map(x -> '&categoryIds=' + x).collect(@java.util.stream.Collectors@joining())}|}">다음</a>
+               th:href="@{/clubs(
+                 page=${page.number + 1},
+                 size=${page.size},
+                 q=${q},
+                 do=${selectedDo},
+                 si=${selectedSi},
+                 categoryIds=${selectedCategoryIds}
+               )}">다음</a>
         </div>
     </main>
 </div>
