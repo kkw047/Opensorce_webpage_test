@@ -3,13 +3,17 @@ package com.cbnu11team.team11.service;
 import com.cbnu11team.team11.domain.Category;
 import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.domain.User;
+import com.cbnu11team.team11.domain.ClubMember;
+import com.cbnu11team.team11.domain.ClubMemberId;
 import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.repository.ClubRepository;
 import com.cbnu11team.team11.repository.RegionKorRepository;
+import com.cbnu11team.team11.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -23,6 +27,7 @@ public class ClubService {
     private final CategoryRepository categoryRepository;
     private final RegionKorRepository regionKorRepository;
     private final FileStorageService fileStorageService;
+    private final UserRepository userRepository;
 
     /* ===== Region ===== */
     public List<String> getAllDos() { return regionKorRepository.findDistinctDos(); }
@@ -39,7 +44,8 @@ public class ClubService {
     }
 
     /* ===== Create Club ===== */
-    public Club createClub(User owner,
+    @Transactional // 트랜잭션 보장
+    public Club createClub(Long ownerId,
                            String name,
                            String description,
                            String regionDo,
@@ -47,6 +53,10 @@ public class ClubService {
                            List<Long> categoryIds,
                            String newCategoryName,
                            org.springframework.web.multipart.MultipartFile imageFile) {
+
+        // 서비스 내에서 직접 User 엔티티를 조회 (트랜잭션 내에서 관리)
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid user ID: " + ownerId));
 
         Club club = new Club();
         club.setName(name.trim());
@@ -70,6 +80,17 @@ public class ClubService {
         if (newCategoryName != null && !newCategoryName.isBlank()) {
             Category nc = createCategoryIfNotExists(newCategoryName);
             club.getCategories().add(nc);
+        }
+
+        // 모임 생성자를 "ADMIN" 역할로 멤버 목록에 추가
+        if (owner != null) {
+            ClubMember ownerMembership = new ClubMember();
+            ownerMembership.setId(new ClubMemberId(null, owner.getId()));
+            ownerMembership.setClub(club);
+            ownerMembership.setUser(owner);
+            ownerMembership.setRole("ADMIN");
+
+            club.getMembers().add(ownerMembership);
         }
 
         return clubRepository.save(club);
@@ -103,5 +124,9 @@ public class ClubService {
         }
 
         return clubRepository.findAll(spec, pageable);
+    }
+    /* ===== Detail ===== */
+    public Optional<Club> findById(Long clubId) {
+        return clubRepository.findById(clubId);
     }
 }

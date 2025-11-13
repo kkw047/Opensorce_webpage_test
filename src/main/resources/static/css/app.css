@@ -4,7 +4,7 @@ body.bg-deep{margin:0;background:#0d1b17;color:#e7f3ee;font-family:system-ui,-ap
 [hidden]{display:none !important}
 
 /* 버튼/폼 */
-.btn{padding:8px 12px;border-radius:10px;border:1px solid #29433b;background:#142a24;color:#e7f3ee;cursor:pointer}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid #29433b;background:#142a24;color:#e7f3ee;text-decoration: none;cursor:pointer}
 .btn:hover{filter:brightness(1.05)}
 .btn.primary{background:#1db954;border-color:#1db954;color:#062016}
 .btn.block{width:100%}
@@ -24,7 +24,12 @@ select{appearance:auto}
 .content{min-height:60vh}
 
 .menu-vert{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
-.menu-item{padding:10px;border-radius:10px;background:#0f231e;border:1px solid #1a332c}
+.menu-item{
+    padding:10px;border-radius:10px;background:#0f231e;border:1px solid #1a332c;
+    text-decoration: none; /* 밑줄 제거 */
+    color: inherit;
+    display: block;
+}
 .menu-item.active{background:#12352b;border-color:#1db954}
 
 .card{border:1px solid #1a332c;border-radius:14px;background:#0f231e}
@@ -75,3 +80,25 @@ select{appearance:auto}
 /* 토스트 */
 .toast{position:fixed;right:16px;bottom:16px;background:#12352b;border:1px solid #1db95466;color:#d5ffee;padding:10px 14px;border-radius:10px;opacity:0;transform:translateY(8px);transition:.25s}
 .toast.show{opacity:1;transform:translateY(0)}
+
+a.card.club {
+    color: inherit;           /* 글자 색상을 부모 요소(body)의 색상(#e7f3ee)으로 상속 */
+    text-decoration: none;  /* 밑줄 제거 */
+    transition: transform 0.2s ease; /* 부드러운 효과 */
+}
+
+/* 호버 효과 */
+a.card.club:hover {
+    transform: translateY(-4px);
+    filter: brightness(1.05);
+}
+
+.tab-menu-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.tab-menu {
+    display: flex;
+    gap: 8px;
+}

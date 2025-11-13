@@ -56,4 +56,10 @@ public class Club {
     )
     @Builder.Default
     private Set<Category> categories = new LinkedHashSet<>();
+
+    //멤버 목록 (Club -> ClubMember 1:N 관계)
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    @ToString.Exclude
+    private Set<ClubMember> members = new LinkedHashSet<>();
 }
