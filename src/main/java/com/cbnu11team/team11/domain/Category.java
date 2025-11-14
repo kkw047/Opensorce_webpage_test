@@ -28,10 +28,12 @@ public class Category {
 
     @ManyToMany(mappedBy = "categories")
     @ToString.Exclude
+    @Builder.Default
     private Set<Club> clubs = new LinkedHashSet<>();
 
     @ManyToMany(mappedBy = "categories")
     @ToString.Exclude
+    @Builder.Default
     private Set<User> users = new LinkedHashSet<>();
 
     public Category(Long id, String name, LocalDateTime createdAt) {

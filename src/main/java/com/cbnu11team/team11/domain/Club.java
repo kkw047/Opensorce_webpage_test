@@ -5,8 +5,7 @@ import lombok.*;
 import org.springframework.core.annotation.Order;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "clubs", indexes = {
@@ -61,7 +60,8 @@ public class Club {
 
     //멤버 목록 (Club -> ClubMember 1:N 관계)
     @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("role ASC, joinedAt ASC") // role, 가입일 오름차순
     @Builder.Default
     @ToString.Exclude
-    private Set<ClubMember> members = new LinkedHashSet<>();
+    private List<ClubMember> members = new ArrayList<>();
 }

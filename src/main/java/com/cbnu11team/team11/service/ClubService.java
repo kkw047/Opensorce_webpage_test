@@ -10,6 +10,8 @@ import com.cbnu11team.team11.repository.ClubRepository;
 import com.cbnu11team.team11.repository.RegionKorRepository;
 import com.cbnu11team.team11.repository.UserRepository;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
+import com.cbnu11team.team11.web.dto.ClubDetailDto;
+import com.cbnu11team.team11.web.dto.ClubForm;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -46,41 +48,31 @@ public class ClubService {
     }
 
     /* ===== Create Club ===== */
-    @Transactional // 트랜잭션 보장
-    public Club createClub(Long ownerId,
-                           String name,
-                           String description,
-                           String regionDo,
-                           String regionSi,
-                           List<Long> categoryIds,
-                           String newCategoryName,
-                           org.springframework.web.multipart.MultipartFile imageFile) {
+    @Transactional
+    public Club createClub(Long ownerId, ClubForm form) { // 파라미터를 DTO로 받음
 
-        // 서비스 내에서 직접 User 엔티티를 조회 (트랜잭션 내에서 관리)
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid user ID: " + ownerId));
 
         Club club = new Club();
-        club.setName(name.trim());
-        club.setDescription((description == null) ? null : description.trim());
-        club.setRegionDo(regionDo);
-        club.setRegionSi(regionSi);
+        club.setName(form.name().trim());
+        club.setDescription((form.description() == null) ? null : form.description().trim());
+        club.setRegionDo(form.regionDo());
+        club.setRegionSi(form.regionSi());
         club.setOwner(owner);
 
-        if (imageFile != null && !imageFile.isEmpty()) {
-            String url = fileStorageService.save(imageFile);
+        if (form.imageFile() != null && !form.imageFile().isEmpty()) {
+            String url = fileStorageService.save(form.imageFile());
             club.setImageUrl(url);
         }
 
-        // 기존 카테고리
-        if (categoryIds != null && !categoryIds.isEmpty()) {
-            List<Category> cats = categoryRepository.findAllByIdIn(categoryIds);
+        if (form.categoryIds() != null && !form.categoryIds().isEmpty()) {
+            List<Category> cats = categoryRepository.findAllByIdIn(form.categoryIds());
             club.getCategories().addAll(cats);
         }
 
-        // 새 카테고리 추가
-        if (newCategoryName != null && !newCategoryName.isBlank()) {
-            Category nc = createCategoryIfNotExists(newCategoryName);
+        if (form.newCategoryName() != null && !form.newCategoryName().isBlank()) {
+            Category nc = createCategoryIfNotExists(form.newCategoryName());
             club.getCategories().add(nc);
         }
 
@@ -117,7 +109,7 @@ public class ClubService {
         newMember.setId(memberId);
         newMember.setClub(club);
         newMember.setUser(user);
-        newMember.setRole("MEMBER"); // 요청하신 "MEMBER" 역할 부여
+        newMember.setRole("MEMBER");
 
         clubMemberRepository.save(newMember);
     }
@@ -177,13 +169,12 @@ public class ClubService {
             spec = spec.and((root, query, cb) -> {
                 query.distinct(true);
                 Join<Club, Category> cats = root.join("categories", JoinType.INNER);
-                return cats.get("id").in(categoryIds); // ANY-OF
+                return cats.get("id").in(categoryIds);
             });
         }
 
-        // 내 모임 조건 추가 (로그인한 사용자가 멤버인 모임)
         spec = spec.and((root, query, cb) -> {
-            query.distinct(true); // 중복 제거
+            query.distinct(true);
             Join<Club, ClubMember> members = root.join("members");
             return cb.equal(members.get("user").get("id"), userId);
         });
@@ -192,7 +183,38 @@ public class ClubService {
     }
 
     /* ===== Detail ===== */
+    @Transactional(readOnly = true)
     public Optional<Club> findById(Long clubId) {
         return clubRepository.findById(clubId);
+    }
+
+    /* ===== Detail DTO 로직 ===== */
+    /**
+     * 모임 상세 정보와 현재 사용자 관련 정보를 DTO로 조회
+     * @param clubId 모임 ID
+     * @param currentUserId 현재 로그인한 사용자 ID (null일 수 있음)
+     * @return 뷰에 전달할 ClubDetailDto
+     */
+    @Transactional(readOnly = true)
+    public Optional<ClubDetailDto> getClubDetail(Long clubId, Long currentUserId) {
+        // @EntityGraph가 적용된 findById 호출 (members, categories 등 모두 EAGER 조회)
+        Optional<Club> optClub = clubRepository.findById(clubId);
+        if (optClub.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Club club = optClub.get();
+
+        boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
+
+        boolean isAlreadyMember = false;
+        if (currentUserId != null) {
+            ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
+            isAlreadyMember = clubMemberRepository.existsById(memberId);
+        }
+
+        // 엔티티 -> DTO 변환
+        ClubDetailDto dto = ClubDetailDto.fromEntity(club, isOwner, isAlreadyMember);
+        return Optional.of(dto);
     }
 }
