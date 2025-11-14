@@ -43,7 +43,11 @@
         </form>
     </section>
 
-    <button class="btn primary block mt12" id="openCreatePanelBtn">모임 만들기</button>
+    <button class="btn primary block mt12"
+            id="openCreatePanelBtn"
+            th:attr="data-logged-in=${session.LOGIN_USER_ID != null} ? 'true' : 'false'">
+        모임 만들기
+    </button>
 </aside>
 
 <form class="toolbar" th:fragment="searchbar" method="get" th:action="@{/clubs}">
@@ -107,6 +111,7 @@
         <div class="modal-card">
             <h3>회원가입</h3>
             <form class="form-grid" th:action="@{/register}" method="post">
+                <input type="text" name="loginId" placeholder="아이디(선택)">
                 <input type="email" name="email" placeholder="이메일" required>
                 <input type="password" name="password" placeholder="비밀번호" required>
                 <input type="text" name="nickname" placeholder="닉네임" required>
@@ -136,11 +141,24 @@
             </div>
             <form id="createForm" th:action="@{/clubs}" method="post" enctype="multipart/form-data" class="panel-body">
                 <div class="row-2">
-                    <label><div class="label">도 선택</div><select id="createDo" name="regionDo" required><option value="">도 선택</option></select></label>
-                    <label><div class="label">시/군/구</div><select id="createSi" name="regionSi" required><option value="">시/군/구</option></select></label>
+                    <label>
+                        <div class="label">도 선택</div>
+                        <select id="createDo" name="regionDo" required>
+                            <option value="">도 선택</option>
+                        </select>
+                    </label>
+                    <label>
+                        <div class="label">시/군/구</div>
+                        <select id="createSi" name="regionSi" required>
+                            <option value="">시/군/구</option>
+                        </select>
+                    </label>
                 </div>
                 <div class="preview" id="imagePreview">이미지 미리보기</div>
-                <label class="filebtn"><input type="file" name="imageFile" id="imageFile" accept="image/*" hidden><span>📁 파일 선택</span></label>
+                <label class="filebtn">
+                    <input type="file" name="imageFile" id="imageFile" accept="image/*" hidden>
+                    <span>📁 파일 선택</span>
+                </label>
                 <input type="text" name="name" placeholder="모임 이름" required>
                 <textarea name="description" placeholder="홍보/소개 문구" rows="4"></textarea>
                 <div class="label">카테고리</div>

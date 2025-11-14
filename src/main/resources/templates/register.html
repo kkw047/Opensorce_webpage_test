@@ -1,33 +1,117 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
-<head><meta charset="UTF-8"><title>회원가입</title></head>
-<body>
-<h2>회원가입</h2>
-<form th:action="@{/register}" method="post">
-    <input type="text" name="loginId" placeholder="아이디(선택)">
-    <input type="email" name="email" placeholder="이메일" required>
-    <input type="password" name="password" placeholder="비밀번호" required>
-    <input type="text" name="nickname" placeholder="닉네임" required>
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 
-    <select id="regDo" name="regionDo" required>
-        <option value="" selected disabled>도 선택</option>
-        <option th:each="d : ${dos}" th:value="${d}" th:text="${d}">충북</option>
-    </select>
-    <select id="regSi" name="regionSi" required>
-        <option value="" selected disabled>시/군/구</option>
-    </select>
+    <!-- 체크리스트 스타일 (메인과 동일) -->
+    <style>
+        .checklist {
+            background: #071b15;
+            border-radius: 10px;
+            border: 1px solid #153328;
+            padding: 6px 8px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+        .checkrow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #d8efe4;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .checkrow:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .checkrow input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid #355342;
+            background: #04120e;
+            position: relative;
+        }
+        .checkrow input[type="checkbox"]:checked {
+            background: #1db954;
+            border-color: #1db954;
+        }
+        .checkrow input[type="checkbox"]:checked::after {
+            content: "✔";
+            position: absolute;
+            left: 2px;
+            top: -1px;
+            font-size: 11px;
+            color: #04120e;
+        }
+        .auth-wrap {
+            max-width: 520px;
+            margin: 40px auto;
+        }
+        .auth-card {
+            padding: 24px 28px;
+        }
+        .auth-card h2 {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        .auth-card .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        .auth-card .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body class="bg-deep">
 
-    <div>선호 카테고리</div>
-    <div th:each="c : ${categories}">
-        <label><input type="checkbox" name="categoryIds" th:value="${c.id}"><span th:text="${c.name}">카테고리</span></label>
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="auth-wrap">
+    <div class="card soft auth-card">
+        <h2>회원가입</h2>
+        <form class="form-grid" th:action="@{/register}" method="post">
+            <input type="text" name="loginId" placeholder="아이디(선택)">
+            <input type="email" name="email" placeholder="이메일" required>
+            <input type="password" name="password" placeholder="비밀번호" required>
+            <input type="text" name="nickname" placeholder="닉네임" required>
+
+            <div class="row-2">
+                <select id="regDo" name="regionDo" required>
+                    <option value="" selected disabled>도 선택</option>
+                    <option th:each="d : ${dos}" th:value="${d}" th:text="${d}">충북</option>
+                </select>
+                <select id="regSi" name="regionSi" required>
+                    <option value="" selected disabled>시/군/구</option>
+                </select>
+            </div>
+
+            <div class="label mt8">선호 카테고리</div>
+            <div class="checklist scroll-y">
+                <label th:each="c : ${categories}" class="checkrow">
+                    <input type="checkbox" name="categoryIds" th:value="${c.id}">
+                    <span th:text="${c.name}">카테고리</span>
+                </label>
+            </div>
+
+            <button class="btn primary mt12">가입</button>
+            <a class="btn mt8" th:href="@{/clubs}">메인으로</a>
+        </form>
     </div>
-
-    <button>가입</button>
-</form>
-<p><a th:href="@{/clubs}">메인으로</a></p>
+</div>
 
 <script>
-    // 간단한 시/군/구 채움
+    // 도 선택 시 시/군/구 채우기 (기존 로직 그대로)
     (async function(){
         const doSel = document.getElementById('regDo');
         const siSel = document.getElementById('regSi');
@@ -44,5 +128,6 @@
         doSel.addEventListener('change', loadSis);
     })();
 </script>
+
 </body>
 </html>
