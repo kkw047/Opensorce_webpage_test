@@ -87,6 +87,14 @@
             font-size: 12px;
             border: 1px solid rgba(29, 185, 84, 0.4);
         }
+
+        .members-right {
+            margin-top: 6px;
+            text-align: right;
+            font-size: 12px;
+            color: #9ec8b8;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body class="bg-deep">
@@ -108,9 +116,10 @@
                 <div class="card-body">
                     <div class="club-title" th:text="${c.name}">모임명</div>
                     <div class="muted" th:text="${c.regionDo + ' ' + c.regionSi}">지역</div>
-                    <div class="chips">
+                    <div class="chips" style="margin-top:8px">
                         <span class="chip" th:each="k : ${c.categories}" th:text="${'#' + k.name}">#카테고리</span>
                     </div>
+                    <div class="members-right" th:text="${'👤 ' + (memberCounts?.get(c.id) ?: 0) + '명'}">👤 0명</div>
                 </div>
             </a>
         </div>
