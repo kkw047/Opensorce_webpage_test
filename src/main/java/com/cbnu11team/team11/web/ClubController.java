@@ -86,6 +86,31 @@ public class ClubController {
         return "clubs/calendar";
     }
 
+    // 모임 가입
+    @PostMapping("/{clubId}/join")
+    public String joinClub(@PathVariable Long clubId, HttpSession session, RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        // 로그인 여부 확인
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인 후 가입할 수 있습니다.");
+            ra.addFlashAttribute("openLogin", true); // 로그인 모달 바로 열기
+            return "redirect:/clubs/" + clubId; // 현재 상세 페이지로 리다이렉트
+        }
+
+        // 서비스 로직 호출
+        try {
+            clubService.joinClub(clubId, currentUserId);
+            ra.addFlashAttribute("msg", "모임에 가입되었습니다.");
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            // 이미 가입했거나, 유저/모임 ID가 잘못된 경우
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+
+        // 결과 페이지로 리다이렉트
+        return "redirect:/clubs/" + clubId;
+    }
+
     // 모임 생성
     @PostMapping
     public String create(@ModelAttribute ClubForm form,
