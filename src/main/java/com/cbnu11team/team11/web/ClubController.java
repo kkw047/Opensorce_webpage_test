@@ -49,11 +49,10 @@ public class ClubController {
     // 모임 상세 페이지 (홈 탭)
     @GetMapping("/{clubId}")
     public String detail(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
-        // 공통 헬퍼 메소드 호출
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
-        model.addAttribute("activeTab", "home"); // "홈" 탭 활성화
+        model.addAttribute("activeTab", "home");
         return "clubs/detail";
     }
 
@@ -63,7 +62,7 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
-        model.addAttribute("activeTab", "board"); // "게시판" 탭 활성화
+        model.addAttribute("activeTab", "board");
         return "clubs/board";
     }
 
@@ -73,7 +72,7 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
-        model.addAttribute("activeTab", "chat"); // "채팅" 탭 활성화
+        model.addAttribute("activeTab", "chat");
         return "clubs/chat";
     }
 
@@ -83,32 +82,44 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
-        model.addAttribute("activeTab", "calendar"); // "캘린더" 탭 활성화
+        model.addAttribute("activeTab", "calendar");
         return "clubs/calendar";
     }
 
-
+    // 모임 생성
     @PostMapping
-    public String create(@ModelAttribute ClubForm form, HttpSession session) {
+    public String create(@ModelAttribute ClubForm form,
+                         HttpSession session,
+                         RedirectAttributes ra) {
+
         Long ownerId = null;
         Object uid = session.getAttribute("LOGIN_USER_ID");
         if (uid instanceof Long id) {
             ownerId = id;
         }
+
+        // 로그인 안 되어 있으면 경고 + 로그인 모달 열기
         if (ownerId == null) {
+            ra.addFlashAttribute("error", "로그인 후 모임을 만들 수 있습니다.");
+            ra.addFlashAttribute("openLogin", true);
             return "redirect:/clubs";
         }
-        clubService.createClub(ownerId,
+
+        clubService.createClub(
+                ownerId,
                 form.name(),
                 form.description(),
                 form.regionDo(),
                 form.regionSi(),
                 form.categoryIds(),
                 form.newCategoryName(),
-                form.imageFile());
+                form.imageFile()
+        );
+
+        // 성공 토스트 메시지
+        ra.addFlashAttribute("msg", "모임이 생성되었습니다.");
         return "redirect:/clubs";
     }
-
 
     /**
      * 상세/탭 페이지 공통 속성 추가 헬퍼 메소드
@@ -122,12 +133,12 @@ public class ClubController {
         }
 
         Club club = optClub.get();
-        model.addAttribute("club", club); // (club-tabs 프래그먼트가 사용)
+        model.addAttribute("club", club);
 
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
 
         boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
-        model.addAttribute("isOwner", isOwner); // (club-tabs 프래그먼트가 사용)
+        model.addAttribute("isOwner", isOwner);
 
         boolean isAlreadyMember = false;
         if (currentUserId != null) {
