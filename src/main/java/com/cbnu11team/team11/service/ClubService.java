@@ -9,6 +9,7 @@ import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.repository.ClubRepository;
 import com.cbnu11team.team11.repository.RegionKorRepository;
 import com.cbnu11team.team11.repository.UserRepository;
+import com.cbnu11team.team11.repository.ClubMemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,6 +29,7 @@ public class ClubService {
     private final RegionKorRepository regionKorRepository;
     private final FileStorageService fileStorageService;
     private final UserRepository userRepository;
+    private final ClubMemberRepository clubMemberRepository;
 
     /* ===== Region ===== */
     public List<String> getAllDos() { return regionKorRepository.findDistinctDos(); }
@@ -125,6 +127,12 @@ public class ClubService {
 
         return clubRepository.findAll(spec, pageable);
     }
+
+    // 내 모임 목록 조회 서비스 메소드 추가
+    public Page<Club> findMyClubs(Long userId, Pageable pageable) {
+        return clubRepository.findClubsByMemberId(userId, pageable);
+    }
+
     /* ===== Detail ===== */
     public Optional<Club> findById(Long clubId) {
         return clubRepository.findById(clubId);
