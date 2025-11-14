@@ -98,6 +98,30 @@ public class ClubService {
         return clubRepository.save(club);
     }
 
+    /* ===== Join Club ===== */
+    @Transactional
+    public void joinClub(Long clubId, Long userId) {
+        ClubMemberId memberId = new ClubMemberId(clubId, userId);
+        if (clubMemberRepository.existsById(memberId)) {
+            throw new IllegalStateException("이미 가입한 모임입니다.");
+        }
+
+        // 연관 엔티티 조회
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다. ID: " + clubId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다. ID: " + userId));
+
+        // 새 멤버 생성
+        ClubMember newMember = new ClubMember();
+        newMember.setId(memberId);
+        newMember.setClub(club);
+        newMember.setUser(user);
+        newMember.setRole("MEMBER"); // 요청하신 "MEMBER" 역할 부여
+
+        clubMemberRepository.save(newMember);
+    }
+
     /* ===== Search/List ===== */
     public Page<Club> search(String q,
                              String regionDo,
