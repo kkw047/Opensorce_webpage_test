@@ -99,6 +99,8 @@
     <main class="content">
         <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
 
+        <h1 th:if="${pageTitle != null}" th:text="${pageTitle}" style="font-size: 24px; margin-top: 0; margin-bottom: 16px;"></h1>
+
         <div class="grid">
             <a class="card club" th:each="c : ${page.content}" th:href="@{/clubs/{id}(id=${c.id})}">
                 <img th:if="${c.imageUrl != null}" th:src="${c.imageUrl}" alt="모임 사진">

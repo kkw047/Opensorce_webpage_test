@@ -43,7 +43,45 @@ public class ClubController {
         model.addAttribute("q", q);
         model.addAttribute("page", result);
 
+        model.addAttribute("activeSidebarMenu", "main");
+
         return "clubs/index";
+    }
+
+    // 내 모임 페이지를 위한 핸들러
+    @GetMapping("/myclubs")
+    public String myClubsPage(@RequestParam(value = "page", required = false, defaultValue = "0") int page,
+                              @RequestParam(value = "size", required = false, defaultValue = "12") int size,
+                              HttpSession session,
+                              Model model,
+                              RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인 후 '내 모임'을 볼 수 있습니다.");
+            ra.addFlashAttribute("openLogin", true);
+            return "redirect:/clubs"; // 로그인 안했으면 메인 페이지로
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Club> myClubsPage = clubService.findMyClubs(currentUserId, pageable);
+
+        // clubs/index.html 템플릿이 요구하는 모든 속성
+        model.addAttribute("dos", clubService.getAllDos());
+        model.addAttribute("categories", clubService.findAllCategories());
+
+        model.addAttribute("selectedDo", null);
+        model.addAttribute("selectedSi", null);
+        model.addAttribute("selectedCategoryIds", List.of());
+        model.addAttribute("q", null);
+
+        // 페이지 데이터
+        model.addAttribute("page", myClubsPage);
+
+        // 사이드바 활성화를 위한 속성
+        model.addAttribute("activeSidebarMenu", "myclubs");
+
+        return "clubs/index"; // 메인 템플릿 재사용
     }
 
     // 모임 상세 페이지 (홈 탭)

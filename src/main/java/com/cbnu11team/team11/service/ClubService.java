@@ -117,7 +117,7 @@ public class ClubService {
         newMember.setId(memberId);
         newMember.setClub(club);
         newMember.setUser(user);
-        newMember.setRole("MEMBER"); // "MEMBER" 역할 부여
+        newMember.setRole("MEMBER"); // 요청하신 "MEMBER" 역할 부여
 
         clubMemberRepository.save(newMember);
     }
@@ -151,6 +151,12 @@ public class ClubService {
 
         return clubRepository.findAll(spec, pageable);
     }
+
+    // 내 모임 목록 조회 서비스 메소드 추가
+    public Page<Club> findMyClubs(Long userId, Pageable pageable) {
+        return clubRepository.findClubsByMemberId(userId, pageable);
+    }
+
     /* ===== Detail ===== */
     public Optional<Club> findById(Long clubId) {
         return clubRepository.findById(clubId);
