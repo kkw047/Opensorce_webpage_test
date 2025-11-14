@@ -44,6 +44,7 @@ public class ClubController {
         model.addAttribute("q", q);
         model.addAttribute("page", result);
         model.addAttribute("activeSidebarMenu", "main");
+        model.addAttribute("searchActionUrl", "/clubs"); // 검색창이 요청할 URL
         model.addAttribute("memberCounts", LoadMemberCounts(result.getContent()));
 
         return "clubs/index";
@@ -51,7 +52,11 @@ public class ClubController {
 
     // 내 모임 페이지를 위한 핸들러
     @GetMapping("/myclubs")
-    public String myClubsPage(@RequestParam(value = "page", required = false, defaultValue = "0") int page,
+    public String myClubsPage(@RequestParam(value = "q", required = false) String q,
+                              @RequestParam(value = "do", required = false) String regionDo,
+                              @RequestParam(value = "si", required = false) String regionSi,
+                              @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
+                              @RequestParam(value = "page", required = false, defaultValue = "0") int page,
                               @RequestParam(value = "size", required = false, defaultValue = "12") int size,
                               HttpSession session,
                               Model model,
@@ -65,21 +70,26 @@ public class ClubController {
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Club> myClubsPage = clubService.findMyClubs(currentUserId, pageable);
+        // 검색 파라미터를 포함하여 서비스 호출
+        Page<Club> myClubsPage = clubService.searchMyClubs(currentUserId, q, regionDo, regionSi, categoryIds, pageable);
 
         // clubs/index.html 템플릿이 요구하는 모든 속성
         model.addAttribute("dos", clubService.getAllDos());
         model.addAttribute("categories", clubService.findAllCategories());
-        model.addAttribute("selectedDo", null);
-        model.addAttribute("selectedSi", null);
-        model.addAttribute("selectedCategoryIds", List.of());
-        model.addAttribute("q", null);
+
+        // 검색 파라미터를 모델에 다시 추가 (검색창 값 유지를 위해)
+        model.addAttribute("selectedDo", regionDo);
+        model.addAttribute("selectedSi", regionSi);
+        model.addAttribute("selectedCategoryIds", categoryIds == null ? List.of() : categoryIds);
+        model.addAttribute("q", q);
 
         // 페이지 데이터
         model.addAttribute("page", myClubsPage);
 
         // 사이드바 활성화를 위한 속성
         model.addAttribute("activeSidebarMenu", "myclubs");
+        // 템플릿에서 페이지 제목으로 사용
+        model.addAttribute("searchActionUrl", "/clubs/myclubs"); // 검색창이 요청할 URL
         model.addAttribute("memberCounts", LoadMemberCounts(myClubsPage.getContent()));
 
         return "clubs/index"; // 메인 템플릿 재사용
@@ -221,6 +231,7 @@ public class ClubController {
         model.addAttribute("selectedSi", null);
         model.addAttribute("selectedCategoryIds", List.of());
         model.addAttribute("q", null);
+        model.addAttribute("searchActionUrl", "/clubs");
 
         return true;
     }

@@ -26,7 +26,7 @@
 
     <section class="card soft">
         <h4 class="card-title">카테고리</h4>
-        <form id="categoryFilterForm" method="get" th:action="@{/clubs}">
+        <form id="categoryFilterForm" method="get" th:action="${searchActionUrl}">
             <input type="hidden" name="q" th:value="${q}">
             <input type="hidden" name="do" th:value="${selectedDo}">
             <input type="hidden" name="si" th:value="${selectedSi}">
@@ -50,7 +50,7 @@
     </button>
 </aside>
 
-<form class="toolbar" th:fragment="searchbar" method="get" th:action="@{/clubs}">
+<form class="toolbar" th:fragment="searchbar" method="get" th:action="${searchActionUrl}">
     <div>
         <div class="label">도(광역)</div>
         <select id="searchDo" name="do">
@@ -79,7 +79,7 @@
     <button class="btn">검색</button>
 </form>
 
-<form class="toolbar" th:fragment="searchbar" method="get" th:action="@{/clubs}">
+<form class="toolbar" th:fragment="searchbar" method="get" th:action="${searchActionUrl}">
 </form>
 
 <div class="tab-menu-container" th:fragment="club-tabs" th:object="${club}">
