@@ -85,10 +85,13 @@
                 <button th:if="${!isOwner && isAlreadyMember}" class="btn block" disabled>
                     이미 가입한 모임입니다
                 </button>
-                <button th:if="${session.LOGIN_USER_ID != null && !isOwner && !isAlreadyMember}"
-                        class="btn primary block">
-                    가입하기
-                </button>
+
+                <form th:if="${session.LOGIN_USER_ID != null && !isOwner && !isAlreadyMember}"
+                      th:action="@{/clubs/{id}/join(id=${club.id})}" method="post" style="margin: 0;">
+                    <button type="submit" class="btn primary block">
+                        가입하기
+                    </button>
+                </form>
             </div>
 
         </div> </main> </div> <div th:replace="~{fragments/common :: modals}"></div>

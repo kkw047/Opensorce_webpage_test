@@ -50,6 +50,7 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
+    @OrderBy("name ASC")
     @Builder.Default
     private Set<Category> categories = new LinkedHashSet<>();
 
