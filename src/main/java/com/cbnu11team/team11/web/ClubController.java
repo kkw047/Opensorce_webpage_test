@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -42,8 +43,8 @@ public class ClubController {
         model.addAttribute("selectedCategoryIds", categoryIds == null ? List.of() : categoryIds);
         model.addAttribute("q", q);
         model.addAttribute("page", result);
-
         model.addAttribute("activeSidebarMenu", "main");
+        model.addAttribute("memberCounts", LoadMemberCounts(result.getContent()));
 
         return "clubs/index";
     }
@@ -69,7 +70,6 @@ public class ClubController {
         // clubs/index.html 템플릿이 요구하는 모든 속성
         model.addAttribute("dos", clubService.getAllDos());
         model.addAttribute("categories", clubService.findAllCategories());
-
         model.addAttribute("selectedDo", null);
         model.addAttribute("selectedSi", null);
         model.addAttribute("selectedCategoryIds", List.of());
@@ -80,6 +80,7 @@ public class ClubController {
 
         // 사이드바 활성화를 위한 속성
         model.addAttribute("activeSidebarMenu", "myclubs");
+        model.addAttribute("memberCounts", LoadMemberCounts(myClubsPage.getContent()));
 
         return "clubs/index"; // 메인 템플릿 재사용
     }
@@ -223,4 +224,25 @@ public class ClubController {
 
         return true;
     }
+
+    private Map<Long, Long> LoadMemberCounts(List<Club> clubs)
+    {
+        if(clubs == null || clubs.isEmpty()) return Map.of();
+
+        List<Long> ids = clubs.stream().map(Club::getId).filter(Objects::nonNull).collect(Collectors.toList());
+
+        if (ids.isEmpty()) return Map.of();
+
+        var rows = clubMemberRepository.countMembersByClubIds(ids);
+        Map<Long, Long> out = new HashMap<>();
+        for (var r : rows) {
+            out.put(r.getClubId(), r.getCnt());
+        }
+
+        for (Long id : ids) {
+            out.putIfAbsent(id, 0L);
+        }
+        return out;
+    }
+
 }
