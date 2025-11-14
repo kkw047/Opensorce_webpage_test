@@ -38,7 +38,6 @@ public class Club {
     @Column(name = "region_si", length = 50, nullable = false)
     private String regionSi;
 
-    /** DV에 category_id(FK) 컬럼은 남아있지만, 다대다로 일관 구현 → 매핑하지 않음 */
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
