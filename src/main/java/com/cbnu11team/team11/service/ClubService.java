@@ -153,8 +153,42 @@ public class ClubService {
     }
 
     // 내 모임 목록 조회 서비스 메소드 추가
-    public Page<Club> findMyClubs(Long userId, Pageable pageable) {
-        return clubRepository.findClubsByMemberId(userId, pageable);
+    public Page<Club> searchMyClubs(Long userId,
+                                    String q,
+                                    String regionDo,
+                                    String regionSi,
+                                    List<Long> categoryIds,
+                                    Pageable pageable) {
+
+        // 기본 검색 스펙 (search 메소드와 동일)
+        Specification<Club> spec = (root, query, cb) -> cb.conjunction();
+
+        if (q != null && !q.isBlank()) {
+            String like = "%" + q.trim() + "%";
+            spec = spec.and((root, query, cb) -> cb.like(root.get("name"), like));
+        }
+        if (regionDo != null && !regionDo.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("regionDo"), regionDo));
+        }
+        if (regionSi != null && !regionSi.isBlank()) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("regionSi"), regionSi));
+        }
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            spec = spec.and((root, query, cb) -> {
+                query.distinct(true);
+                Join<Club, Category> cats = root.join("categories", JoinType.INNER);
+                return cats.get("id").in(categoryIds); // ANY-OF
+            });
+        }
+
+        // 내 모임 조건 추가 (로그인한 사용자가 멤버인 모임)
+        spec = spec.and((root, query, cb) -> {
+            query.distinct(true); // 중복 제거
+            Join<Club, ClubMember> members = root.join("members");
+            return cb.equal(members.get("user").get("id"), userId);
+        });
+
+        return clubRepository.findAll(spec, pageable);
     }
 
     /* ===== Detail ===== */
