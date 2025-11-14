@@ -2,6 +2,7 @@ package com.cbnu11team.team11.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.core.annotation.Order;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -54,6 +55,7 @@ public class Club {
             joinColumns = @JoinColumn(name = "club_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
+    @OrderBy("name ASC")
     @Builder.Default
     private Set<Category> categories = new LinkedHashSet<>();
 
