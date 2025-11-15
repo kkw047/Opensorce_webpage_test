@@ -2,12 +2,14 @@ package com.cbnu11team.team11.service;
 
 import com.cbnu11team.team11.domain.*;
 import com.cbnu11team.team11.repository.*;
-import com.cbnu11team.team11.web.dto.ChatRoomDetailDto; // (추가)
+import com.cbnu11team.team11.web.dto.ChatRoomDetailDto;
 import com.cbnu11team.team11.web.dto.ChatRoomListDto;
+import com.cbnu11team.team11.web.ChatApiController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator; // [추가]
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -128,11 +130,83 @@ public class ChatService {
     }
 
     /**
+     * 채팅방에 초대 가능한 모임 멤버 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ChatApiController.ManageableMemberDto> getInvitableMembers(Long roomId, Long clubId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
+
+        // 현재 채팅방 멤버 ID 목록
+        Set<Long> chatMemberIds = room.getMembers().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        // 모임 멤버 중 채팅방에 없는 멤버 필터링
+        return club.getMembers().stream()
+                .map(ClubMember::getUser)
+                .filter(user -> !chatMemberIds.contains(user.getId()))
+                .sorted(Comparator.comparing(User::getNickname))
+                .map(user -> new ChatApiController.ManageableMemberDto(user.getId(), user.getNickname(), user.getEmail()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 멤버들을 채팅방에 초대 (방장 권한)
+     * @return 실제로 새로 추가된 멤버 수
+     */
+    @Transactional
+    public int inviteMembers(Long roomId, Long ownerUserId, List<Long> memberIdsToInvite) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        if (room.getOwner() == null || !room.getOwner().getId().equals(ownerUserId)) {
+            throw new IllegalStateException("방장만 멤버를 초대할 수 있습니다.");
+        }
+
+        if (memberIdsToInvite == null || memberIdsToInvite.isEmpty()) {
+            throw new IllegalArgumentException("초대할 멤버를 선택해주세요.");
+        }
+
+        Set<Long> chatMemberIds = room.getMembers().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        // 초대할 ID 목록 중 이미 멤버가 아닌 ID만 필터링
+        List<Long> newMemberIds = memberIdsToInvite.stream()
+                .filter(id -> !chatMemberIds.contains(id))
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (newMemberIds.isEmpty()) {
+            throw new IllegalArgumentException("이미 모두 채팅방 멤버이거나, 유효하지 않은 멤버입니다.");
+        }
+
+        // (보안) 이들이 모임 멤버인지 재확인
+        Long clubId = room.getClub().getId();
+        for (Long userId : newMemberIds) {
+            ClubMemberId memberId = new ClubMemberId(clubId, userId);
+            if (!clubMemberRepository.existsById(memberId)) {
+                throw new IllegalStateException("모임 멤버가 아닌 사용자를 초대할 수 없습니다.");
+            }
+        }
+
+        // User 엔티티 조회 및 추가
+        List<User> newMembers = userRepository.findAllById(newMemberIds);
+        room.getMembers().addAll(newMembers);
+        // chatRoomRepository.save(room); // @Transactional이므로 save는 생략 가능
+
+        return newMembers.size(); // 새로 추가된 멤버 수 반환
+    }
+
+
+    /**
      * 멤버 강퇴
      */
     @Transactional
     public void kickMember(Long roomId, Long ownerUserId, Long memberToKickId) {
-
         ChatRoom room = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
         if (room.getOwner() == null || !room.getOwner().getId().equals(ownerUserId)) {
