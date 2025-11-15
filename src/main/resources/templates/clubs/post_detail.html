@@ -2,34 +2,15 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title th:text="${post.title} + ' - ' + ${club.name}">게시물 상세</title>
+    <title th:text="${post.title} + ' - ' + ${club.name}"></title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-    <style>
-        /* (임시) 게시물 상세 내용 스타일 */
-        .post-detail-card {
-            border: 1px solid #ddd; border-radius: 14px;
-            background: #fff; padding: 24px;
-        }
-        .post-header { margin-bottom: 20px; }
-        .post-header h1 { margin: 0 0 10px 0; }
-        .post-meta { font-size: 0.9em; color: #555; }
-
-        /* 2. 게시물 내용이 <pre> 태그처럼 줄바꿈/공백을 유지하도록 함 */
-        .post-content {
-            padding-top: 20px;
-            min-height: 200px;
-            font-size: 1.05em;
-            line-height: 1.6;
-            white-space: pre-wrap; /* 👈 핵심: 줄바꿈과 공백을 그대로 표시 */
-        }
-        .button-group { text-align: right; margin-top: 20px; }
-    </style>
 </head>
 <body class="bg-deep">
 
 <header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
 
 <div class="wrap">
+
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
 
     <main class="content">
@@ -39,23 +20,24 @@
             <div th:replace="~{fragments/common :: club-tabs}"></div>
         </div>
 
-        <div class="post-detail-card">
-            <div class="post-header">
-                <h1 th:text="${post.title}">게시물 제목이 여기에 표시됩니다.</h1>
-                <div class="post-meta">
-                    <span th:text="${post.author.nickname}">작성자</span> |
-                    <span th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd HH:mm')}">작성일</span>
+        <div class="detail-card">
+            <div class="post-detail-content" th:object="${post}">
+
+                <div class="post-header">
+                    <h1 th:text="*{title}"></h1>
+                    <div class="post-meta">
+                        <span th:text="|작성자: *{author.nickname}|"></span> |
+                        <span th:text="|작성일: *{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : '날짜 없음'}|"></span>
+                    </div>
                 </div>
-            </div>
-            <hr>
+                <hr>
 
-            <div class="post-content" th:text="${post.content}">
-                게시물 본문 내용이 여기에 표시됩니다.
-                줄바꿈과 공백이 유지됩니다.
-            </div>
+                <div class="post-content" th:text="*{content}">
+                </div>
 
-            <div class="button-group">
-                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id})}" class="btn btn-secondary">목록</a>
+                <div class="button-group">
+                    <a th:href="@{/clubs/{clubId}/board(clubId=${club.id})}" class="btn">목록</a>
+                </div>
             </div>
         </div>
     </main>

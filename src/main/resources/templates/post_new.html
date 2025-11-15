@@ -4,18 +4,43 @@
     <meta charset="UTF-8">
     <title>새 게시물 작성</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+
     <style>
-        /* (임시) 폼 스타일 */
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: bold; }
-        .form-control { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-        .form-control[type="text"] { height: 40px; }
-        textarea.form-control { min-height: 200px; resize: vertical; }
-        .button-group { text-align: right; margin-top: 20px; }
-        .btn { padding: 10px 16px; border: none; border-radius: 8px; text-decoration: none; cursor: pointer; }
-        .btn-primary { background-color: #007bff; color: white; }
-        .btn-secondary { background-color: #6c757d; color: white; margin-right: 8px; }
-        .error-message { color: red; font-size: 0.9em; margin-top: 5px; }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group .label {
+            /* app.css의 .toolbar .label 스타일을 가져옴 */
+            color: #9ec8b8;
+            font-size: 12px;
+            margin-bottom: 6px; /* label과 input 사이 간격 */
+        }
+
+        /* 3. 유효성 검사 에러 메시지 스타일 (다크 테마) */
+        .error-message {
+            color: #ff8a8a; /* 밝은 빨간색 */
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        /* 4. app.css의 기본 input/textarea 스타일을 그대로 사용함 */
+        /* .form-control { width: 100%; ... } 등은 필요 없음 */
+
+        .button-group {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        /* app.css에 .btn-secondary가 없다면 정의 */
+        .btn.btn-secondary {
+            border-color: #29433b;
+            background: #142a24;
+            color: #e7f3ee;
+            margin-right: 8px;
+        }
+        .btn.btn-secondary:hover {
+            filter: brightness(1.05);
+        }
     </style>
 </head>
 <body class="bg-deep">
@@ -26,29 +51,28 @@
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
 
     <main class="content">
-        <div class="detail-card" style="border: 1px solid #ddd; border-radius: 14px; background: #fff; padding: 16px;">
+        <div class="detail-card">
             <h1>새 게시물 작성</h1>
 
             <form th:action="@{/clubs/{clubId}/board/new(clubId=${clubId})}" th:object="${postForm}" method="post">
 
-                <div th:if="${errorMessage}" class="error-message" style="background-color: #ffebe6; padding: 10px; border-radius: 8px; margin-bottom: 15px;"
+                <div th:if="${errorMessage}" class="error-message"
+                     style="background-color: #3f2a2a; padding: 10px; border-radius: 8px; margin-bottom: 15px;"
                      th:text="${errorMessage}">
                     오류가 발생했습니다.
                 </div>
 
                 <div class="form-group">
-                    <label for="title">제목</label>
-                    <input type="text" id="title" th:field="*{title}" class="form-control"
-                           th:classappend="${#fields.hasErrors('title')} ? 'is-invalid' : ''" required>
+                    <div class="label" for="title">제목</div>
+                    <input type="text" id="title" th:field="*{title}" required>
                     <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="error-message">
                         제목을 입력해주세요.
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="content">내용</label>
-                    <textarea id="content" th:field="*{content}" class="form-control"
-                              th:classappend="${#fields.hasErrors('content')} ? 'is-invalid' : ''" required></textarea>
+                    <div class="label" for="content">내용</div>
+                    <textarea id="content" th:field="*{content}" rows="10" required></textarea>
                     <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error-message">
                         내용을 입력해주세요.
                     </div>
@@ -56,7 +80,7 @@
 
                 <div class="button-group">
                     <a th:href="@{/clubs/{clubId}/board(clubId=${clubId})}" class="btn btn-secondary">취소</a>
-                    <button type="submit" class="btn btn-primary">게시물 등록</button>
+                    <button type="submit" class="btn primary">게시물 등록</button>
                 </div>
 
             </form>

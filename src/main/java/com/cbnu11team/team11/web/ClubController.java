@@ -2,14 +2,19 @@ package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.domain.ClubMemberId;
+import com.cbnu11team.team11.domain.Post;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.service.ClubService;
+import com.cbnu11team.team11.service.PostService;
 import com.cbnu11team.team11.web.dto.ClubForm;
+import com.cbnu11team.team11.web.dto.PostForm;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -22,6 +27,7 @@ public class ClubController {
 
     private final ClubService clubService;
     private final ClubMemberRepository clubMemberRepository;
+    private final PostService postService;
 
     @GetMapping
     public String index(@RequestParam(value = "q", required = false) String q,
@@ -62,6 +68,9 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
+        List<Post> postList = postService.getPostsByClubId(clubId);
+        model.addAttribute("postList", postList);
+
         model.addAttribute("activeTab", "board");
         return "clubs/board";
     }
@@ -84,6 +93,89 @@ public class ClubController {
         }
         model.addAttribute("activeTab", "calendar");
         return "clubs/calendar";
+    }
+
+    //새 게시물 작성 폼 조회
+    @GetMapping("/{clubId}/board/new")
+    public String getNewPostForm(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+        // 클럽 정보/사이드바 정보 등을 로드하기 위해 헬퍼 메서드 호출
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        // 폼 바인딩을 위한 DTO 및 clubId 추가
+        model.addAttribute("postForm", new PostForm("", ""));
+        model.addAttribute("clubId", clubId);
+
+        return "post_new"; // 템플릿: /templates/post_new.html
+    }
+
+    //새 게시물 등록 처리
+    @PostMapping("/{clubId}/board/new")
+    public String createPost(@PathVariable Long clubId,
+                             @Valid @ModelAttribute("postForm") PostForm postForm,
+                             BindingResult bindingResult,
+                             HttpSession session,
+                             Model model,
+                             RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/login"; // 로그인 안했으면 로그인 페이지로
+        }
+
+        // 폼 유효성 검사 실패 시
+        if (bindingResult.hasErrors()) {
+            // 폼 페이지를 다시 보여주기 위해 클럽 정보 로드
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            // postForm은 @ModelAttribute가 자동으로 다시 model에 넣어줌
+            return "post_new";
+        }
+
+        try {
+            // 서비스 호출하여 게시물 저장
+            postService.createPost(clubId, postForm, currentUserId);
+        } catch (Exception e) {
+            // 저장 중 예외 발생 시
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("errorMessage", "게시물 등록 중 오류가 발생했습니다: " + e.getMessage());
+            return "post_new";
+        }
+
+        // 성공 시, 게시판 목록으로 리다이렉트
+        return "redirect:/clubs/" + clubId + "/board";
+    }
+
+    @GetMapping("/{clubId}/board/{postId}")
+    public String getPostDetail(
+            @PathVariable Long clubId,
+            @PathVariable Long postId, // postId 파라미터 받기
+            Model model,
+            RedirectAttributes ra,
+            HttpSession session) {
+
+        // 헬퍼 메서드로 클럽/사이드바/탭 정보 로드
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        // PostService로 게시물 1건 조회
+        Optional<Post> optPost = postService.findPostById(postId);
+
+        // 게시물이 없거나, 해당 클럽의 게시물이 아닐 경우
+        if (optPost.isEmpty() || !optPost.get().getClub().getId().equals(clubId)) {
+            ra.addFlashAttribute("error", "게시물을 찾을 수 없거나 접근 권한이 없습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        // 모델에 게시물 데이터 추가
+        model.addAttribute("post", optPost.get());
+        model.addAttribute("activeTab", "board"); // 게시판 탭 활성화 유지
+
+        // 템플릿 반환: /templates/clubs/post_detail.html
+        return "clubs/post_detail";
     }
 
     // 모임 생성
