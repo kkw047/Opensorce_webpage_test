@@ -4,6 +4,7 @@ import com.cbnu11team.team11.domain.Club;
 import com.cbnu11team.team11.domain.ClubMemberId;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.service.ClubService;
+import com.cbnu11team.team11.web.dto.ClubDetailDto;
 import com.cbnu11team.team11.web.dto.ClubForm;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 public class ClubController {
 
     private final ClubService clubService;
-    private final ClubMemberRepository clubMemberRepository;
+    private final ClubMemberRepository clubMemberRepository; // 세션 체크 헬퍼용으로 유지
 
     @GetMapping
     public String index(@RequestParam(value = "q", required = false) String q,
@@ -88,7 +89,6 @@ public class ClubController {
 
         // 사이드바 활성화를 위한 속성
         model.addAttribute("activeSidebarMenu", "myclubs");
-        // 템플릿에서 페이지 제목으로 사용
         model.addAttribute("searchActionUrl", "/clubs/myclubs"); // 검색창이 요청할 URL
         model.addAttribute("memberCounts", LoadMemberCounts(myClubsPage.getContent()));
 
@@ -166,11 +166,7 @@ public class ClubController {
                          HttpSession session,
                          RedirectAttributes ra) {
 
-        Long ownerId = null;
-        Object uid = session.getAttribute("LOGIN_USER_ID");
-        if (uid instanceof Long id) {
-            ownerId = id;
-        }
+        Long ownerId = (Long) session.getAttribute("LOGIN_USER_ID");
 
         // 로그인 안 되어 있으면 경고 + 로그인 모달 열기
         if (ownerId == null) {
@@ -179,16 +175,8 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
-        clubService.createClub(
-                ownerId,
-                form.name(),
-                form.description(),
-                form.regionDo(),
-                form.regionSi(),
-                form.categoryIds(),
-                form.newCategoryName(),
-                form.imageFile()
-        );
+        // 서비스 호출 시 DTO 전달
+        clubService.createClub(ownerId, form);
 
         // 성공 토스트 메시지
         ra.addFlashAttribute("msg", "모임이 생성되었습니다.");
@@ -200,29 +188,26 @@ public class ClubController {
      * @return 클럽을 찾지 못하면 false 반환
      */
     private boolean addClubDetailAttributes(Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
-        Optional<Club> optClub = clubService.findById(clubId);
-        if (optClub.isEmpty()) {
+        // 현재 사용자 ID 가져오기
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        // 서비스 계층에서 DTO를 조회
+        Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
+
+        // DTO가 없는 경우 (모임이 없는 경우)
+        if (optDto.isEmpty()) {
             ra.addFlashAttribute("error", "해당 모임을 찾을 수 없습니다.");
             return false;
         }
 
-        Club club = optClub.get();
-        model.addAttribute("club", club);
+        // DTO를 모델에 추가
+        ClubDetailDto dto = optDto.get();
+        model.addAttribute("club", dto); // 엔티티(Club) 대신 DTO(ClubDetailDto)를 전달
 
-        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
-
-        boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
-        model.addAttribute("isOwner", isOwner);
-
-        boolean isAlreadyMember = false;
-        if (currentUserId != null) {
-            ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
-            isAlreadyMember = clubMemberRepository.existsById(memberId);
-        }
-        model.addAttribute("isAlreadyMember", isAlreadyMember);
-
-        model.addAttribute("members", club.getMembers());
-        model.addAttribute("memberCount", club.getMembers().size());
+        // DTO에 이미 포함된 정보는 뷰에서 ${club.isOwner}, ${club.isAlreadyMember} 등으로 접근
+        model.addAttribute("memberCount", dto.members().size());
+        model.addAttribute("isOwner", dto.isOwner());
+        model.addAttribute("isAlreadyMember", dto.isAlreadyMember());
 
         // --- 프래그먼트(사이드바, 검색바)용 공통 데이터 ---
         model.addAttribute("dos", clubService.getAllDos());

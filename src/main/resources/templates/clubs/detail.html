@@ -37,7 +37,7 @@
             <div class="detail-card club-header">
                 <h1 th:text="*{name}">모임 이름</h1>
                 <div class="chips club-chips">
-                    <span class="chip" th:each="k : *{categories}" th:text="${'#' + k.name}">#카테고리</span>
+                    <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
                 </div>
             </div>
 
@@ -62,9 +62,9 @@
             <div class="detail-card">
                 <h2 class="section-title" th:text="'모임 멤버 (' + ${memberCount} + ')'">모임 멤버 (0)</h2>
                 <div class="member-list">
-                    <div class="member-item" th:each="memberInfo : ${members}">
+                    <div class="member-item" th:each="memberInfo : *{members}">
                         <div class="member-avatar"></div>
-                        <span th:text="${memberInfo.user.nickname}">멤버 닉네임</span>
+                        <span th:text="${memberInfo.nickname}">멤버 닉네임</span>
                         <span class="member-role" th:if="${memberInfo.role == 'ADMIN'}">[관리자]</span>
                     </div>
                     <div th:if="${memberCount == 0}">
