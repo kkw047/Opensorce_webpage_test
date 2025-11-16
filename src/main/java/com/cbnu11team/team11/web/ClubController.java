@@ -245,18 +245,26 @@ public class ClubController {
      */
     @GetMapping("/{clubId}/chat")
     public String getChatPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인 후 이용할 수 있습니다.");
+            ra.addFlashAttribute("openLogin", true);
+            return "redirect:/clubs/" + clubId; // 로그인이 안됐으면 홈으로
+        }
+
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
 
         ClubDetailDto clubDto = (ClubDetailDto) model.getAttribute("club");
+
         if (clubDto == null || !clubDto.isAlreadyMember()) {
             ra.addFlashAttribute("error", "모임 멤버만 채팅방을 볼 수 있습니다.");
             return "redirect:/clubs/" + clubId; // 멤버가 아니면 홈으로
         }
 
         // 현재 유저 ID를 서비스로 전달하여 멤버 여부(isMember) 계산
-        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         model.addAttribute("chatRooms", chatService.getChatRoomsByClub(clubId, currentUserId));
         model.addAttribute("activeTab", "chat");
         return "clubs/chat"; // chat.html 뷰 반환

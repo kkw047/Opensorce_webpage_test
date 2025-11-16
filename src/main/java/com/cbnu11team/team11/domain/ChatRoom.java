@@ -33,6 +33,10 @@ public class ChatRoom {
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // 마지막 활동 시간 (메시지 전송, 방 생성 등)
+    @Column(name = "last_activity_at")
+    private LocalDateTime lastActivityAt;
+
     // 이 채팅방에 참여하는 유저들
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
