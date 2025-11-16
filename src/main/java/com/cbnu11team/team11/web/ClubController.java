@@ -98,6 +98,18 @@ public class ClubController {
     //새 게시물 작성 폼 조회
     @GetMapping("/{clubId}/board/new")
     public String getNewPostForm(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+
+        //세션에서 사용자 ID 가져오기
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        //로그인이 안 되어있는 경우
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "글을 작성하려면 로그인이 필요합니다.");
+            ra.addFlashAttribute("openLogin", true);
+
+            //글쓰기 폼 대신 게시판 목록 페이지로 리다이렉트
+            return "redirect:/clubs/" + clubId + "/board";
+        }
         // 클럽 정보/사이드바 정보 등을 로드하기 위해 헬퍼 메서드 호출
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
@@ -213,10 +225,116 @@ public class ClubController {
         return "redirect:/clubs";
     }
 
-    /**
-     * 상세/탭 페이지 공통 속성 추가 헬퍼 메소드
-     * @return 클럽을 찾지 못하면 false 반환
-     */
+    @PostMapping("/{clubId}/board/{postId}/delete")
+    public String deletePost(@PathVariable Long clubId,
+                             @PathVariable Long postId,
+                             HttpSession session,
+                             RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        try {
+            postService.deletePost(postId, currentUserId);
+            // [토스트 알림] 삭제 성공 시 메시지 전달
+            ra.addFlashAttribute("msg", "게시글이 삭제되었습니다.");
+
+        } catch (IllegalArgumentException | SecurityException e) {
+            // [토스트 알림] 삭제 실패 시 에러 메시지 전달
+            ra.addFlashAttribute("error", e.getMessage());
+            // 실패 시 상세 페이지로 리다이렉트
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        // 성공 시 게시판 목록 페이지로 리다이렉트
+        return "redirect:/clubs/" + clubId + "/board";
+    }
+
+    //게시물 수정 폼 메서드
+    @GetMapping("/{clubId}/board/{postId}/edit")
+    public String getEditPostForm(@PathVariable Long clubId,
+                                  @PathVariable Long postId,
+                                  HttpSession session,
+                                  Model model,
+                                  RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        //기존 게시물 데이터를 불러옴
+        Optional<Post> optPost = postService.findPostById(postId);
+        if (optPost.isEmpty()) {
+            ra.addFlashAttribute("error", "게시물을 찾을 수 없습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+        Post post = optPost.get();
+
+        //작성자가 맞는지 확인
+        if (!post.getAuthor().getId().equals(currentUserId)) {
+            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        //템플릿(post_edit.html)에 필요한 모든 데이터를 전달합니다.
+        // (사이드바, 탭 등을 위한 공통 데이터)
+        addClubDetailAttributes(clubId, model, session, ra);
+        // (폼을 미리 채우기 위한 PostForm DTO)
+        model.addAttribute("postForm", new PostForm(post.getTitle(), post.getContent()));
+        model.addAttribute("clubId", clubId);
+        model.addAttribute("postId", postId); // 폼 action URL과 '취소' 버튼에 사용
+
+        return "post_edit";
+    }
+
+    //게시물 수정 처리
+    @PostMapping("/{clubId}/board/{postId}/edit")
+    public String updatePost(@PathVariable Long clubId,
+                             @PathVariable Long postId,
+                             @Valid @ModelAttribute("postForm") PostForm postForm,
+                             BindingResult bindingResult,
+                             HttpSession session,
+                             Model model,
+                             RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/login"; // (보안)
+        }
+
+        //폼 유효성 검사 실패 (제목이나 내용이 비었을 때)
+        if (bindingResult.hasErrors()) {
+            //수정 폼 페이지를 다시 보여줘야 함
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("postId", postId);
+            //postForm은 @ModelAttribute가 자동으로 다시 model에 넣어줌
+            return "post_edit";
+        }
+
+        try {
+            postService.updatePost(postId, postForm, currentUserId);
+
+            // 수정 성공 시
+            ra.addFlashAttribute("msg", "게시글이 수정되었습니다.");
+
+        } catch (Exception e) {
+            // (권한 오류, 게시물 없음 오류 등)
+            ra.addFlashAttribute("error", e.getMessage());
+            // 실패 시 수정 폼으로 리다이렉트
+            return "redirect:/clubs/" + clubId + "/board/" + postId + "/edit";
+        }
+
+        // 성공 시 게시글 상세 페이지로 리다이렉트
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
+    //상세/탭 페이지 공통 속성 추가 헬퍼 메소드, @return 클럽을 찾지 못하면 false 반환
     private boolean addClubDetailAttributes(Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
         Optional<Club> optClub = clubService.findById(clubId);
         if (optClub.isEmpty()) {

@@ -4,7 +4,7 @@ body.bg-deep{margin:0;background:#0d1b17;color:#e7f3ee;font-family:system-ui,-ap
 [hidden]{display:none !important}
 
 /* 버튼/폼 */
-.btn{padding:8px 12px;border-radius:10px;border:1px solid #29433b;background:#142a24;color:#e7f3ee;text-decoration: none;cursor:pointer}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid #29433b;background:#142a24;color:#e7f3ee;text-decoration: none;cursor:pointer; font-size: inherit;}
 .btn:hover{filter:brightness(1.05)}
 .btn.primary{background:#1db954;border-color:#1db954;color:#062016}
 .btn.block{width:100%}

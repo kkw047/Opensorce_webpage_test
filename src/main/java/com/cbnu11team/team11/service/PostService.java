@@ -16,8 +16,12 @@ public interface PostService {
     // ID로 게시물 1건 조회
     Optional<Post> findPostById(Long postId);
 
-    /**
-     * 새 게시물을 생성하고 저장합니다.
-     */
+    //새 게시물을 생성하고 저장
     Post createPost(Long clubId, PostForm postForm, Long userId);
+
+    //게시물 삭제 기능
+    void deletePost(Long postId, Long currentUserId);
+
+    //게시물 수정 기능
+    void updatePost(Long postId, PostForm postForm, Long currentUserId);
 }

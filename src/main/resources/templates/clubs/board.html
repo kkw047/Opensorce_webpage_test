@@ -69,5 +69,19 @@
 <div th:replace="~{fragments/common :: modals}"></div>
 
 <div th:replace="~{fragments/common :: scripts}"></div>
+
+<div id="toast"
+     th:if="${error != null or msg != null}"
+     th:text="${error ?: msg}"
+     class="toast show">
+</div>
+
+<script th:if="${openLogin}">
+    document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
+</script>
+<script th:if="${openRegister}">
+    document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
+</script>
+
 </body>
 </html>

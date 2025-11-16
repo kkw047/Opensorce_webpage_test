@@ -37,6 +37,21 @@
 
                 <div class="button-group">
                     <a th:href="@{/clubs/{clubId}/board(clubId=${club.id})}" class="btn">목록</a>
+
+                    <th:block th:if="${session.LOGIN_USER_ID == post.author.id}">
+
+                        <a th:href="@{/clubs/{clubId}/board/{postId}/edit(clubId=${club.id}, postId=${post.id})}"
+                           class="btn">수정</a>
+
+                        <form th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${club.id}, postId=${post.id})}"
+                              method="post"
+                              style="display: inline-block; margin: 0;"
+                              onsubmit="return confirm('정말 이 게시물을 삭제하시겠습니까?');">
+
+                            <button type="submit" class="btn btn-danger">삭제</button>
+                        </form>
+
+                    </th:block>
                 </div>
             </div>
         </div>
@@ -45,6 +60,19 @@
 
 <div th:replace="~{fragments/common :: modals}"></div>
 <div th:replace="~{fragments/common :: scripts}"></div>
+
+<div id="toast"
+     th:if="${error != null or msg != null}"
+     th:text="${error ?: msg}"
+     class="toast show">
+</div>
+
+<script th:if="${openLogin}">
+    document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
+</script>
+<script th:if="${openRegister}">
+    document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
+</script>
 
 </body>
 </html>

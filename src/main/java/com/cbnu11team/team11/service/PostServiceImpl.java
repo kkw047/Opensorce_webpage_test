@@ -69,4 +69,38 @@ public class PostServiceImpl implements PostService {
     public Optional<Post> findPostById(Long postId) {
         return postRepository.findPostWithAuthorById(postId);
     }
+
+    @Override
+    @Transactional
+    public void deletePost(Long postId, Long currentUserId) {
+        // 게시물을 찾기
+        Post post = postRepository.findPostWithAuthorById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다. ID: " + postId));
+
+        // 삭제 권한 확인
+        if (!post.getAuthor().getId().equals(currentUserId)) {
+            //
+            throw new SecurityException("게시물을 삭제할 권한이 없습니다.");
+        }
+
+        // 권한이 있으면 삭제
+        postRepository.delete(post);
+    }
+
+    @Override
+    @Transactional
+    public void updatePost(Long postId, PostForm postForm, Long currentUserId) {
+        //게시물 찾기
+        Post post = postRepository.findPostWithAuthorById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다. ID: " + postId));
+
+        //수정 권한 확인
+        if (!post.getAuthor().getId().equals(currentUserId)) {
+            throw new SecurityException("게시물을 수정할 권한이 없습니다.");
+        }
+
+        //폼 DTO의 새 데이터로 엔티티의 값을 변경
+        post.setTitle(postForm.title());
+        post.setContent(postForm.content());
+    }
 }
