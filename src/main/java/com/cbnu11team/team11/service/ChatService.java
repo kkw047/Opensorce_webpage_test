@@ -39,14 +39,19 @@ public class ChatService {
 
             String ownerNickname = (room.getOwner() != null) ? room.getOwner().getNickname() : "(알 수 없음)";
 
-            return new ChatRoomListDto(
-                    room.getId(),
-                    room.getName(),
-                    ownerNickname,
-                    room.getMembers().size(),
-                    isMember
-            );
-        }).collect(Collectors.toList());
+                    // DTO 생성자에 lastActivityAt 추가
+                    return new ChatRoomListDto(
+                            room.getId(),
+                            room.getName(),
+                            ownerNickname,
+                            room.getMembers().size(),
+                            isMember,
+                            room.getLastActivityAt()
+                    );
+                })
+                // lastActivityAt 기준으로 내림차순 정렬 (null은 뒤로)
+                .sorted(Comparator.comparing(ChatRoomListDto::lastActivityAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -102,6 +107,7 @@ public class ChatService {
         chatRoom.setClub(club);
         chatRoom.setOwner(creator);
         chatRoom.setName(roomName.trim());
+        chatRoom.setLastActivityAt(LocalDateTime.now());
         List<User> members = userRepository.findAllById(allMemberIds);
         chatRoom.getMembers().addAll(members);
         return chatRoomRepository.save(chatRoom);
@@ -245,6 +251,9 @@ public class ChatService {
         message.setSender(sender);
         message.setContent(content.trim());
         message.setSentAt(LocalDateTime.now());
+
+        // 메시지 전송 시 채팅방의 마지막 활동 시간 업데이트
+        room.setLastActivityAt(message.getSentAt());
 
         return chatMessageRepository.save(message); // 저장된 엔티티 반환
     }

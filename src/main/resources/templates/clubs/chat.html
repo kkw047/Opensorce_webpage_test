@@ -8,16 +8,25 @@
         .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
         .toolbar-right { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;}
 
+        /* --- 채팅방 목록 그리드 --- */
+        .chat-room-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 그리드 레이아웃 */
+            gap: 16px; /* 카드 간 간격 */
+        }
+
         .chat-room-item {
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: center;
+            align-items: stretch;
             background: #071b15;
             border: 1px solid #153328;
             border-radius: 10px;
-            margin-bottom: 10px;
             padding: 12px;
             transition: background 0.15s ease;
+            min-height: 100px;
+            position: relative;
         }
         .chat-room-item:hover {
             background: #12352b;
@@ -28,6 +37,8 @@
             color: #e7f3ee;
             flex: 1;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
         }
 
         .chat-room-item .room-link-disabled {
@@ -35,14 +46,21 @@
             color: #9ec8b8;
             flex: 1;
             cursor: default;
+            display: flex;
+            flex-direction: column;
         }
 
         .chat-room-item h4 { margin: 0 0 8px 0; }
-        .chat-room-item .members { font-size: 12px; color: #9ec8b8; }
+        .chat-room-item .members { font-size: 12px; color: #9ec8b8; margin-top: auto; }
 
-        .chat-room-item form { margin: 0 0 0 16px; }
+        .chat-room-item form {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            margin: 0;
+        }
 
-        /* 채팅 모달 스타일 */
+        /* --- 채팅 모달 스타일 --- */
         .chat-modal-overlay {
             position: fixed;
             inset: 0;
@@ -55,16 +73,14 @@
             background: #0f231e;
             border: 1px solid #1a332c;
             border-radius: 14px;
-            width: 90%;
-            max-width: 450px;
-            height: 80vh;
+            width: 500px;
+            height: 600px;
             display: flex;
             flex-direction: column;
-
             resize: both;
             overflow: auto;
             min-width: 350px;
-            min-height: 400px;
+            min-height: 300px;
             pointer-events: auto;
             position: absolute;
             left: 50%;
@@ -145,16 +161,14 @@
             padding-top: 16px;
         }
         .chat-modal-manage-view .invite-list {
-            /* .checklist 스타일 재사용 */
             background: #071b15;
             border-radius: 10px;
             border: 1px solid #153328;
             padding: 6px 8px;
-            max-height: 150px; /* 초대 목록 최대 높이 */
+            max-height: 150px;
             overflow-y: auto;
             margin-bottom: 12px;
         }
-        /* .checkrow는 app.css의 공용 스타일 사용 */
 
         .chat-modal-manage-view .delete-section {
             margin-top: auto;
@@ -199,12 +213,18 @@
 
         <div class="detail-card">
             <div class="toolbar-right">
-                <h2 style="margin: 0;" th:text="'채팅방 목록'">채팅방 목록</h2>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h2 style="margin: 0;">채팅방 목록</h2>
+                    <label class="checkrow" style="padding: 0; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" id="myChatsFilter" />
+                        <span style="cursor: pointer;">내 채팅방만 보기</span>
+                    </label>
+                </div>
                 <a th:href="@{/clubs/{id}/chat/create(id=${club.id})}" class="btn primary">채팅방 만들기</a>
             </div>
 
             <div class="chat-room-list">
-                <div th:each="room : ${chatRooms}" class="chat-room-item">
+                <div th:each="room : ${chatRooms}" class="chat-room-item" th:data-is-member="${room.isMember}">
 
                     <div class="room-link"
                          th:data-club-id="${club.id}"
@@ -692,6 +712,30 @@
         if (roomToOpen && clubId) {
             window.history.replaceState({}, document.title, window.location.pathname);
             openChatModal(clubId, roomToOpen);
+        }
+
+        // --- "내 채팅방만 보기" 필터 스크립트 ---
+        const filterCheckbox = document.getElementById('myChatsFilter');
+        const roomListContainer = document.querySelector('.chat-room-list');
+
+        if (filterCheckbox && roomListContainer) {
+            filterCheckbox.addEventListener('change', () => {
+                const showOnlyMyChats = filterCheckbox.checked;
+                const allRooms = roomListContainer.querySelectorAll('.chat-room-item');
+
+                allRooms.forEach(roomItem => {
+                    const isMember = roomItem.dataset.isMember === 'true';
+                    if (showOnlyMyChats) {
+                        if (isMember) {
+                            roomItem.removeAttribute('hidden');
+                        } else {
+                            roomItem.setAttribute('hidden', 'hidden');
+                        }
+                    } else {
+                        roomItem.removeAttribute('hidden');
+                    }
+                });
+            });
         }
     });
 </script>

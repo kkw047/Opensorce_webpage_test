@@ -149,6 +149,12 @@
 </div>
 <div th:replace="~{fragments/common :: modals}"></div>
 
+<div id="toast"
+     th:if="${error != null or msg != null}"
+     th:text="${error ?: msg}"
+     class="toast show">
+</div>
+
 <div th:replace="~{fragments/common :: scripts}"></div>
 
 </body>
