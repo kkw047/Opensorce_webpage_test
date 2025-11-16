@@ -16,7 +16,7 @@
 
         .detail-card .club-header h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 50px;
         }
 
         .detail-card .club-chips {
@@ -112,7 +112,6 @@
         </div>
 
             <hr class="detail-divider"> <div>
-            <h2 class="section-title">모임 사진</h2>
             <img th:if="*{imageUrl != null}" th:src="*{imageUrl}" alt="모임 사진" class="club-image">
             <div th:if="*{imageUrl == null}" class="club-image">
                 (등록된 이미지가 없습니다)
