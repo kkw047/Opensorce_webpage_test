@@ -263,3 +263,57 @@ hr {
     text-align: right;
     margin-top: 20px;
 }
+
+/* 댓글 목록 아이템 */
+.comment-item {
+    padding: 15px 0;
+    border-bottom: 1px solid #1a332c; /* 구분선 */
+}
+.comment-list .comment-item:last-child {
+    border-bottom: none; /* 마지막 댓글은 구분선 없음 */
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.comment-header strong {
+    color: #e7f3ee;
+    font-weight: 600;
+}
+.comment-date {
+    font-size: 0.8em;
+    color: #9ec8b8;
+}
+
+.comment-content {
+    color: #d8efe4; /* 기본 텍스트보다 약간 부드럽게 */
+    line-height: 1.5;
+    white-space: pre-wrap; /* 댓글 줄바꿈 유지 */
+}
+
+/* 댓글 수정/삭제 버튼 영역 */
+.comment-actions {
+    text-align: right;
+    margin-top: 10px;
+}
+.btn-comment-action {
+    background: none;
+    border: none;
+    color: #9ec8b8;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+}
+.btn-comment-action:hover {
+    background-color: #1a332c;
+    color: #e7f3ee;
+}
+.btn-comment-action.delete:hover {
+    background-color: #4d2a2a;
+    color: #ffc2c2;
+}

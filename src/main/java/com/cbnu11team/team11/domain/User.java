@@ -7,6 +7,9 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "users",
         indexes = @Index(name = "ix_users_region_do", columnList = "region_do"))
@@ -59,4 +62,9 @@ public class User {
     @Builder.Default
     @ToString.Exclude
     private Set<ClubMember> clubMemberships = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "author") /* 'Comment' 엔티티의 'author' 필드에 매핑됨 */
+    @Builder.Default
+    @ToString.Exclude
+    private List<Comment> comments = new ArrayList<>();
 }

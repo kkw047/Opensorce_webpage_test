@@ -18,7 +18,12 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.cbnu11team.team11.domain.Comment;
+import com.cbnu11team.team11.service.CommentService;
+import com.cbnu11team.team11.web.dto.CommentForm;
+
 import java.util.*;
+import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ public class ClubController {
     private final ClubService clubService;
     private final ClubMemberRepository clubMemberRepository;
     private final PostService postService;
+    private final CommentService commentService;
 
     @GetMapping
     public String index(@RequestParam(value = "q", required = false) String q,
@@ -185,6 +191,13 @@ public class ClubController {
         // 모델에 게시물 데이터 추가
         model.addAttribute("post", optPost.get());
         model.addAttribute("activeTab", "board"); // 게시판 탭 활성화 유지
+
+        //댓글 목록 조회
+        List<Comment> comments = commentService.getCommentsByPostId(postId);
+        model.addAttribute("comments", comments);
+
+        // 새 댓글 작성을 위한 빈 폼 객체
+        model.addAttribute("commentForm", new CommentForm(""));
 
         // 템플릿 반환: /templates/clubs/post_detail.html
         return "clubs/post_detail";
@@ -369,5 +382,156 @@ public class ClubController {
         model.addAttribute("q", null);
 
         return true;
+    }
+
+    // 댓글 삭제 처리
+    @PostMapping("/{clubId}/board/{postId}/comment")
+    public String createComment(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                @Valid @ModelAttribute("commentForm") CommentForm commentForm,
+                                BindingResult bindingResult,
+                                HttpSession session,
+                                RedirectAttributes ra,
+                                Model model) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        // 폼 유효성 검사 (댓글 내용이 비었는지)
+        if (bindingResult.hasErrors()) {
+            // 에러 발생 시, 상세 페이지를 다시 렌더링해야 함
+            // (리다이렉트하면 폼 오류 메시지가 사라짐)
+
+            // (getPostDetail 메서드와 동일한 로직으로 데이터를 다시 조회해야 함)
+            addClubDetailAttributes(clubId, model, session, ra);
+            Post post = postService.findPostById(postId).orElse(null);
+            model.addAttribute("post", post);
+            model.addAttribute("activeTab", "board");
+            List<Comment> comments = commentService.getCommentsByPostId(postId);
+            model.addAttribute("comments", comments);
+
+            ra.addFlashAttribute("error", "댓글 내용을 입력해주세요.");
+            return "clubs/post_detail";
+        }
+
+        try {
+            // 서비스 호출 (이 안에서 멤버인지 검사함)
+            commentService.createComment(postId, currentUserId, commentForm);
+            ra.addFlashAttribute("msg", "댓글이 등록되었습니다.");
+
+        } catch (Exception e) { // SecurityException, IllegalArgumentException 등
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+
+        // 성공/실패 시 모두 상세 페이지로 리다이렉트
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
+    @PostMapping("/{clubId}/board/{postId}/comment/{commentId}/delete")
+    public String deleteComment(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                @PathVariable Long commentId,
+                                HttpSession session,
+                                RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        try {
+            commentService.deleteComment(commentId, currentUserId);
+            ra.addFlashAttribute("msg", "댓글이 삭제되었습니다.");
+
+        } catch (Exception e) { // SecurityException, IllegalArgumentException
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+
+        // 성공/실패 시 모두 게시글 상세 페이지로 리다이렉트
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
+    // 댓글 수정 폼
+    @GetMapping("/{clubId}/board/{postId}/comment/{commentId}/edit")
+    public String getEditCommentForm(@PathVariable Long clubId,
+                                     @PathVariable Long postId,
+                                     @PathVariable Long commentId,
+                                     HttpSession session,
+                                     Model model,
+                                     RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        try {
+            // 수정할 댓글 데이터를 불러옴
+            Comment comment = commentService.getCommentById(commentId);
+
+            // 작성자가 맞는지 확인함
+            if (!comment.getAuthor().getId().equals(currentUserId)) {
+                ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+                return "redirect:/clubs/" + clubId + "/board/" + postId;
+            }
+
+            // 템플릿(comment_edit.html)에 필요한 모든 데이터를 전달함
+            addClubDetailAttributes(clubId, model, session, ra); // (사이드바, 탭용)
+            model.addAttribute("commentForm", new CommentForm(comment.getContent())); // (폼 채우기)
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("postId", postId);
+            model.addAttribute("commentId", commentId); // (폼 action URL용)
+
+            return "comment_edit";
+
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+    }
+
+    // 댓글 수정 처리 (업데이트)
+    @PostMapping("/{clubId}/board/{postId}/comment/{commentId}/edit")
+    public String updateComment(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                @PathVariable Long commentId,
+                                @Valid @ModelAttribute("commentForm") CommentForm commentForm,
+                                BindingResult bindingResult,
+                                HttpSession session,
+                                Model model,
+                                RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/login"; // (보안)
+        }
+
+        // 폼 유효성 검사 실패 (내용이 비었을 때)
+        if (bindingResult.hasErrors()) {
+            // 수정 폼 페이지(comment_edit)를 다시 보여줘야 함
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("postId", postId);
+            model.addAttribute("commentId", commentId);
+            return "comment_edit";
+        }
+
+        try {
+            commentService.updateComment(commentId, commentForm, currentUserId);
+            ra.addFlashAttribute("msg", "댓글이 수정되었습니다.");
+
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            // 실패 시 수정 폼으로 리다이렉트
+            return "redirect:/clubs/" + clubId + "/board/" + postId + "/comment/" + commentId + "/edit";
+        }
+
+        // 성공 시 게시글 상세 페이지로 리다이렉트
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
     }
 }
