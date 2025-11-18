@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>내 캘린더</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <style>
+        #calendar { height: 800px; font-family: 'Pretendard', sans-serif; }
+        .fc-col-header-cell-cushion, .fc-daygrid-day-number { color: #ffffff; text-decoration: none; }
+        .fc-col-header-cell-cushion { font-size: 1.1em; font-weight: 800; padding: 10px 0; }
+        .fc-daygrid-day-number { font-weight: 700; padding: 8px; }
+        .fc-day-sat .fc-col-header-cell-cushion, .fc-day-sat .fc-daygrid-day-number { color: #4fc3f7 !important; }
+        .fc-day-sun .fc-col-header-cell-cushion, .fc-day-sun .fc-daygrid-day-number { color: #ff5252 !important; }
+        .fc-theme-standard td, .fc-theme-standard th { border-color: #2a3b37; }
+        .fc-button { background-color: #2a3b37 !important; border: 1px solid #1a332c !important; color: #fff !important; font-weight: bold; border-radius: 8px !important; }
+        .fc-button:hover { background-color: #3e524d !important; }
+        .fc-toolbar-title { color: #fff; font-weight: 900 !important; }
+        .fc-event { border: none; border-radius: 4px; padding: 2px 4px; font-weight: 600; cursor: pointer; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { min-width: 400px; max-width: 90%; background: #0f231e; padding: 25px; border-radius: 16px; border: 1px solid #2a3b37; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-close-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 28px; color: #888; cursor: pointer; }
+        .hidden { display: none; }
+        .btn-danger { background-color: #e53935; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-deep">
+
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="wrap">
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+    <main class="content">
+        <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
+        <h2 style="color: white; margin-bottom: 20px; font-weight: 800;">나의 일정 (참가 신청 내역)</h2>
+        <div class="detail-card" style="background: #0f231e; padding: 20px; border-radius: 14px; border: 1px solid #1a332c;">
+            <div id='calendar'></div>
+        </div>
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+
+<div id="scheduleDetailModal" class="modal-backdrop hidden">
+    <div class="modal-content">
+        <h2 id="modal-title" style="margin-top: 0; color: #fff;">일정 제목</h2>
+        <button onclick="hideDetailModal()" class="modal-close-btn">&times;</button>
+        <hr style="border-color: #2a3b37; margin: 15px 0;">
+        <p style="color: #ddd;"><strong>날짜:</strong> <span id="modal-date" style="color: #fff;"></span></p>
+        <p style="color: #ddd;"><strong>참여비:</strong> <span id="modal-fee" style="color: #fff;"></span></p>
+        <p style="color: #ddd;"><strong>상세내역:</strong></p>
+        <div id="modal-details" style="white-space: pre-wrap; color: #bbb; background: #1a2623; padding: 10px; border-radius: 8px; margin-top: 5px;"></div>
+        <p style="margin-top: 15px; color: #81c784; font-weight: bold;">
+            👉 <span id="modal-club-name">해당</span> 모임의 일정입니다.
+        </p>
+        <hr style="border-color: #2a3b37; margin: 20px 0;">
+        <div style="text-align: right;">
+            <button id="modal-cancel-btn" class="btn-danger">참가 취소</button>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+<script>
+    const detailModal = document.getElementById('scheduleDetailModal');
+    let calendar;
+
+    // 색상 팔레트
+    const eventColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'];
+    function getColorForEvent(id) {
+        let hash = 0;
+        const str = String(id);
+        for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+        return eventColors[Math.abs(hash) % eventColors.length];
+    }
+
+    // [추가] 로그인 모달 열기 함수
+    function openLoginModal() {
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.removeAttribute('hidden');
+        else location.href = '/login';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // [추가] 상단 로그인 버튼 클릭 시 모달 띄우기 이벤트 연결
+        // (common.html의 버튼 id가 'openLoginBtn'이라고 가정)
+        const topLoginBtn = document.getElementById('openLoginBtn');
+        if(topLoginBtn) {
+            topLoginBtn.onclick = (e) => {
+                e.preventDefault(); // 페이지 이동 막고
+                openLoginModal();   // 모달 열기
+            };
+        }
+
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth', locale: 'ko', height: '800px',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+            events: '/api/my/schedules',
+
+            eventDidMount: function(info) {
+                const color = getColorForEvent(info.event.id);
+                info.el.style.backgroundColor = color;
+                info.el.style.borderColor = color;
+
+                // [핵심] 글씨를 진한 검은색(#222)으로 고정하고 두께를 굵게(700) 설정
+                info.el.style.color = '#222222';
+                info.el.style.fontWeight = '700';
+            },
+
+            eventClick: function(info) {
+                const clubId = info.event.extendedProps.clubId;
+                if(confirm('해당 모임의 캘린더 페이지로 이동하시겠습니까?')) {
+                    location.href = `/clubs/${clubId}/calendar`;
+                }
+            }
+        });
+        calendar.render();
+    });
+
+    function hideDetailModal() { detailModal.classList.add('hidden'); }
+</script>
+</body>
+</html>

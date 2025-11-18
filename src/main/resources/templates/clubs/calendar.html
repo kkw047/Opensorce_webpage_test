@@ -4,8 +4,43 @@
     <meta charset="UTF-8">
     <title th:text="${club.name} + ' - 캘린더'">캘린더</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <style>
-        .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
+        /* [수정] 캘린더 UI 커스텀 */
+        #calendar { height: 800px; font-family: 'Pretendard', sans-serif; }
+
+        /* [수정] 요일(월화수목금) 헤더 스타일 */
+        .fc-col-header-cell-cushion, .fc-daygrid-day-number { color: #ffffff; text-decoration: none; }
+        .fc-col-header-cell-cushion { font-size: 1.1em; font-weight: 800; padding: 10px 0; }
+        .fc-daygrid-day-number { font-weight: 700; padding: 8px; }
+        .fc-day-sat .fc-col-header-cell-cushion, .fc-day-sat .fc-daygrid-day-number { color: #4fc3f7 !important; }
+        .fc-day-sun .fc-col-header-cell-cushion, .fc-day-sun .fc-daygrid-day-number { color: #ff5252 !important; }
+        .fc-theme-standard td, .fc-theme-standard th { border-color: #2a3b37; }
+        .fc-button { background-color: #2a3b37 !important; border: 1px solid #1a332c !important; color: #fff !important; font-weight: bold; border-radius: 8px !important; }
+        .fc-button:hover { background-color: #3e524d !important; }
+        .fc-toolbar-title { color: #fff; font-weight: 900 !important; }
+        .fc-event { border: none; border-radius: 4px; padding: 2px 4px; font-weight: 600; cursor: pointer; }
+
+        /* 모달 스타일 */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { min-width: 400px; max-width: 90%; background: #0f231e; padding: 25px; border-radius: 16px; border: 1px solid #2a3b37; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
+
+        /* [추가] X 닫기 버튼 */
+        .modal-close-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 32px; color: #888; cursor: pointer; transition: color 0.2s; line-height: 1; }
+        .modal-close-btn:hover { color: #ff5252; }
+
+        .hidden { display: none; }
+
+        /* 폼 스타일 */
+        label { display: block; margin: 10px 0 5px; font-weight: bold; color: #ddd; }
+        input[type=text], input[type=date], textarea { width: 95%; background: #2a3b37; color: #fff; border: 1px solid #1a332c; padding: 10px; border-radius: 6px; }
+
+        /* 버튼 스타일 */
+        .modal-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+        .btn-primary { background-color: #26a69a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background-color: #e53935; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-left: 5px;}
+        .btn-secondary { background-color: #757575; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body class="bg-deep">
@@ -20,15 +55,238 @@
         <div class="detail-card">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
         </div>
-        <div class="detail-card">
-            <h1 th:text="${club.name} + ' - 캘린더 (구현 예정)'">캘린더 (구현 예정)</h1>
-            TODO
+
+        <div class="detail-card" style="background: #0f231e; padding: 20px; border-radius: 14px; border: 1px solid #1a332c;">
+            <div id='calendar'></div>
         </div>
     </main>
 </div>
 
 <div th:replace="~{fragments/common :: modals}"></div>
 
+<div id="scheduleDetailModal" class="modal-backdrop hidden">
+    <div class="modal-content">
+        <button onclick="hideDetailModal()" class="modal-close-btn" type="button">&times;</button>
+
+        <h2 id="modal-title" style="margin-top: 0; color: #fff; padding-right: 30px;">일정 제목</h2>
+        <hr style="border-color: #2a3b37; margin: 15px 0;">
+        <p style="color: #ddd;"><strong>날짜:</strong> <span id="modal-date" style="color: #fff;"></span></p>
+        <p style="color: #ddd;"><strong>참여비:</strong> <span id="modal-fee" style="color: #fff;"></span></p>
+        <p style="color: #ddd;"><strong>상세내역:</strong></p>
+        <div id="modal-details" style="white-space: pre-wrap; color: #bbb; background: #1a2623; padding: 10px; border-radius: 8px; margin-top: 5px;"></div>
+        <p style="color: #ddd; margin-top: 10px;"><strong>참여 인원 (<span id="modal-participant-count">0</span>명)</strong></p>
+        <ul id="modal-participant-list" style="max-height: 100px; overflow-y: auto; padding-left: 20px; color: #bbb;"></ul>
+        <hr style="border-color: #2a3b37; margin: 20px 0;">
+        <div class="modal-actions">
+            <button id="modal-join-btn" class="btn-primary">참가하기</button>
+            <div id="modal-admin-group" class="hidden">
+                <button id="modal-edit-btn" class="btn-secondary">수정</button>
+                <button id="modal-delete-btn" class="btn-danger">삭제</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="scheduleCreateModal" class="modal-backdrop hidden">
+    <div class="modal-content">
+        <button onclick="hideCreateModal()" class="modal-close-btn" type="button">&times;</button>
+
+        <h2 style="color: #fff; padding-right: 30px;">새 일정 제안하기</h2>
+        <form id="createScheduleForm" style="margin-top: 15px;">
+            <label>예정 내역 (제목)</label><input type="text" id="create-title" placeholder="예: 10월 정기 모임" required>
+            <label>시작일</label><input type="date" id="create-startDate" required>
+            <label>종료일</label><input type="date" id="create-endDate" required>
+            <label>참여비</label><input type="text" id="create-fee" placeholder="예: 10,000원">
+            <label>상세 설명 (선택)</label><textarea id="create-details" rows="3"></textarea>
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="submit" class="btn-primary">확인 (제안하기)</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="scheduleEditModal" class="modal-backdrop hidden">
+    <div class="modal-content">
+        <button onclick="hideEditModal()" class="modal-close-btn" type="button">&times;</button>
+
+        <h2 style="color: #fff; padding-right: 30px;">일정 수정하기</h2>
+        <form id="editScheduleForm" style="margin-top: 15px;">
+            <input type="hidden" id="edit-id">
+            <label>예정 내역 (제목)</label><input type="text" id="edit-title" required>
+            <label>시작일</label><input type="date" id="edit-startDate" required>
+            <label>종료일</label><input type="date" id="edit-endDate" required>
+            <label>참여비</label><input type="text" id="edit-fee">
+            <label>상세 설명</label><textarea id="edit-details" rows="3"></textarea>
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="submit" class="btn-primary">수정 완료</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div th:replace="~{fragments/common :: scripts}"></div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const clubId = /*[[${club.id}]]*/ 1;
+    // [핵심] 세션으로 로그인 여부 확인
+    const isLoggedIn = /*[[${session.LOGIN_USER_ID != null}]]*/ false;
+    const isMember = /*[[${isAlreadyMember}]]*/ false;
+    /*]]>*/
+
+    // 색상 팔레트
+    const eventColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'];
+    function getColorForEvent(id) {
+        let hash = 0;
+        const str = String(id);
+        for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+        return eventColors[Math.abs(hash) % eventColors.length];
+    }
+
+    let calendar;
+    const detailModal = document.getElementById('scheduleDetailModal');
+    const createModal = document.getElementById('scheduleCreateModal');
+    const editModal = document.getElementById('scheduleEditModal');
+    const createForm = document.getElementById('createScheduleForm');
+    const editForm = document.getElementById('editScheduleForm');
+
+    function openLoginModal() {
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.removeAttribute('hidden');
+        else location.href = '/login';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth', locale: 'ko', height: '800px',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'addEventButton' },
+            events: `/api/club/${clubId}/schedules`,
+
+            eventDidMount: function(info) {
+                const color = getColorForEvent(info.event.id);
+                info.el.style.backgroundColor = color;
+                info.el.style.borderColor = color;
+                info.el.style.color = '#222222'; // [수정] 글씨 검은색 고정
+                info.el.style.fontWeight = '700';
+            },
+
+            eventClick: function(info) { showScheduleDetailModal(info.event.id); },
+            customButtons: {
+                addEventButton: {
+                    text: '일정 제안하기',
+                    click: function() {
+                        if (!isLoggedIn) { alert('로그인 후 이용 가능합니다.'); openLoginModal(); return; }
+                        if (!isMember) { alert('모임에 가입한 후에만 가능합니다.'); return; }
+                        showCreateModal();
+                    }
+                }
+            }
+        });
+        calendar.render();
+
+        createForm.addEventListener('submit', function(e) { e.preventDefault(); handleCreateSchedule(); });
+        editForm.addEventListener('submit', function(e) { e.preventDefault(); handleUpdateSchedule(); });
+    });
+
+    async function showScheduleDetailModal(scheduleId) {
+        try {
+            const response = await fetch(`/api/club/${clubId}/schedule/${scheduleId}`, { credentials: 'include' });
+            if (!response.ok) throw new Error('일정 로딩 실패');
+            const dto = await response.json();
+
+            document.getElementById('modal-title').textContent = dto.title;
+            document.getElementById('modal-date').textContent = `${dto.startDate} ~ ${dto.endDate}`;
+            document.getElementById('modal-fee').textContent = dto.fee || '-';
+            document.getElementById('modal-details').textContent = dto.details || '';
+            document.getElementById('modal-participant-count').textContent = dto.participantNames.length;
+
+            const list = document.getElementById('modal-participant-list');
+            list.innerHTML = '';
+            if (dto.participantNames.length > 0) {
+                dto.participantNames.forEach(name => {
+                    const li = document.createElement('li'); li.textContent = name; list.appendChild(li);
+                });
+            } else { list.innerHTML = '<li>참가자가 없습니다.</li>'; }
+
+            const joinBtn = document.getElementById('modal-join-btn');
+            if (dto.isParticipating) {
+                joinBtn.textContent = '참가 취소'; joinBtn.className = 'btn-danger';
+                joinBtn.onclick = () => handleLeave(scheduleId);
+            } else {
+                joinBtn.textContent = '참가하기'; joinBtn.className = 'btn-primary';
+                joinBtn.onclick = () => handleJoin(scheduleId);
+            }
+
+            const adminGroup = document.getElementById('modal-admin-group');
+            if (dto.isManager) {
+                adminGroup.classList.remove('hidden');
+                document.getElementById('modal-edit-btn').onclick = () => showEditModal(dto);
+                document.getElementById('modal-delete-btn').onclick = () => handleDelete(scheduleId);
+            } else { adminGroup.classList.add('hidden'); }
+
+            detailModal.classList.remove('hidden');
+        } catch (err) { console.error(err); }
+    }
+
+    function showCreateModal() { createForm.reset(); createModal.classList.remove('hidden'); }
+    function hideCreateModal() { createModal.classList.add('hidden'); }
+    function hideDetailModal() { detailModal.classList.add('hidden'); }
+    function showEditModal(dto) {
+        document.getElementById('edit-id').value = dto.id;
+        document.getElementById('edit-title').value = dto.title;
+        document.getElementById('edit-startDate').value = dto.startDate;
+        document.getElementById('edit-endDate').value = dto.endDate;
+        document.getElementById('edit-fee').value = dto.fee;
+        document.getElementById('edit-details').value = dto.details;
+        detailModal.classList.add('hidden'); editModal.classList.remove('hidden');
+    }
+    function hideEditModal() { editModal.classList.add('hidden'); }
+
+    async function handleCreateSchedule() {
+        const data = {
+            title: document.getElementById('create-title').value,
+            startDate: document.getElementById('create-startDate').value,
+            endDate: document.getElementById('create-endDate').value,
+            fee: document.getElementById('create-fee').value,
+            details: document.getElementById('create-details').value
+        };
+        if(!data.title || !data.startDate || !data.endDate) { alert('필수 입력 확인'); return; }
+        sendRequest(`/api/club/${clubId}/schedule`, 'POST', data, () => { alert('등록됨'); hideCreateModal(); calendar.refetchEvents(); });
+    }
+    async function handleUpdateSchedule() {
+        const id = document.getElementById('edit-id').value;
+        const data = {
+            title: document.getElementById('edit-title').value,
+            startDate: document.getElementById('edit-startDate').value,
+            endDate: document.getElementById('edit-endDate').value,
+            fee: document.getElementById('edit-fee').value,
+            details: document.getElementById('edit-details').value
+        };
+        sendRequest(`/api/club/${clubId}/schedule/${id}`, 'PUT', data, () => { alert('수정됨'); hideEditModal(); calendar.refetchEvents(); });
+    }
+    async function handleDelete(id) { if(confirm('삭제하시겠습니까?')) sendRequest(`/api/club/${clubId}/schedule/${id}`, 'DELETE', null, () => { alert('삭제됨'); hideDetailModal(); calendar.refetchEvents(); }); }
+    async function handleJoin(id) {
+        if (!isLoggedIn) { alert('로그인 필요'); openLoginModal(); return; }
+        if (!isMember) { alert('가입 필요'); return; }
+        if(confirm('참가?')) sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'POST', null, () => { alert('완료'); showScheduleDetailModal(id); });
+    }
+    async function handleLeave(id) { if(confirm('취소?')) sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'DELETE', null, () => { alert('취소됨'); showScheduleDetailModal(id); }); }
+
+    async function sendRequest(url, method, body, onSuccess) {
+        try {
+            const opt = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
+            if(body) opt.body = JSON.stringify(body);
+            const res = await fetch(url, opt);
+            if(!res.ok) {
+                const txt = await res.text();
+                if(txt.includes('<!DOCTYPE html>') || res.status===401 || res.status===403) { alert('로그인 필요'); openLoginModal(); return; }
+                throw new Error(txt);
+            }
+            onSuccess();
+        } catch(e) { alert(e.message); }
+    }
+</script>
 </body>
 </html>

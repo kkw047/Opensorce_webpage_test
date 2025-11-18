@@ -20,7 +20,7 @@
     <nav class="menu-vert">
         <a class="menu-item" th:classappend="${activeSidebarMenu == 'main' ? 'active' : ''}" th:href="@{/clubs}">메인</a>
         <a class="menu-item" title="준비중">추천</a>
-        <a class="menu-item" title="준비중">캘린더</a>
+        <a class="menu-item" th:href="@{/my-calendar}" th:classappend="${activeSidebarMenu == 'calendar' ? 'active' : ''}">캘린더</a>
         <a class="menu-item" th:href="@{/clubs/myclubs}" th:classappend="${activeSidebarMenu == 'myclubs' ? 'active' : ''}">내모임</a>
     </nav>
 
