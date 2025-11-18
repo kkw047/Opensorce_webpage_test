@@ -33,11 +33,9 @@ public class ClubService {
     private final UserRepository userRepository;
     private final ClubMemberRepository clubMemberRepository;
 
-    /* ===== Region ===== */
     public List<String> getAllDos() { return regionKorRepository.findDistinctDos(); }
     public List<String> getSisByDo(String regionDo) { return regionKorRepository.findSisByDo(regionDo); }
 
-    /* ===== Category ===== */
     public List<Category> findAllCategories() { return categoryRepository.findAllOrderByNameAsc(); }
 
     public Category createCategoryIfNotExists(String name) {
@@ -47,7 +45,6 @@ public class ClubService {
                 .orElseGet(() -> categoryRepository.save(new Category(null, n, null)));
     }
 
-    /* ===== Create Club ===== */
     @Transactional
     public Club createClub(Long ownerId, ClubForm form) { // 파라미터를 DTO로 받음
 
@@ -76,7 +73,6 @@ public class ClubService {
             club.getCategories().add(nc);
         }
 
-        // 모임 생성자를 "ADMIN" 역할로 멤버 목록에 추가
         if (owner != null) {
             ClubMember ownerMembership = new ClubMember();
             ownerMembership.setId(new ClubMemberId(null, owner.getId()));
@@ -90,7 +86,6 @@ public class ClubService {
         return clubRepository.save(club);
     }
 
-    /* ===== Join Club ===== */
     @Transactional
     public void joinClub(Long clubId, Long userId) {
         ClubMemberId memberId = new ClubMemberId(clubId, userId);
@@ -98,13 +93,11 @@ public class ClubService {
             throw new IllegalStateException("이미 가입한 모임입니다.");
         }
 
-        // 연관 엔티티 조회
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다. ID: " + clubId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다. ID: " + userId));
 
-        // 새 멤버 생성
         ClubMember newMember = new ClubMember();
         newMember.setId(memberId);
         newMember.setClub(club);
@@ -114,11 +107,10 @@ public class ClubService {
         clubMemberRepository.save(newMember);
     }
 
-    /* ===== Search/List ===== */
     public Page<Club> search(String q,
                              String regionDo,
                              String regionSi,
-                             List<Long> categoryIds, // 다중 체크박스
+                             List<Long> categoryIds,
                              Pageable pageable) {
 
         Specification<Club> spec = (root, query, cb) -> cb.conjunction();
@@ -144,7 +136,6 @@ public class ClubService {
         return clubRepository.findAll(spec, pageable);
     }
 
-    // 내 모임 목록 조회 서비스 메소드 추가
     public Page<Club> searchMyClubs(Long userId,
                                     String q,
                                     String regionDo,
@@ -152,7 +143,6 @@ public class ClubService {
                                     List<Long> categoryIds,
                                     Pageable pageable) {
 
-        // 기본 검색 스펙 (search 메소드와 동일)
         Specification<Club> spec = (root, query, cb) -> cb.conjunction();
 
         if (q != null && !q.isBlank()) {
@@ -182,22 +172,31 @@ public class ClubService {
         return clubRepository.findAll(spec, pageable);
     }
 
-    /* ===== Detail ===== */
-    @Transactional(readOnly = true)
-    public Optional<Club> findById(Long clubId) {
-        return clubRepository.findById(clubId);
+    public Page<Club> findMyClubs(Long userId, Pageable pageable) {
+        return searchMyClubs(userId, null, null, null, null, pageable);
     }
 
-    /* ===== Detail DTO 로직 ===== */
-    /**
-     * 모임 상세 정보와 현재 사용자 관련 정보를 DTO로 조회
-     * @param clubId 모임 ID
-     * @param currentUserId 현재 로그인한 사용자 ID (null일 수 있음)
-     * @return 뷰에 전달할 ClubDetailDto
-     */
+    @Transactional(readOnly = true)
+    public Optional<Club> findById(Long clubId) {
+        Optional<Club> optClub = clubRepository.findById(clubId);
+
+        if (optClub.isPresent()) {
+            Club club = optClub.get();
+
+            // 멤버 목록 로딩
+            List<ClubMember> members = club.getMembers();
+
+            // 각 멤버의 유저 정보(닉네임 등)를 미리 건드려서 로딩시킴
+            for (ClubMember member : members) {
+                member.getUser().getNickname();
+            }
+        }
+
+        return optClub;
+    }
+
     @Transactional(readOnly = true)
     public Optional<ClubDetailDto> getClubDetail(Long clubId, Long currentUserId) {
-        // @EntityGraph가 적용된 findById 호출 (members, categories 등 모두 EAGER 조회)
         Optional<Club> optClub = clubRepository.findById(clubId);
         if (optClub.isEmpty()) {
             return Optional.empty();
@@ -213,7 +212,6 @@ public class ClubService {
             isAlreadyMember = clubMemberRepository.existsById(memberId);
         }
 
-        // 엔티티 -> DTO 변환
         ClubDetailDto dto = ClubDetailDto.fromEntity(club, isOwner, isAlreadyMember);
         return Optional.of(dto);
     }

@@ -25,36 +25,28 @@
 
                 <div class="post-header">
                     <h1 th:text="*{title}"></h1>
+
                     <div class="post-meta">
-
                         <div class="author-display">
-                            <img th:if="*{author.imageUrl != null}"
-                                 th:src="*{author.imageUrl}"
-                                 class="profile-thumb-detail"
-                                 alt="프로필">
-
-                            <div th:unless="*{author.imageUrl != null}"
-                                 class="profile-thumb-detail default-icon">
-                                👤
-                            </div>
-
+                            <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
+                            <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
                             <span th:text="*{author.nickname}">작성자명</span>
                         </div>
-                        <span class="meta-divider">|</span>
 
+                        <span class="meta-divider">|</span>
                         <span th:text="|작성일: *{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : '날짜 없음'}|"></span>
                     </div>
                 </div>
-                <hr>
 
                 <div class="post-content" th:text="*{content}">
+                    게시글 내용...
                 </div>
 
-                <div class="button-group">
+                <div class="button-group" style="margin-top: 30px; border-top: 1px solid #1a332c; padding-top: 15px;">
                     <a th:href="@{/clubs/{clubId}/board(clubId=${club.id})}" class="btn">목록</a>
+
                     <th:block th:if="${session.LOGIN_USER_ID == post.author.id}">
-                        <a th:href="@{/clubs/{clubId}/board/{postId}/edit(clubId=${club.id}, postId=${post.id})}"
-                           class="btn">수정</a>
+                        <a th:href="@{/clubs/{clubId}/board/{postId}/edit(clubId=${club.id}, postId=${post.id})}" class="btn">수정</a>
                         <form th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${club.id}, postId=${post.id})}"
                               method="post" style="display: inline-block; margin: 0;"
                               onsubmit="return confirm('정말 이 게시물을 삭제하시겠습니까?');">
@@ -62,65 +54,67 @@
                         </form>
                     </th:block>
                 </div>
-            </div> </div> <div class="detail-card">
-        <h2>댓글 작성</h2>
-        <form th:action="@{/clubs/{clubId}/board/{postId}/comment(clubId=${club.id}, postId=${post.id})}"
-              th:object="${commentForm}" method="post">
 
-            <div class="form-group">
-                <textarea th:field="*{content}" rows="6" placeholder="댓글을 입력하세요..."></textarea>
-                <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}"
-                     class="error-message"></div>
             </div>
-
-            <div class="button-group" style="text-align: right; border-top: 0; padding-top: 10px;">
-                <button type="submit" class="btn primary">댓글 등록</button>
-            </div>
-        </form>
-    </div>
+        </div>
 
         <div class="detail-card">
-            <h2>댓글 <span th:text="${#lists.size(comments)}">0</span>개</h2>
+            <h3>댓글 작성</h3>
+            <form th:action="@{/clubs/{clubId}/board/{postId}/comment(clubId=${club.id}, postId=${post.id})}"
+                  th:object="${commentForm}" method="post">
+
+                <div class="form-group">
+                    <textarea th:field="*{content}" rows="4" placeholder="댓글을 입력하세요..." style="min-height: 80px;"></textarea>
+                    <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error-message"></div>
+                </div>
+
+                <div style="text-align: right; margin-top: 10px;">
+                    <button type="submit" class="btn primary">댓글 등록</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="detail-card">
+            <h3>댓글 <span th:text="${#lists.size(comments)}">0</span>개</h3>
+
             <div class="comment-list">
-                <div th:if="${#lists.isEmpty(comments)}" style="color: #9ec8b8; padding: 10px 0;">
+                <div th:if="${#lists.isEmpty(comments)}" style="color: #9ec8b8; padding: 20px 0; text-align: center;">
                     아직 작성된 댓글이 없습니다.
                 </div>
 
-                <div class="comment-item" th:each="comment : ${comments}"
-                     th:object="${comment}">
+                <div class="comment-item" th:each="comment : ${comments}" th:object="${comment}">
                     <div class="comment-header">
-                        <div classimg="profile-thumb-detail default-icon">👤</div>
+                        <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
+                        <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
 
-                        <strong th:text="*{author.nickname}">작성자명</strong>
-                        <span class="comment-date"
-                              th:text="*{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd') : ''}"></span>
+                        <strong th:text="*{author.nickname}">닉네임</strong>
+                        <span style="font-size: 0.8em; color: #555;">•</span>
+                        <span style="font-size: 0.8em; color: #9ec8b8;"
+                              th:text="*{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : ''}">날짜</span>
                     </div>
 
-                    <div class="comment-content" th:text="*{content}">
-                        댓글 내용이 여기에 표시됩니다.
-                    </div>
+                    <div class="comment-content" th:text="*{content}">내용</div>
 
                     <div class="comment-actions">
                         <th:block th:if="${session.LOGIN_USER_ID == comment.author.id}">
-
                             <a th:href="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
                                class="btn-comment-action">수정</a>
 
                             <form th:action="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/delete(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
-                                  method="post"
-                                  style="display: inline-block; margin: 0;"
-                                  onsubmit="return confirm('이 댓글을 정말 삭제하시겠습니까?');">
-
-                                <button type="submit" class="btn-comment-action delete">삭제</button>
+                                  method="post" style="display: inline-block;">
+                                <button type="submit" class="btn-comment-action delete"
+                                        onclick="return confirm('정말 삭제하시겠습니까?')">삭제</button>
                             </form>
-
                         </th:block>
                     </div>
                 </div>
             </div>
         </div>
 
-    </main> </div> <div th:replace="~{fragments/common :: modals}"></div>
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
 <div th:replace="~{fragments/common :: scripts}"></div>
 
 <div id="toast"

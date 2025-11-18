@@ -54,7 +54,8 @@
         <div class="detail-card">
             <h1>새 게시물 작성</h1>
 
-            <form th:action="@{/clubs/{clubId}/board/new(clubId=${clubId})}" th:object="${postForm}" method="post">
+            <form th:action="@{/clubs/{clubId}/board/new(clubId=${clubId})}"
+                  th:object="${postForm}" method="post">
 
                 <div th:if="${errorMessage}" class="error-message"
                      style="background-color: #3f2a2a; padding: 10px; border-radius: 8px; margin-bottom: 15px;"
