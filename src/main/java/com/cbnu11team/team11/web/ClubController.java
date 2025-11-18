@@ -117,6 +117,12 @@ public class ClubController {
             return "redirect:/clubs/" + clubId + "/board";
         }
 
+        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+        if (!isMember) {
+            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
@@ -137,6 +143,12 @@ public class ClubController {
 
         if (currentUserId == null) {
             return "redirect:/login";
+        }
+
+        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+        if (!isMember) {
+            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
         }
 
         if (bindingResult.hasErrors()) {
