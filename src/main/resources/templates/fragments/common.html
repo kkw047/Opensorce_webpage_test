@@ -100,9 +100,13 @@
             <h3>로그인</h3>
             <form class="form-grid" th:action="@{/login}" method="post">
                 <input type="text" name="loginIdOrEmail" placeholder="아이디 또는 이메일" required>
+                <div style="display:flex; gap:8px; margin-top:6px;">
                 <input type="password" name="password" placeholder="비밀번호" required>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:6px;">
                 <button class="btn primary">로그인</button>
                 <button class="btn" type="button" data-close="#loginModal">닫기</button>
+                </div>
             </form>
         </div>
     </div>
