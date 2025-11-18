@@ -8,8 +8,6 @@ import com.cbnu11team.team11.web.dto.ClubForm;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +17,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.cbnu11team.team11.domain.ChatRoom;
-import com.cbnu11team.team11.domain.ChatMessage;
 import com.cbnu11team.team11.domain.User;
 import com.cbnu11team.team11.service.ChatService;
 import com.cbnu11team.team11.web.dto.ChatMessageDto;
@@ -388,32 +385,6 @@ public class ClubController {
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
             return "redirect:/clubs/" + clubId + "/chat";
-        }
-    }
-
-    /**
-     * 메시지 전송 처리 (AJAX용 JSON 반환)
-     */
-    @PostMapping("/{clubId}/chat/{roomId}/send")
-    @ResponseBody // HTML 뷰가 아닌 JSON/데이터를 반환
-    public ResponseEntity<?> sendMessage(@PathVariable Long clubId,
-                                         @PathVariable Long roomId,
-                                         @RequestParam("content") String content,
-                                         HttpSession session) {
-
-        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
-        if (currentUserId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다."); // 수정: HttpStatus.UNAUTHORIZED
-        }
-
-        try {
-            // 서비스가 저장된 ChatMessage 엔티티를 반환
-            ChatMessage newMessage = chatService.sendMessage(roomId, currentUserId, content);
-            // 엔티티를 DTO로 변환하여 반환
-            return ResponseEntity.ok(ChatMessageDto.fromEntity(newMessage));
-        } catch (Exception e) {
-            // 실패 시 에러 메시지 반환
-            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }
