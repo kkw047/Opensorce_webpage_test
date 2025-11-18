@@ -130,12 +130,25 @@
 
             <hr class="detail-divider"> <div>
             <h2 class="section-title" th:text="'모임 멤버 (' + ${memberCount} + ')'">모임 멤버 (0)</h2>
-            <div class="member-list">
-                <div class="member-item" th:each="memberInfo : *{members}">
-                    <div class="member-avatar"></div>
-                    <span th:text="${memberInfo.user.nickname}">멤버 닉네임</span>
-                    <span class="member-role" th:if="${memberInfo.role == 'ADMIN'}">[관리자]</span>
+            <div class="member-item" th:each="memberInfo : *{members}">
+
+                <img th:if="${memberInfo.imageUrl != null}"
+                     th:src="${memberInfo.imageUrl}"
+                     class="member-avatar"
+                     style="object-fit: cover;"
+                     alt="프사">
+
+                <div th:unless="${memberInfo.imageUrl != null}"
+                     class="member-avatar"
+                     style="display: flex; align-items: center; justify-content: center;">
+                    👤
                 </div>
+
+                <span th:text="${memberInfo.nickname}">멤버 닉네임</span>
+
+                <span class="member-role" th:if="${memberInfo.role == 'ADMIN'}">[관리자]</span>
+
+            </div>
                 <div th:if="${memberCount == 0}">
                     <p style="color: #9ec8b8; font-size: 14px; margin-top: 10px; margin-bottom: 0;">
                         아직 모임에 가입한 멤버가 없습니다.
