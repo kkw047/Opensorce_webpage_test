@@ -2,10 +2,195 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title th:text="${club.name} + ' - 채팅'">채팅</title>
+    <title th:text="${club.name}">채팅</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
         .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
+        .toolbar-right { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;}
+
+        /* --- 채팅방 목록 그리드 --- */
+        .chat-room-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 그리드 레이아웃 */
+            gap: 16px; /* 카드 간 간격 */
+        }
+
+        .chat-room-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: stretch;
+            background: #071b15;
+            border: 1px solid #153328;
+            border-radius: 10px;
+            padding: 12px;
+            transition: background 0.15s ease;
+            min-height: 100px;
+            position: relative;
+        }
+        .chat-room-item:hover {
+            background: #12352b;
+        }
+
+        .chat-room-item .room-link {
+            text-decoration: none;
+            color: #e7f3ee;
+            flex: 1;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-room-item .room-link-disabled {
+            text-decoration: none;
+            color: #9ec8b8;
+            flex: 1;
+            cursor: default;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-room-item h4 { margin: 0 0 8px 0; }
+        .chat-room-item .members { font-size: 12px; color: #9ec8b8; margin-top: auto; }
+
+        .chat-room-item form {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            margin: 0;
+        }
+
+        /* --- 채팅 모달 스타일 --- */
+        .chat-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+            pointer-events: none;
+        }
+        .chat-modal-content {
+            background: #0f231e;
+            border: 1px solid #1a332c;
+            border-radius: 14px;
+            width: 500px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: auto;
+            min-width: 350px;
+            min-height: 300px;
+            pointer-events: auto;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .chat-modal-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #1a332c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+        }
+        .chat-modal-header h4 { margin: 0; font-size: 16px; }
+        .chat-modal-header .actions { display: flex; gap: 8px; }
+
+        .chat-modal-body {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background: #071b15;
+        }
+        .chat-modal-footer {
+            padding: 12px;
+            border-top: 1px solid #1a332c;
+        }
+
+        .chat-modal-body .msg-item { margin-bottom: 10px; }
+        .chat-modal-body .msg-sender { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+        .chat-modal-body .msg-content {
+            background: #12352b;
+            padding: 8px 12px;
+            border-radius: 10px;
+            display: inline-block;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .chat-modal-body .msg-time { font-size: 10px; color: #9ec8b8; margin-left: 8px; }
+        .chat-modal-body .msg-item.mine { text-align: right; }
+        .chat-modal-body .msg-item.mine .msg-content { background: #1db954; color: #04120e; }
+
+        .chat-input-form { display: flex; gap: 8px; }
+        .chat-input-form input { flex: 1; }
+
+        .chat-modal-manage-view {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background: #071b15;
+            display: flex;
+            flex-direction: column;
+            gap: 16px; /* 섹션간 간격 */
+        }
+        .chat-modal-manage-view h4 { margin: 0 0 12px 0; }
+        .chat-modal-manage-view .member-list { display: flex; flex-direction: column; gap: 10px; }
+        .chat-modal-manage-view .member-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #0f231e;
+            border: 1px solid #153328;
+            border-radius: 8px;
+        }
+        .chat-modal-manage-view .member-item form { margin: 0; }
+        .chat-modal-manage-view .btn-kick {
+            background: #5a2a2a;
+            border-color: #7a3a3a;
+            color: #fee;
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+
+        /* 초대 섹션 스타일 */
+        .chat-modal-manage-view .invite-section {
+            border-top: 1px solid #1a332c;
+            padding-top: 16px;
+        }
+        .chat-modal-manage-view .invite-list {
+            background: #071b15;
+            border-radius: 10px;
+            border: 1px solid #153328;
+            padding: 6px 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        .chat-modal-manage-view .delete-section {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid #1a332c;
+        }
+        .chat-modal-manage-view .delete-section p {
+            color: #c8b89e;
+            font-size: 14px;
+            margin-top: 0;
+        }
+        .btn-danger {
+            background: #a02c2c;
+            border-color: #a02c2c;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+            border-color: #c0392b;
+        }
     </style>
 </head>
 <body class="bg-deep">
@@ -15,21 +200,623 @@
 <div class="wrap">
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
     <main class="content">
-        <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
 
         <div class="detail-card">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
         </div>
 
+        <div id="toast"
+             th:if="${error != null or msg != null}"
+             th:text="${error ?: msg}"
+             class="toast show"
+             th:classappend="${error != null} ? 'toast-error' : 'toast-success'">
+        </div>
+
         <div class="detail-card">
-            <h1 th:text="${club.name} + ' - 채팅 (구현 예정)'">채팅 (구현 예정)</h1>
-            TODO
+            <div class="toolbar-right">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h2 style="margin: 0;">채팅방 목록</h2>
+                    <label class="checkrow" style="padding: 0; font-size: 14px; cursor: pointer;">
+                        <input type="checkbox" id="myChatsFilter" />
+                        <span style="cursor: pointer;">내 채팅방만 보기</span>
+                    </label>
+                </div>
+                <a th:href="@{/clubs/{id}/chat/create(id=${club.id})}" class="btn primary">채팅방 만들기</a>
+            </div>
+
+            <div class="chat-room-list">
+                <div th:each="room : ${chatRooms}" class="chat-room-item" th:data-is-member="${room.isMember}">
+
+                    <div class="room-link"
+                         th:data-club-id="${club.id}"
+                         th:data-room-id="${room.id}"
+                         th:if="${room.isMember}">
+                        <h4 th:text="${room.name}">채팅방 이름</h4>
+                        <div class="members">
+                            <span class="member-count" th:text="${'멤버 ' + room.memberCount + '명'}">멤버 N명</span>
+                            <span th:if="${room.ownerNickname != null}"
+                                  th:text="'(방장: ' + ${room.ownerNickname} + ')'"></span>
+                        </div>
+                    </div>
+
+                    <div class="room-link-disabled" th:if="${!room.isMember}">
+                        <h4 th:text="${room.name}">채팅방 이름</h4>
+                        <div class="members">
+                            <span class="member-count" th:text="${'멤버 ' + room.memberCount + '명'}">멤버 N명</span>
+                            <span th:if="${room.ownerNickname != null}"
+                                  th:text="'(방장: ' + ${room.ownerNickname} + ')'"></span>
+                        </div>
+                    </div>
+
+                    <form th:if="${!room.isMember}"
+                          th:action="@{/clubs/{id}/chat/{roomId}/join(id=${club.id}, roomId=${room.id})}"
+                          method="post">
+                        <button type="submit" class="btn primary">가입</button>
+                    </form>
+                </div>
+
+                <div th:if="${#lists.isEmpty(chatRooms)}" style="color: #9ec8b8; text-align: center; padding: 20px 0;">
+                    아직 개설된 채팅방이 없습니다.
+                </div>
+            </div>
         </div>
     </main>
 </div>
 
-<div th:replace="~{fragments/common :: modals}"></div>
+<div class="chat-modal-overlay" id="chatModal" style="display: none;">
+    <div class="chat-modal-content" data-club-id="" data-room-id=""> <div class="chat-modal-header">
+        <h4 id="modalRoomName">채팅방 이름</h4>
+        <div class="actions">
+            <button class="btn" id="modalManageLink" style="display: none;">방 관리</button>
+            <button class="btn" id="modalCloseBtn">닫기</button>
+        </div>
+    </div>
 
+        <div id="modalChatView" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div class="chat-modal-body" id="modalMessages">
+            </div>
+            <div class="chat-modal-footer">
+                <form class="chat-input-form" id="modalSendForm" method="post">
+                    <input type="text" name="content" placeholder="메시지 입력..." autocomplete="off" required>
+                    <button class="btn primary">전송</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="chat-modal-manage-view" id="modalManageView" style="display: none;">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+                <h3 style="margin: 0;">방 관리</h3>
+                <button class="btn" id="modalBackToChatBtn">채팅으로</button>
+            </div>
+
+            <div>
+                <h4>멤버 강퇴</h4>
+                <div class="member-list" id="modalManageMemberList">
+                </div>
+            </div>
+
+            <div class="invite-section">
+                <h4>멤버 초대</h4>
+                <form id="modalInviteForm" method="post" action="">
+                    <div class="invite-list checklist scroll-y" id="modalInviteList">
+                    </div>
+                    <button type="submit" class="btn primary block">선택한 멤버 초대하기</button>
+                </form>
+            </div>
+
+            <div class="delete-section">
+                <h4>방 삭제</h4>
+                <p>채팅방을 삭제하면 모든 대화 내역이 영구적으로 사라집니다.</p>
+                <form id="modalDeleteRoomForm" method="post" action="">
+                    <button type="submit" class="btn btn-danger">이 채팅방 삭제하기</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div th:replace="~{fragments/common :: modals}"></div>
 <div th:replace="~{fragments/common :: scripts}"></div>
+
+<script th:inline="javascript">
+    // 현재 세션의 닉네임 (내 메시지 판단용)
+    const currentNickname = /*[[${session.LOGIN_USER_NICKNAME}]]*/ null;
+    const currentUserId = /*[[${session.LOGIN_USER_ID}]]*/ null;
+
+    // STOMP 클라이언트 변수
+    let stompClient = null;
+    let currentRoomId = null; // 현재 연결된 방 ID (중복 방지용)
+
+    function makeDraggable(element, handle) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        handle.onmousedown = dragMouseDown;
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            if (element.style.transform !== 'none') {
+                const rect = element.getBoundingClientRect();
+                element.style.left = rect.left + "px";
+                element.style.top = rect.top + "px";
+                element.style.transform = 'none';
+            }
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+        }
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const chatModalOverlay = document.getElementById("chatModal");
+        const chatModalContent = chatModalOverlay.querySelector(".chat-modal-content");
+        const chatModalHeader = chatModalOverlay.querySelector(".chat-modal-header");
+
+        if (!chatModalOverlay || !chatModalContent || !chatModalHeader) return;
+
+        makeDraggable(chatModalContent, chatModalHeader);
+
+        const modalRoomName = document.getElementById("modalRoomName");
+        const modalMessages = document.getElementById("modalMessages");
+        const modalSendForm = document.getElementById("modalSendForm");
+        const modalCloseBtn = document.getElementById("modalCloseBtn");
+        const modalManageLink = document.getElementById("modalManageLink");
+
+        // 관리 뷰 요소
+        const modalChatView = document.getElementById('modalChatView');
+        const modalManageView = document.getElementById('modalManageView');
+        const modalBackToChatBtn = document.getElementById('modalBackToChatBtn');
+
+        // 강퇴 관련
+        const modalManageMemberList = document.getElementById('modalManageMemberList');
+
+        // 초대 관련
+        const modalInviteList = document.getElementById('modalInviteList');
+        const modalInviteForm = document.getElementById('modalInviteForm');
+
+        // 삭제 관련
+        const modalDeleteRoomForm = document.getElementById('modalDeleteRoomForm');
+
+        function scrollToBottom() {
+            if(modalMessages) {
+                modalMessages.scrollTop = modalMessages.scrollHeight;
+            }
+        }
+
+        function appendMessage(msg) {
+            const isMine = msg.senderNickname === currentNickname;
+            const itemDiv = document.createElement("div");
+            itemDiv.className = `msg-item ${isMine ? 'mine' : ''}`;
+            let senderHtml = '';
+            if (!isMine) {
+                senderHtml = `<div class="msg-sender">${msg.senderNickname || '(알 수 없음)'}</div>`;
+            }
+            const contentSpan = document.createElement('span');
+            contentSpan.textContent = msg.content;
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'msg-time';
+            timeSpan.textContent = msg.sentAt;
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'msg-content';
+            contentDiv.appendChild(contentSpan);
+            contentDiv.appendChild(timeSpan);
+            itemDiv.innerHTML = senderHtml;
+            itemDiv.appendChild(contentDiv);
+            modalMessages.appendChild(itemDiv);
+        }
+
+        // WebSocket 연결 및 STOMP 로직 추가
+        async function openChatModal(clubId, roomId) {
+            // 이미 열려있는 방이면 무시 (선택적)
+            if (stompClient && currentRoomId === roomId) {
+                chatModalOverlay.style.display = 'block'; // 숨겨져 있었다면 다시 표시
+                return;
+            }
+            // 다른 방에 연결되어 있었다면 기존 연결 종료
+            if (stompClient) {
+                stompClient.disconnect(() => console.log('Disconnected from room ' + currentRoomId));
+                stompClient = null;
+            }
+
+            currentRoomId = roomId; // 현재 방 ID 설정
+
+            modalChatView.style.display = 'flex';
+            modalManageView.style.display = 'none';
+            chatModalOverlay.style.display = 'block';
+            chatModalContent.style.left = '50%';
+            chatModalContent.style.top = '50%';
+            chatModalContent.style.transform = 'translate(-50%, -50%)';
+            modalRoomName.textContent = '연결 중...';
+            modalMessages.innerHTML = '<p>채팅방에 연결 중입니다...</p>';
+            modalManageLink.style.display = 'none';
+            chatModalContent.dataset.clubId = clubId;
+            chatModalContent.dataset.roomId = roomId;
+
+            try {
+                // 1. 방 기본 정보 가져오기 (권한 확인 등)
+                const infoResponse = await fetch(`/api/clubs/${clubId}/chat/${roomId}`);
+                if (!infoResponse.ok) {
+                    const errorText = await infoResponse.text();
+                    throw new Error(errorText || "채팅방 입장에 실패했습니다.");
+                }
+                const data = await infoResponse.json();
+                modalRoomName.textContent = data.roomName;
+                if (data.roomOwnerId && data.roomOwnerId === currentUserId) {
+                    modalManageLink.style.display = 'inline-block';
+                }
+                // 폼의 action이 더이상 필요 없음. dataset으로 roomId 설정
+                modalSendForm.dataset.roomId = roomId;
+
+                // 2. WebSocket 연결
+                const socket = new SockJS('/ws');
+                stompClient = Stomp.over(socket);
+
+                // 디버그 메시지 끄기
+                stompClient.debug = null;
+
+                stompClient.connect({},
+                    (frame) => { // 2-1. 연결 성공 시
+                        console.log('Connected: ' + frame);
+                        modalMessages.innerHTML = '<p>대화 내역을 불러오는 중입니다...</p>';
+
+                        // 2-2. 방 토픽 구독 (/topic/chat/{roomId})
+                        stompClient.subscribe('/topic/chat/' + roomId, (message) => {
+                            const newMsgDto = JSON.parse(message.body);
+                            appendMessage(newMsgDto);
+                            scrollToBottom();
+                        });
+
+                        // 2-3. 구독 성공 후, 기존 메시지 내역 불러오기
+                        fetchInitialMessages(clubId, roomId);
+                    },
+                    (error) => { // 2-4. 연결 실패 시
+                        console.error('STOMP Connection Error: ' + error);
+                        showToast("채팅 서버 연결에 실패했습니다.", "error");
+                        modalRoomName.textContent = '연결 실패';
+                        modalMessages.innerHTML = `<p style="color: #f88;">채팅 서버에 연결할 수 없습니다.</p>`;
+                        stompClient = null;
+                        currentRoomId = null;
+                    }
+                );
+
+            } catch (err) {
+                showToast("오류: " + err.message, "error");
+                modalRoomName.textContent = '오류';
+                modalMessages.innerHTML = `<p style="color: #f88;">${err.message}</p>`;
+                stompClient = null;
+                currentRoomId = null;
+            }
+        }
+
+        // 초기 메시지 로드 함수
+        async function fetchInitialMessages(clubId, roomId) {
+            try {
+                const msgResponse = await fetch(`/api/clubs/${clubId}/chat/${roomId}/messages`);
+                if (!msgResponse.ok) {
+                    throw new Error("메시지를 불러오는데 실패했습니다.");
+                }
+                const messages = await msgResponse.json();
+                modalMessages.innerHTML = '';
+                messages.forEach(appendMessage);
+                scrollToBottom();
+                modalSendForm.querySelector('input[name="content"]').focus();
+            } catch (err) {
+                showToast("대화 내역 로딩 오류: " + err.message, "error");
+                modalMessages.innerHTML = `<p style="color: #f88;">${err.message}</p>`;
+            }
+        }
+
+        // 모달 닫기 버튼: STOMP 연결 해제
+        modalCloseBtn.addEventListener("click", () => {
+            chatModalOverlay.style.display = 'none';
+            if (stompClient !== null) {
+                stompClient.disconnect(() => console.log('Disconnected from room ' + currentRoomId));
+                stompClient = null;
+                currentRoomId = null;
+            }
+        });
+
+        // 모달 바깥 클릭: STOMP 연결 해제
+        chatModalOverlay.addEventListener("click", (e) => {
+            if (e.target === chatModalOverlay) {
+                modalCloseBtn.click(); // 닫기 버튼 로직 재사용
+            }
+        });
+
+        document.querySelectorAll(".chat-room-list .room-link").forEach(link => {
+            link.addEventListener("click", (e) => {
+                e.preventDefault();
+                const clubId = link.dataset.clubId;
+                const roomId = link.dataset.roomId;
+                if (clubId && roomId) {
+                    openChatModal(clubId, roomId);
+                }
+            });
+        });
+
+        // 메시지 전송: Fetch 대신 STOMP send 사용
+        modalSendForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const input = form.querySelector('input[name="content"]');
+            const content = input.value.trim();
+            const roomId = form.dataset.roomId; // [수정] data-room-id에서 가져옴
+
+            if (!content || !stompClient || !roomId) return;
+
+            try {
+                // STOMP로 메시지 전송
+                // 목적지: /app/chat/{roomId}/send
+                // 페이로드: MessageSendRequest JSON
+                stompClient.send(
+                    "/app/chat/" + roomId + "/send",
+                    {},
+                    JSON.stringify({ 'content': content })
+                );
+
+                // 전송 성공 시 폼만 리셋. (appendMessage는 구독 콜백이 처리)
+                form.reset();
+                input.focus();
+                // scrollToBottom(); // 스크롤도 구독 콜백에서 처리
+
+            } catch (err) {
+                // (stomp.send는 보통 예외를 던지지 않지만, 만약을 대비)
+                showToast("전송 오류: " + err.message, "error");
+            }
+        });
+
+
+        // --- 헬퍼 함수: 배경 목록의 멤버 수 업데이트 ---
+        function updateRoomCountInList(roomId, change) {
+            if (roomId && change !== 0) {
+                const roomLinkInList = document.querySelector(`.chat-room-list [data-room-id="${roomId}"]`);
+                if (roomLinkInList) {
+                    const memberCountSpan = roomLinkInList.querySelector('.members .member-count'); // .member-count 클래스 사용
+                    if (memberCountSpan) {
+                        const currentText = memberCountSpan.textContent; // "멤버 3명"
+                        const currentCount = parseInt(currentText.replace(/[^0-9]/g, ''), 10); // 3
+                        if (!isNaN(currentCount)) {
+                            memberCountSpan.textContent = `멤버 ${currentCount + change}명`;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 헬퍼 함수: 관리 탭 목록(강퇴/초대) 새로고침 ---
+        async function refreshManagementTab(clubId, roomId) {
+            // 강퇴 목록 비우기 및 로딩
+            modalManageMemberList.innerHTML = '<p>멤버 목록 로딩 중...</p>';
+            // 초대 목록 비우기 및 로딩
+            modalInviteList.innerHTML = '<p>초대 가능 멤버 로딩 중...</p>';
+            modalInviteForm.action = `/api/clubs/${clubId}/chat/${roomId}/invite`; // 폼 action 설정
+
+            let kickError = false;
+
+            // 강퇴 목록 (GET .../manage)
+            try {
+                const response = await fetch(`/api/clubs/${clubId}/chat/${roomId}/manage`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "멤버 목록을 불러올 수 없습니다.");
+                }
+                const members = await response.json();
+
+                modalManageMemberList.innerHTML = ''; // 비우기
+                if (members.length === 0) {
+                    modalManageMemberList.innerHTML = '<p style="color: #9ec8b8; font-size: 14px;">방장 외 다른 멤버가 없습니다.</p>';
+                } else {
+                    members.forEach(member => {
+                        const item = document.createElement('div');
+                        item.className = 'member-item';
+                        item.innerHTML = `
+                            <div>
+                                <span></span> <span style="font-size: 12px; color: #9ec8b8;"></span> </div>
+                            <form class="kick-form" method="post" action="/api/clubs/${clubId}/chat/${roomId}/kick">
+                                <input type="hidden" name="memberId" value="${member.id}" />
+                                <button type="submit" class="btn btn-kick">강퇴</button>
+                            </form>
+                        `;
+                        item.querySelector('div > span:first-child').textContent = member.nickname;
+                        item.querySelector('div > span:last-child').textContent = `(${member.email})`;
+                        modalManageMemberList.appendChild(item);
+                    });
+
+                    // 강퇴 폼 리스너 (DOM 재생성으로 인해 다시 바인딩)
+                    modalManageMemberList.querySelectorAll('.kick-form').forEach(form => {
+                        form.addEventListener('submit', async (ev) => {
+                            ev.preventDefault();
+                            if (!confirm('이 멤버를 채팅방에서 강퇴하시겠습니까?')) return;
+
+                            try {
+                                const kickResponse = await fetch(form.action, {
+                                    method: 'POST',
+                                    body: new URLSearchParams(new FormData(form))
+                                });
+                                const resultText = await kickResponse.text();
+                                if (!kickResponse.ok) throw new Error(resultText);
+
+                                showToast(resultText, 'success');
+                                updateRoomCountInList(roomId, -1); // [수정] 배경 목록 업데이트
+                                refreshManagementTab(clubId, roomId); // [수정] 관리탭 새로고침
+
+                            } catch (err) {
+                                showToast("강퇴 오류: " + err.message, "error");
+                            }
+                        });
+                    });
+                }
+            } catch (err) {
+                kickError = true;
+                modalManageMemberList.innerHTML = `<p style="color: #f88;">${err.message}</p>`;
+            }
+
+            // 초대 목록 (GET .../invitable-members)
+            try {
+                const response = await fetch(`/api/clubs/${clubId}/chat/${roomId}/invitable-members`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "초대 가능 멤버를 불러올 수 없습니다.");
+                }
+                const members = await response.json();
+
+                modalInviteList.innerHTML = ''; // 비우기
+                if (members.length === 0) {
+                    modalInviteList.innerHTML = '<p style="color: #9ec8b8; font-size: 14px;">초대할 수 있는 모임 멤버가 없습니다.</p>';
+                } else {
+                    members.forEach(member => {
+                        const label = document.createElement('label');
+                        label.className = 'checkrow';
+                        label.innerHTML = `
+                            <input type="checkbox" name="memberIds" value="${member.id}">
+                            <span></span>
+                            <span style="font-size: 12px; color: #9ec8b8;"></span>
+                        `;
+                        label.querySelector('span:first-of-type').textContent = member.nickname;
+                        label.querySelector('span:last-of-type').textContent = `(${member.email})`;
+                        modalInviteList.appendChild(label);
+                    });
+                }
+            } catch (err) {
+                if (kickError) { // 강퇴 목록 로딩도 실패했으면 굳이 에러 메시지 중복 표시 안함
+                    modalInviteList.innerHTML = `<p style="color: #f88;">초대 목록 로딩 실패</p>`;
+                } else {
+                    modalInviteList.innerHTML = `<p style="color: #f88;">${err.message}</p>`;
+                }
+            }
+
+            // 방 삭제 폼 action 설정
+            modalDeleteRoomForm.action = `/api/clubs/${clubId}/chat/${roomId}/delete`;
+        }
+
+        modalManageLink.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const clubId = chatModalContent.dataset.clubId;
+            const roomId = chatModalContent.dataset.roomId;
+            if (!clubId || !roomId) return;
+
+            modalChatView.style.display = 'none';
+            modalManageView.style.display = 'flex';
+
+            await refreshManagementTab(clubId, roomId);
+        });
+
+        // '채팅으로' 버튼
+        modalBackToChatBtn.addEventListener("click", () => {
+            modalManageView.style.display = 'none';
+            modalChatView.style.display = 'flex';
+        });
+
+        // --- 초대 폼(modalInviteForm) 제출 리스너 ---
+        modalInviteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const clubId = chatModalContent.dataset.clubId;
+            const roomId = chatModalContent.dataset.roomId;
+
+            const formData = new FormData(form);
+            const selectedIds = formData.getAll('memberIds'); // 체크된 모든 'memberIds' 값 가져오기
+
+            if (selectedIds.length === 0) {
+                showToast("초대할 멤버를 1명 이상 선택하세요.", "error");
+                return;
+            }
+
+            // List<Long>을 @RequestParam으로 보내기 위해 URLSearchParams 사용
+            const params = new URLSearchParams();
+            selectedIds.forEach(id => params.append('memberIds', id));
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: params
+                });
+
+                const result = await response.text(); // 성공 시 숫자(count), 실패 시 에러 메시지
+
+                if (!response.ok) {
+                    throw new Error(result || "초대에 실패했습니다.");
+                }
+
+                const addedCount = parseInt(result, 10);
+                showToast(`${addedCount}명의 멤버를 초대했습니다.`, 'success');
+
+                updateRoomCountInList(roomId, addedCount); // 배경 목록 업데이트
+                await refreshManagementTab(clubId, roomId); // 관리탭 새로고침
+
+            } catch (err) {
+                showToast("초대 오류: " + err.message, "error");
+            }
+        });
+
+
+        // 방 삭제 폼 AJAX
+        modalDeleteRoomForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!confirm('정말 이 채팅방을 삭제하시겠습니까?\n모든 대화 내용이 사라집니다.')) return;
+            try {
+                const response = await fetch(modalDeleteRoomForm.action, { method: 'POST' });
+                const resultText = await response.text();
+                if (!response.ok) throw new Error(resultText);
+                showToast(resultText, 'success');
+                chatModalOverlay.style.display = 'none';
+                location.reload();
+            } catch (err) {
+                showToast("삭제 오류: " + err.message, "error");
+            }
+        });
+
+
+        // 페이지 로드 시 URL 파라미터 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomToOpen = urlParams.get('openRoom');
+        const clubId = /*[[${club.id}]]*/ null;
+
+        if (roomToOpen && clubId) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            openChatModal(clubId, roomToOpen);
+        }
+
+        // --- "내 채팅방만 보기" 필터 스크립트 ---
+        const filterCheckbox = document.getElementById('myChatsFilter');
+        const roomListContainer = document.querySelector('.chat-room-list');
+
+        if (filterCheckbox && roomListContainer) {
+            filterCheckbox.addEventListener('change', () => {
+                const showOnlyMyChats = filterCheckbox.checked;
+                const allRooms = roomListContainer.querySelectorAll('.chat-room-item');
+
+                allRooms.forEach(roomItem => {
+                    const isMember = roomItem.dataset.isMember === 'true';
+                    if (showOnlyMyChats) {
+                        if (isMember) {
+                            roomItem.removeAttribute('hidden');
+                        } else {
+                            roomItem.setAttribute('hidden', 'hidden');
+                        }
+                    } else {
+                        roomItem.removeAttribute('hidden');
+                    }
+                });
+            });
+        }
+    });
+</script>
+
 </body>
 </html>

@@ -1,7 +1,6 @@
 package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Club;
-import com.cbnu11team.team11.domain.ClubMemberId;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.service.ClubService;
 import com.cbnu11team.team11.web.dto.ClubDetailDto;
@@ -17,14 +16,22 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.cbnu11team.team11.domain.ChatRoom;
+import com.cbnu11team.team11.domain.User;
+import com.cbnu11team.team11.service.ChatService;
+import com.cbnu11team.team11.web.dto.ChatMessageDto;
+import com.cbnu11team.team11.web.dto.CreateChatRoomRequest;
+import java.util.Comparator;
+
+
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/clubs")
 public class ClubController {
 
     private final ClubService clubService;
-    private final ClubMemberRepository clubMemberRepository; // 세션 체크 헬퍼용으로 유지
-
+    private final ClubMemberRepository clubMemberRepository;
+    private final ChatService chatService;
     @GetMapping
     public String index(@RequestParam(value = "q", required = false) String q,
                         @RequestParam(value = "do", required = false) String regionDo,
@@ -115,16 +122,6 @@ public class ClubController {
         return "clubs/board";
     }
 
-    // 채팅 탭
-    @GetMapping("/{clubId}/chat")
-    public String getChatPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
-        if (!addClubDetailAttributes(clubId, model, session, ra)) {
-            return "redirect:/clubs";
-        }
-        model.addAttribute("activeTab", "chat");
-        return "clubs/chat";
-    }
-
     // 캘린더 탭
     @GetMapping("/{clubId}/calendar")
     public String getCalendarPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
@@ -185,7 +182,6 @@ public class ClubController {
 
     /**
      * 상세/탭 페이지 공통 속성 추가 헬퍼 메소드
-     * @return 클럽을 찾지 못하면 false 반환
      */
     private boolean addClubDetailAttributes(Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
         // 현재 사용자 ID 가져오기
@@ -241,4 +237,154 @@ public class ClubController {
         return out;
     }
 
+    /**
+     * 채팅 탭 - 채팅방 목록 보여주기 (뷰 반환)
+     */
+    @GetMapping("/{clubId}/chat")
+    public String getChatPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인 후 이용할 수 있습니다.");
+            ra.addFlashAttribute("openLogin", true);
+            return "redirect:/clubs/" + clubId; // 로그인이 안됐으면 홈으로
+        }
+
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        ClubDetailDto clubDto = (ClubDetailDto) model.getAttribute("club");
+
+        if (clubDto == null || !clubDto.isAlreadyMember()) {
+            ra.addFlashAttribute("error", "모임 멤버만 채팅방을 볼 수 있습니다.");
+            return "redirect:/clubs/" + clubId; // 멤버가 아니면 홈으로
+        }
+
+        // 현재 유저 ID를 서비스로 전달하여 멤버 여부(isMember) 계산
+        model.addAttribute("chatRooms", chatService.getChatRoomsByClub(clubId, currentUserId));
+        model.addAttribute("activeTab", "chat");
+        return "clubs/chat"; // chat.html 뷰 반환
+    }
+
+    /**
+     * 채팅방 가입 처리
+     */
+    @PostMapping("/{clubId}/chat/{roomId}/join")
+    public String joinChatRoom(@PathVariable Long clubId,
+                               @PathVariable Long roomId,
+                               HttpSession session,
+                               RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/chat";
+        }
+
+        try {
+            chatService.joinChatRoom(roomId, currentUserId);
+            ra.addFlashAttribute("msg", "채팅방에 가입되었습니다.");
+
+            // 가입 성공 시, 채팅 목록으로 리다이렉트하며 팝업을 띄우도록 파라미터 추가
+            return "redirect:/clubs/" + clubId + "/chat?openRoom=" + roomId;
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            // 실패 시 채팅방 목록으로
+            return "redirect:/clubs/" + clubId + "/chat";
+        }
+    }
+
+    /**
+     * 채팅방 생성 폼 페이지 (뷰 반환)
+     */
+    @GetMapping("/{clubId}/chat/create")
+    public String getChatCreatePage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        ClubDetailDto clubDto = (ClubDetailDto) model.getAttribute("club");
+        if (clubDto == null || !clubDto.isAlreadyMember()) {
+            ra.addFlashAttribute("error", "모임 멤버만 채팅방을 개설할 수 있습니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+
+        model.addAttribute("requestDto", new CreateChatRoomRequest("", List.of()));
+        model.addAttribute("activeTab", "chat"); // 상단 탭 활성화
+        return "clubs/chat_create";
+    }
+
+    /**
+     * 채팅방 생성 처리
+     */
+    @PostMapping("/{clubId}/chat/create")
+    public String createChatRoom(@PathVariable Long clubId,
+                                 @ModelAttribute CreateChatRoomRequest request,
+                                 HttpSession session,
+                                 RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+
+        try {
+            ChatRoom newRoom = chatService.createChatRoom(clubId, currentUserId, request.roomName(), request.memberIds());
+            ra.addFlashAttribute("msg", "채팅방이 개설되었습니다.");
+
+            // 생성 직후에도 팝업을 띄우도록 파라미터 추가
+            return "redirect:/clubs/" + clubId + "/chat?openRoom=" + newRoom.getId();
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/chat/create"; // 생성 폼으로 다시 이동
+        }
+    }
+
+    /**
+     * 개별 채팅방 상세 페이지 (뷰 반환)
+     * (이 엔드포인트는 모달 팝업 대신, URL로 직접 접근 시 사용됩니다.)
+     */
+    @GetMapping("/{clubId}/chat/{roomId}")
+    public String getChatRoomDetailPage(@PathVariable Long clubId,
+                                        @PathVariable Long roomId,
+                                        Model model, RedirectAttributes ra, HttpSession session) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        try {
+            ChatRoom room = chatService.getChatRoomDetails(roomId);
+
+            if (!room.getClub().getId().equals(clubId)) {
+                throw new IllegalStateException("모임 정보가 일치하지 않습니다.");
+            }
+
+            boolean isMember = room.getMembers().stream().anyMatch(user -> user.getId().equals(currentUserId));
+            if (!isMember) {
+                ra.addFlashAttribute("error", "채팅방 멤버만 입장할 수 있습니다.");
+                return "redirect:/clubs/" + clubId + "/chat";
+            }
+
+            List<ChatMessageDto> messages = room.getMessages().stream()
+                    .map(ChatMessageDto::fromEntity)
+                    .sorted(Comparator.comparing(ChatMessageDto::id))
+                    .collect(Collectors.toList());
+
+            model.addAttribute("roomName", room.getName());
+            model.addAttribute("roomId", room.getId());
+            model.addAttribute("roomOwnerId", room.getOwner() != null ? room.getOwner().getId() : null);
+            model.addAttribute("messages", messages);
+            model.addAttribute("activeTab", "chat");
+
+            return "clubs/chat_room"; // 개별 채팅방 뷰
+
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/chat";
+        }
+    }
 }

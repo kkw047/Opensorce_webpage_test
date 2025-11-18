@@ -18,6 +18,16 @@ public class UserService {
     private final CategoryRepository categoryRepository;
     private final PasswordEncoder passwordEncoder;
 
+    public boolean existsLoginId(String loginId) {
+        if (loginId == null || loginId.isBlank()) return false;
+        return userRepository.existsByLoginId(loginId.trim());
+    }
+
+    public boolean existsEmail(String email) {
+        if (email == null || email.isBlank()) return false;
+        return userRepository.existsByEmailIgnoreCase(email.trim());
+    }
+
     public User register(String loginId,
                          String email,
                          String rawPassword,

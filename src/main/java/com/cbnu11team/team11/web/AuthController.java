@@ -3,6 +3,7 @@ package com.cbnu11team.team11.web;
 import com.cbnu11team.team11.domain.User;
 import com.cbnu11team.team11.service.ClubService;
 import com.cbnu11team.team11.service.UserService;
+import com.cbnu11team.team11.service.EmailVerificationService;
 import com.cbnu11team.team11.web.dto.LoginRequest;
 import com.cbnu11team.team11.web.dto.RegisterRequest;
 import jakarta.servlet.http.HttpSession;
@@ -18,6 +19,7 @@ public class AuthController {
 
     private final UserService userService;
     private final ClubService clubService;
+    private final EmailVerificationService emailVerificationService;
 
     // 단독 페이지(모달 대신 별도 접근용)
     @GetMapping("/login")
@@ -48,8 +50,15 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String register(@ModelAttribute RegisterRequest req, RedirectAttributes ra) {
+    public String register(@ModelAttribute RegisterRequest req, RedirectAttributes ra, HttpSession session) {
         try {
+            boolean verified = emailVerificationService.isVerified(req.email(), session);
+            if (!verified) {
+                ra.addFlashAttribute("error", "이메일 인증을 먼저 완료해 주세요.");
+                ra.addFlashAttribute("openRegister", true);
+                return "redirect:/clubs";
+            }
+
             userService.register(
                     req.loginId(), req.email(), req.password(),
                     req.nickname(), req.regionDo(), req.regionSi(), req.categoryIds()

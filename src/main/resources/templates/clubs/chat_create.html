@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅방 만들기</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
+        .form-grid { display: grid; gap: 12px; }
+        .form-label { font-weight: 600; margin-bottom: 4px; }
+    </style>
+</head>
+<body class="bg-deep">
+
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="wrap">
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+    <main class="content">
+        <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
+        <div class="detail-card">
+            <div th:replace="~{fragments/common :: club-tabs}"></div>
+        </div>
+
+        <div id="toast"
+             th:if="${error != null}"
+             th:text="${error}"
+             class="toast show toast-error">
+        </div>
+
+        <div class="detail-card">
+            <h2 style="margin-top: 0;">채팅방 만들기</h2>
+
+            <form th:action="@{/clubs/{id}/chat/create(id=${club.id})}" method="post" class="form-grid" th:object="${requestDto}">
+                <div>
+                    <div class="form-label">채팅방 이름</div>
+                    <input type="text" name="roomName" th:value="*{roomName}" placeholder="채팅방 이름을 입력하세요" required>
+                </div>
+
+                <div>
+                    <div class="form-label">초대할 멤버 (최소 1명)</div>
+                    <div class="checklist scroll-y">
+                        <label th:each="member : ${club.members}"
+                               th:if="${member.userId != session.LOGIN_USER_ID}"
+                               class="checkrow">
+                            <input type="checkbox" name="memberIds" th:value="${member.userId}" th:checked="${#lists.contains(requestDto.memberIds, member.userId)}">
+                            <span th:text="${member.nickname}">멤버 닉네임</span>
+                            <span class="member-role" th:if="${member.role == 'ADMIN'}" style="font-size: 12px; color: #1db954;">[관리자]</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button type="submit" class="btn primary">만들기</button>
+                    <a th:href="@{/clubs/{id}/chat(id=${club.id})}" class="btn">취소</a>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+</body>
+</html>
