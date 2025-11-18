@@ -34,6 +34,7 @@ public class ClubController {
     private final ClubMemberRepository clubMemberRepository;
     private final PostService postService;
     private final CommentService commentService;
+    private final ClubMemberRepository ClubMemberRepository;
 
     @GetMapping
     public String index(@RequestParam(value = "q", required = false) String q,
@@ -174,6 +175,29 @@ public class ClubController {
             RedirectAttributes ra,
             HttpSession session) {
 
+        // 로그인 체크
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            // 로그인을 안 했으면 -> 에러 메시지 + 로그인 모달 띄우기
+            ra.addFlashAttribute("error", "게시글을 보려면 로그인이 필요합니다.");
+            ra.addFlashAttribute("openLogin", true);
+
+            // 게시판 목록 페이지로 다시 튕겨냄
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        // 클럽 멤버 체크
+        // (DB에서 이 유저가 이 클럽의 멤버인지 확인)
+        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+
+        if (!isMember) {
+            // 멤버가 아니면 -> 에러 메시지
+            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 볼 수 있습니다.");
+
+            // 게시판 목록 페이지로 다시 튕겨냄
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
         // 헬퍼 메서드로 클럽/사이드바/탭 정보 로드
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
@@ -196,10 +220,8 @@ public class ClubController {
         List<Comment> comments = commentService.getCommentsByPostId(postId);
         model.addAttribute("comments", comments);
 
-        // 새 댓글 작성을 위한 빈 폼 객체
         model.addAttribute("commentForm", new CommentForm(""));
 
-        // 템플릿 반환: /templates/clubs/post_detail.html
         return "clubs/post_detail";
     }
 

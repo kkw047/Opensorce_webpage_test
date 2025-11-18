@@ -22,7 +22,7 @@ public class User {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 로그인용 별도 아이디(선택) */
+    //로그인용 별도 아이디(선택)
     @Column(name = "login_id", length = 50, unique = true)
     private String loginId;
 
@@ -34,6 +34,9 @@ public class User {
 
     @Column(length = 50, nullable = false)
     private String nickname;
+
+    @Column(name = "image_url")
+    private String imageUrl;
 
     @Column(name = "region_do", length = 50)
     private String regionDo;
@@ -63,7 +66,7 @@ public class User {
     @ToString.Exclude
     private Set<ClubMember> clubMemberships = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "author") /* 'Comment' 엔티티의 'author' 필드에 매핑됨 */
+    @OneToMany(mappedBy = "author") //'Comment' 엔티티의 'author' 필드에 매핑됨
     @Builder.Default
     @ToString.Exclude
     private List<Comment> comments = new ArrayList<>();

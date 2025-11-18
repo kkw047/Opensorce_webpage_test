@@ -317,3 +317,40 @@ hr {
     background-color: #4d2a2a;
     color: #ffc2c2;
 }
+
+.post-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9em;
+    color: #9ec8b8;
+}
+
+.author-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #e7f3ee;
+    font-weight: 600;
+}
+
+.profile-thumb-detail {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #0b1b17;
+}
+
+.profile-thumb-detail.default-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #29433b;
+    font-size: 16px;
+    color: #9ec8b8;
+}
+
+.meta-divider {
+    color: #29433b;
+}
