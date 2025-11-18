@@ -81,8 +81,27 @@
     <div class="card soft auth-card">
         <h2>회원가입</h2>
         <form class="form-grid" th:action="@{/register}" method="post">
-            <input type="text" name="loginId" placeholder="아이디(선택)">
-            <input type="email" name="email" placeholder="이메일" required>
+            <div>
+                <div class="label">아이디</div>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" name="loginId" id="regLoginIdPage" placeholder="아이디">
+                    <button type="button" class="btn" id="btnCheckLoginIdPage">중복확인</button>
+                </div>
+                <small id="loginIdHelpPage" class="muted"></small>
+            </div>
+            <div>
+                <div class="label">이메일</div>
+                <input type="email" name="email" id="regEmailPage" placeholder="이메일" required>
+
+                <div style="display:flex; gap:8px; margin-top:6px;">
+                    <input type="text" id="regEmailCodePage" placeholder="인증코드 입력" style="flex:1;">
+                    <button type="button" class="btn" id="btnSendEmailCodePage">인증코드 보내기</button>
+                    <button type="button" class="btn" id="btnVerifyEmailCodePage">확인</button>
+                </div>
+                <small id="emailHelpPage" class="muted"></small>
+                <input type="hidden" id="emailVerifiedPage" value="false">
+            </div>
+
             <input type="password" name="password" placeholder="비밀번호" required>
             <input type="text" name="nickname" placeholder="닉네임" required>
 
