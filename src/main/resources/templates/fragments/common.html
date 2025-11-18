@@ -111,11 +111,58 @@
         <div class="modal-card">
             <h3>회원가입</h3>
             <form class="form-grid" th:action="@{/register}" method="post">
-                <input type="text" name="loginId" placeholder="아이디(선택)">
-                <input type="email" name="email" placeholder="이메일" required>
+                <div>
+                    <div class="label">아이디</div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text"
+                               name="loginId"
+                               id="regLoginIdModal"
+                               placeholder="아이디"
+                               style="flex:1;">
+                        <button type="button"
+                                class="btn"
+                                id="btnCheckLoginIdModal"
+                                style="white-space:nowrap; flex-shrink:0;">
+                            중복확인
+                        </button>
+                    </div>
+                    <small id="loginIdHelpModal" class="muted"></small>
+                </div>
+
+                <div>
+                    <div class="label">이메일</div>
+                    <input type="email"
+                           name="email"
+                           id="regEmailModal"
+                           placeholder="이메일"
+                           required>
+
+                    <div style="display:flex; gap:8px; margin-top:6px;">
+                        <input type="text"
+                               id="regEmailCodeModal"
+                               placeholder="인증코드 입력"
+                               style="flex:1;">
+                        <button type="button"
+                                class="btn"
+                                id="btnSendEmailCodeModal">인증코드 보내기</button>
+                        <button type="button"
+                                class="btn"
+                                id="btnVerifyEmailCodeModal">확인</button>
+                    </div>
+
+                    <small id="emailHelpModal" class="muted"></small>
+
+                    <input type="hidden" id="emailVerifiedModal" value="false">
+                </div>
+                <div style="display:flex; gap:8px; margin-top:6px;">
                 <input type="password" name="password" placeholder="비밀번호" required>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-top:6px;">
                 <input type="text" name="nickname" placeholder="닉네임" required>
-                <div class="row-2">
+                </div>
+
+                <div class="row-2" style="display:flex; gap:8px; margin-top:6px;">
                     <select id="regDo" name="regionDo" required><option value="">도 선택</option></select>
                     <select id="regSi" name="regionSi" required><option value="">시/군/구</option></select>
                 </div>

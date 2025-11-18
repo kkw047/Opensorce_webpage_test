@@ -527,3 +527,8 @@ a.card.club:hover {
 /* 메시지 입력 폼 스타일 */
 .chat-input-form { display: flex; gap: 8px; }
 .chat-input-form input { flex: 1; }
+
+#registerModal .modal-card {
+    width: 520px;
+    max-width: 95vw;
+}
