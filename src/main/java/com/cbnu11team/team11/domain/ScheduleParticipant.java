@@ -24,4 +24,7 @@ public class ScheduleParticipant {
     // [추가] 참가 상태 (기본값: 대기)
     @Enumerated(EnumType.STRING)
     private ParticipationStatus status = ParticipationStatus.PENDING;
+
+    // [추가] 본인 참가 확정 체크 여부
+    private boolean isConfirmed = false;
 }

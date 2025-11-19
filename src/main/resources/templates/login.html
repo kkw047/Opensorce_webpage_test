@@ -1,13 +1,118 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
-<head><meta charset="UTF-8"><title>로그인</title></head>
+<head>
+    <meta charset="UTF-8">
+    <title>로그인</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        /* [2] 로그인 페이지 전용 스타일 */
+        body {
+            background-color: #04120e; /* 다크 그린 배경 */
+            color: #eee;
+            font-family: 'Pretendard', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh; /* 화면 꽉 채우기 */
+            margin: 0;
+        }
+
+        .login-container {
+            background-color: #0f231e;
+            border: 1px solid #1a332c;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        h2 {
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 2em;
+            font-weight: 900;
+        }
+
+        input[type=text], input[type=password] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background-color: #2a3b37;
+            border: 1px solid #4a635d;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            box-sizing: border-box; /* 패딩 포함 너비 계산 */
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #26a69a;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #26a69a;
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #1a8f85;
+        }
+
+        /* 에러 메시지 박스 */
+        .error-msg {
+            color: #ff5252;
+            background-color: rgba(255, 82, 82, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+            border: 1px solid #ff5252;
+            font-weight: bold;
+        }
+
+        .back-link {
+            margin-top: 20px;
+            display: block;
+            color: #888;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .back-link:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+    </style>
+</head>
 <body>
-<h2>로그인</h2>
-<form th:action="@{/login}" method="post">
-    <input type="text" name="loginIdOrEmail" placeholder="아이디 또는 이메일" required>
-    <input type="password" name="password" placeholder="비밀번호" required>
-    <button>로그인</button>
-</form>
-<p><a th:href="@{/clubs}">메인으로</a></p>
+
+<div class="login-container">
+    <h2>로그인</h2>
+
+    <div th:if="${errorMessage != null}" class="error-msg">
+        <span th:text="${errorMessage}">오류 메시지</span>
+    </div>
+
+    <form th:action="@{/login}" method="post">
+        <input type="text" name="loginIdOrEmail" placeholder="아이디 또는 이메일" required autofocus>
+        <input type="password" name="password" placeholder="비밀번호" required>
+        <button type="submit">로그인</button>
+    </form>
+
+    <a th:href="@{/clubs}" class="back-link">메인으로 돌아가기</a>
+</div>
+
 </body>
 </html>

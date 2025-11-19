@@ -23,7 +23,7 @@ public class ClubScheduleService {
     private final ClubMemberRepository clubMemberRepository;
 
     /**
-     * 1. 일정 생성 (생성자 자동 참가 - 상태: ACCEPTED)
+     * 1. 일정 생성
      */
     @Transactional
     public Long createSchedule(Long clubId, ScheduleCreateRequestDto requestDto, Long userId) {
@@ -33,16 +33,13 @@ public class ClubScheduleService {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저가 존재하지 않습니다."));
 
-        // 모임 멤버인지 확인
         if (!clubMemberRepository.existsByUserAndClub(creator, club)) {
             throw new IllegalStateException("이 모임에 가입된 멤버만 일정을 등록할 수 있습니다.");
         }
 
-        // 1. 일정 저장
         ClubSchedule schedule = requestDto.toEntity(club, creator);
         scheduleRepository.save(schedule);
 
-        // 2. 생성자를 참가자 목록에 자동 추가 (생성자는 무조건 '승인' 상태)
         ScheduleParticipant participant = new ScheduleParticipant();
         participant.setUser(creator);
         participant.setClubSchedule(schedule);
@@ -53,7 +50,7 @@ public class ClubScheduleService {
     }
 
     /**
-     * 2. 월별 일정 조회 (캘린더용)
+     * 2. 월별 일정 조회
      */
     public List<ScheduleResponseDto> getSchedulesForMonth(Long clubId, LocalDate startDate, LocalDate endDate) {
         Club club = clubRepository.findById(clubId)
@@ -65,8 +62,9 @@ public class ClubScheduleService {
                 .map(ScheduleResponseDto::new)
                 .collect(Collectors.toList());
     }
+
     /**
-     * 3. 일정 상세 조회 (디버그 로그 추가)
+     * 3. 일정 상세 조회 (로그 제거됨)
      */
     public ScheduleDetailResponseDto getScheduleDetails(Long scheduleId, Long currentUserId) {
         ClubSchedule schedule = scheduleRepository.findById(scheduleId)
@@ -77,12 +75,6 @@ public class ClubScheduleService {
         ScheduleParticipant myParticipation = null;
         boolean canManage = false;
 
-        // [디버그 로그] - 실행 시 콘솔을 확인하세요!
-        System.out.println("===== 상세 조회 권한 체크 =====");
-        System.out.println("일정 ID: " + scheduleId);
-        System.out.println("접속자 ID (Session): " + currentUserId);
-        System.out.println("작성자 ID (DB): " + schedule.getCreator().getId());
-
         if (currentUserId != null) {
             User currentUser = userRepository.findById(currentUserId).orElse(null);
 
@@ -91,26 +83,22 @@ public class ClubScheduleService {
                         .filter(p -> p.getUser().getId().equals(currentUserId))
                         .findFirst().orElse(null);
 
-                // 작성자와 접속자가 같은지 확인
                 boolean isCreator = schedule.getCreator().getId().equals(currentUserId);
-                // 모임장인지 확인 (Club Entity 구조에 따라 수정 필요할 수 있음)
+                // Club 엔티티 구조에 따라 getOwner() 사용
                 boolean isClubAdmin = false;
                 if (schedule.getClub().getOwner() != null) {
                     isClubAdmin = schedule.getClub().getOwner().getId().equals(currentUserId);
                 }
 
                 canManage = isCreator || isClubAdmin;
-                System.out.println("일치 여부 -> isCreator: " + isCreator + ", isClubAdmin: " + isClubAdmin);
-                System.out.println("최종 권한 (canManage): " + canManage);
             }
         }
-        System.out.println("=============================");
 
         return new ScheduleDetailResponseDto(schedule, participants, myParticipation, canManage);
     }
 
     /**
-     * 4. 일정 참가하기 (기본 상태: PENDING)
+     * 4. 일정 참가하기
      */
     @Transactional
     public void joinSchedule(Long scheduleId, Long userId) {
@@ -126,7 +114,7 @@ public class ClubScheduleService {
         ScheduleParticipant participant = new ScheduleParticipant();
         participant.setUser(user);
         participant.setClubSchedule(schedule);
-        participant.setStatus(ParticipationStatus.PENDING); // 기본 대기 상태
+        participant.setStatus(ParticipationStatus.PENDING);
 
         participantRepository.save(participant);
     }
@@ -148,14 +136,13 @@ public class ClubScheduleService {
     }
 
     /**
-     * 6. 일정 삭제 (관리자/생성자용)
+     * 6. 일정 삭제
      */
     @Transactional
     public void deleteSchedule(Long scheduleId, Long currentUserId) {
         ClubSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("일정이 존재하지 않습니다."));
 
-        // 권한 확인
         Club club = schedule.getClub();
         boolean isCreator = schedule.getCreator().getId().equals(currentUserId);
         boolean isClubAdmin = club.getOwner().getId().equals(currentUserId);
@@ -164,23 +151,19 @@ public class ClubScheduleService {
             throw new IllegalStateException("삭제 권한이 없습니다.");
         }
 
-        // 참가자 데이터 먼저 삭제
         List<ScheduleParticipant> participants = participantRepository.findAllByClubSchedule(schedule);
         participantRepository.deleteAll(participants);
-
-        // 일정 삭제
         scheduleRepository.delete(schedule);
     }
 
     /**
-     * 7. 일정 수정 (관리자/생성자용)
+     * 7. 일정 수정
      */
     @Transactional
     public void updateSchedule(Long scheduleId, ScheduleCreateRequestDto requestDto, Long currentUserId) {
         ClubSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("일정이 존재하지 않습니다."));
 
-        // 권한 확인
         Club club = schedule.getClub();
         boolean isCreator = schedule.getCreator().getId().equals(currentUserId);
         boolean isClubAdmin = club.getOwner().getId().equals(currentUserId);
@@ -189,7 +172,6 @@ public class ClubScheduleService {
             throw new IllegalStateException("수정 권한이 없습니다.");
         }
 
-        // 내용 수정
         schedule.setTitle(requestDto.getTitle());
         schedule.setStartDate(requestDto.getStartDate());
         schedule.setEndDate(requestDto.getEndDate());
@@ -198,25 +180,21 @@ public class ClubScheduleService {
     }
 
     /**
-     * 8. [나만의 캘린더] 내가 참가한 모든 일정 조회
+     * 8. 내 캘린더 조회
      */
     public List<ScheduleResponseDto> getMyJoinedSchedules(Long userId, LocalDate start, LocalDate end) {
         List<ClubSchedule> schedules = scheduleRepository.findJoinedSchedulesByUser(userId, start, end);
-
-        return schedules.stream()
-                .map(ScheduleResponseDto::new)
-                .collect(Collectors.toList());
+        return schedules.stream().map(ScheduleResponseDto::new).collect(Collectors.toList());
     }
 
     /**
-     * 9. 참가자 상태 변경 (승인/거절 - 관리자용)
+     * 9. 참가자 승인 관리
      */
     @Transactional
     public void manageParticipant(Long scheduleId, Long participantId, String statusStr, Long managerId) {
         ClubSchedule schedule = scheduleRepository.findById(scheduleId)
                 .orElseThrow(() -> new IllegalArgumentException("일정이 존재하지 않습니다."));
 
-        // 권한 확인
         boolean isCreator = schedule.getCreator().getId().equals(managerId);
         boolean isClubAdmin = schedule.getClub().getOwner().getId().equals(managerId);
 
@@ -233,5 +211,27 @@ public class ClubScheduleService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("잘못된 상태값입니다.");
         }
+    }
+
+    /**
+     * 10. [추가] 본인 참가 확정 체크 토글 (Toggle)
+     */
+    @Transactional
+    public void toggleConfirmation(Long scheduleId, Long participantId, Long currentUserId) {
+        ScheduleParticipant participant = participantRepository.findById(participantId)
+                .orElseThrow(() -> new IllegalArgumentException("참가 정보가 없습니다."));
+
+        // 1. 본인 확인
+        if (!participant.getUser().getId().equals(currentUserId)) {
+            throw new IllegalStateException("본인의 참가 상태만 변경할 수 있습니다.");
+        }
+
+        // 2. 승인된 상태에서만 체크 가능
+        if (participant.getStatus() != ParticipationStatus.ACCEPTED) {
+            throw new IllegalStateException("참가 승인이 된 상태에서만 체크할 수 있습니다.");
+        }
+
+        // 3. 상태 토글 (true <-> false)
+        participant.setConfirmed(!participant.isConfirmed());
     }
 }

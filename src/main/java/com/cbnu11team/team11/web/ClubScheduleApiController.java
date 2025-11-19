@@ -168,4 +168,21 @@ public class ClubScheduleApiController {
         scheduleService.manageParticipant(scheduleId, participantId, status, managerId);
         return ResponseEntity.ok().build();
     }
+
+
+    /**
+     * 10. [추가] 본인 참가 확정 체크 토글
+     * POST /api/club/{clubId}/schedule/{scheduleId}/participant/{participantId}/confirm
+     */
+    @PostMapping("/schedule/{scheduleId}/participant/{participantId}/confirm")
+    public ResponseEntity<Void> toggleConfirmation(
+            @PathVariable Long clubId,
+            @PathVariable Long scheduleId,
+            @PathVariable Long participantId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        Long currentUserId = getUserIdRequired(userDetails);
+        scheduleService.toggleConfirmation(scheduleId, participantId, currentUserId);
+        return ResponseEntity.ok().build();
+    }
 }
