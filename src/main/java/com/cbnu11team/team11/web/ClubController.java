@@ -1,15 +1,21 @@
 package com.cbnu11team.team11.web;
 
-import com.cbnu11team.team11.domain.Club;
+import com.cbnu11team.team11.domain.*;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.service.ClubService;
+import com.cbnu11team.team11.service.CommentService;
+import com.cbnu11team.team11.service.PostService;
 import com.cbnu11team.team11.web.dto.ClubDetailDto;
 import com.cbnu11team.team11.web.dto.ClubForm;
+import com.cbnu11team.team11.web.dto.CommentForm;
+import com.cbnu11team.team11.web.dto.PostForm;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -31,6 +37,8 @@ public class ClubController {
 
     private final ClubService clubService;
     private final ClubMemberRepository clubMemberRepository;
+    private final PostService postService;
+    private final CommentService commentService;
     private final ChatService chatService;
     @GetMapping
     public String index(@RequestParam(value = "q", required = false) String q,
@@ -58,7 +66,6 @@ public class ClubController {
         return "clubs/index";
     }
 
-    // 내 모임 페이지를 위한 핸들러
     @GetMapping("/myclubs")
     public String myClubsPage(@RequestParam(value = "q", required = false) String q,
                               @RequestParam(value = "do", required = false) String regionDo,
@@ -81,7 +88,6 @@ public class ClubController {
         // 검색 파라미터를 포함하여 서비스 호출
         Page<Club> myClubsPage = clubService.searchMyClubs(currentUserId, q, regionDo, regionSi, categoryIds, pageable);
 
-        // clubs/index.html 템플릿이 요구하는 모든 속성
         model.addAttribute("dos", clubService.getAllDos());
         model.addAttribute("categories", clubService.findAllCategories());
 
@@ -93,8 +99,6 @@ public class ClubController {
 
         // 페이지 데이터
         model.addAttribute("page", myClubsPage);
-
-        // 사이드바 활성화를 위한 속성
         model.addAttribute("activeSidebarMenu", "myclubs");
         model.addAttribute("searchActionUrl", "/clubs/myclubs"); // 검색창이 요청할 URL
         model.addAttribute("memberCounts", LoadMemberCounts(myClubsPage.getContent()));
@@ -102,7 +106,6 @@ public class ClubController {
         return "clubs/index"; // 메인 템플릿 재사용
     }
 
-    // 모임 상세 페이지 (홈 탭)
     @GetMapping("/{clubId}")
     public String detail(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
@@ -112,17 +115,366 @@ public class ClubController {
         return "clubs/detail";
     }
 
-    // 게시판 탭
     @GetMapping("/{clubId}/board")
     public String getBoardPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
+
+        List<Post> posts = postService.getPostsByClubId(clubId);
+        model.addAttribute("posts", posts);
+
         model.addAttribute("activeTab", "board");
         return "clubs/board";
     }
 
-    // 캘린더 탭
+    @GetMapping("/{clubId}/board/new")
+    public String getNewPostForm(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "글을 작성하려면 로그인이 필요합니다.");
+            ra.addFlashAttribute("openLogin", true);
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+        if (!isMember) {
+            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        model.addAttribute("postForm", new PostForm("", ""));
+        model.addAttribute("clubId", clubId);
+        return "post_new";
+    }
+
+//    @PostMapping("/{clubId}/board/new")
+//    public String createPost(@PathVariable Long clubId,
+//                             @Valid @ModelAttribute PostForm postForm,
+//                             BindingResult bindingResult,
+//                             HttpSession session,
+//                             Model model,
+//                             RedirectAttributes ra) {
+//        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+//
+//        if (currentUserId == null) {
+//            return "redirect:/login";
+//        }
+//
+//        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+//        if (!isMember) {
+//            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
+//            return "redirect:/clubs/" + clubId + "/board";
+//        }
+//
+//        if (bindingResult.hasErrors()) {
+//
+//            addClubDetailAttributes(clubId, model, session, ra);
+//            model.addAttribute("clubId", clubId);
+//            return "post_new";
+//        }
+//
+//        postService.createPost(clubId, postForm, currentUserId);
+//        return "redirect:/clubs/" + clubId + "/board";
+//    }
+
+    @PostMapping("/{clubId}/board/new")
+    public String createPost(@PathVariable Long clubId,
+                             @Valid @ModelAttribute PostForm postForm,
+                             BindingResult bindingResult,
+                             HttpSession session,
+                             Model model,
+                             RedirectAttributes ra) {
+
+        // 🚨 [CCTV] 요청이 들어왔는지 확인
+        System.out.println("========== [DEBUG] 게시글 작성 요청 도착! ==========");
+        System.out.println(">>> clubId: " + clubId);
+        System.out.println(">>> data: " + postForm);
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        if (currentUserId == null) {
+            System.out.println(">>> [DEBUG] 로그인 안 됨");
+            return "redirect:/login";
+        }
+
+        // 멤버 체크 로직
+        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+        if (!isMember) {
+            System.out.println(">>> [DEBUG] 멤버 아님");
+            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        // 유효성 검사 실패 확인
+        if (bindingResult.hasErrors()) {
+            System.out.println(">>> [DEBUG] 유효성 검사 실패: " + bindingResult.getAllErrors()); // 👈 여기가 범인일 수도 있음
+
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            return "post_new";
+        }
+
+        try {
+            postService.createPost(clubId, postForm, currentUserId);
+            System.out.println(">>> [DEBUG] 게시글 저장 성공!");
+        } catch (Exception e) {
+            System.out.println(">>> [ERROR] 저장 중 에러 발생!");
+            e.printStackTrace(); // 👈 에러 내용 출력
+        }
+
+        return "redirect:/clubs/" + clubId + "/board";
+    }
+
+    @GetMapping("/{clubId}/board/{postId}")
+    public String getPostDetail(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                Model model,
+                                RedirectAttributes ra,
+                                HttpSession session) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "게시글을 보려면 로그인이 필요합니다.");
+            ra.addFlashAttribute("openLogin", true);
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
+        if (!isMember) {
+            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 볼 수 있습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        Optional<Post> optPost = postService.findPostById(postId);
+        if (optPost.isEmpty() || !optPost.get().getClub().getId().equals(clubId)) {
+            ra.addFlashAttribute("error", "게시글을 찾을 수 없습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+
+        model.addAttribute("post", optPost.get());
+        model.addAttribute("activeTab", "board");
+
+        List<Comment> comments = commentService.getCommentsByPostId(postId);
+        model.addAttribute("comments", comments);
+        model.addAttribute("commentForm", new CommentForm(""));
+
+        return "clubs/post_detail";
+    }
+
+    @GetMapping("/{clubId}/board/{postId}/edit")
+    public String getEditPostForm(@PathVariable Long clubId,
+                                  @PathVariable Long postId,
+                                  HttpSession session,
+                                  Model model,
+                                  RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        Optional<Post> optPost = postService.findPostById(postId);
+        if (optPost.isEmpty()) {
+            ra.addFlashAttribute("error", "게시물을 찾을 수 없습니다.");
+            return "redirect:/clubs/" + clubId + "/board";
+        }
+        Post post = optPost.get();
+
+        if (!post.getAuthor().getId().equals(currentUserId)) {
+            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        addClubDetailAttributes(clubId, model, session, ra);
+        model.addAttribute("postForm", new PostForm(post.getTitle(), post.getContent()));
+        model.addAttribute("clubId", clubId);
+        model.addAttribute("postId", postId);
+
+        return "post_edit";
+    }
+
+    @PostMapping("/{clubId}/board/{postId}/edit")
+    public String updatePost(@PathVariable Long clubId,
+                             @PathVariable Long postId,
+                             @Valid @ModelAttribute("postForm") PostForm postForm,
+                             BindingResult bindingResult,
+                             HttpSession session,
+                             Model model,
+                             RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/login";
+        }
+
+        if (bindingResult.hasErrors()) {
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("postId", postId);
+            return "post_edit";
+        }
+
+        try {
+            postService.updatePost(postId, postForm, currentUserId);
+            ra.addFlashAttribute("msg", "게시글이 수정되었습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/board/" + postId + "/edit";
+        }
+
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
+    @PostMapping("/{clubId}/board/{postId}/delete")
+    public String deletePost(@PathVariable Long clubId,
+                             @PathVariable Long postId,
+                             HttpSession session,
+                             RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        try {
+            postService.deletePost(postId, currentUserId);
+            ra.addFlashAttribute("msg", "게시글이 삭제되었습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+        return "redirect:/clubs/" + clubId + "/board";
+    }
+
+    @PostMapping("/{clubId}/board/{postId}/comment")
+    public String createComment(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                @Valid @ModelAttribute("commentForm") CommentForm commentForm,
+                                BindingResult bindingResult,
+                                HttpSession session,
+                                RedirectAttributes ra,
+                                Model model) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        if (bindingResult.hasErrors()) {
+            addClubDetailAttributes(clubId, model, session, ra);
+            Post post = postService.findPostById(postId).orElse(null);
+            model.addAttribute("post", post);
+            model.addAttribute("activeTab", "board");
+            List<Comment> comments = commentService.getCommentsByPostId(postId);
+            model.addAttribute("comments", comments);
+
+            ra.addFlashAttribute("error", "댓글 내용을 입력해주세요.");
+            return "clubs/post_detail";
+        }
+
+        try {
+            commentService.createComment(postId, currentUserId, commentForm);
+            ra.addFlashAttribute("msg", "댓글이 등록되었습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
+    @GetMapping("/{clubId}/board/{postId}/comment/{commentId}/edit")
+    public String getEditCommentForm(@PathVariable Long clubId,
+                                     @PathVariable Long postId,
+                                     @PathVariable Long commentId,
+                                     HttpSession session,
+                                     Model model,
+                                     RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        try {
+            Comment comment = commentService.getCommentById(commentId);
+            if (!comment.getAuthor().getId().equals(currentUserId)) {
+                ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+                return "redirect:/clubs/" + clubId + "/board/" + postId;
+            }
+
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("commentForm", new CommentForm(comment.getContent()));
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("postId", postId);
+            model.addAttribute("commentId", commentId);
+
+            return "comment_edit";
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+    }
+
+    @PostMapping("/{clubId}/board/{postId}/comment/{commentId}/edit")
+    public String updateComment(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                @PathVariable Long commentId,
+                                @Valid @ModelAttribute("commentForm") CommentForm commentForm,
+                                BindingResult bindingResult,
+                                HttpSession session,
+                                Model model,
+                                RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            return "redirect:/login";
+        }
+
+        if (bindingResult.hasErrors()) {
+            addClubDetailAttributes(clubId, model, session, ra);
+            model.addAttribute("clubId", clubId);
+            model.addAttribute("postId", postId);
+            model.addAttribute("commentId", commentId);
+            return "comment_edit";
+        }
+
+        try {
+            commentService.updateComment(commentId, commentForm, currentUserId);
+            ra.addFlashAttribute("msg", "댓글이 수정되었습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId + "/board/" + postId + "/comment/" + commentId + "/edit";
+        }
+
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
+    @PostMapping("/{clubId}/board/{postId}/comment/{commentId}/delete")
+    public String deleteComment(@PathVariable Long clubId,
+                                @PathVariable Long postId,
+                                @PathVariable Long commentId,
+                                HttpSession session,
+                                RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        try {
+            commentService.deleteComment(commentId, currentUserId);
+            ra.addFlashAttribute("msg", "댓글이 삭제되었습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/clubs/" + clubId + "/board/" + postId;
+    }
+
     @GetMapping("/{clubId}/calendar")
     public String getCalendarPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
@@ -132,32 +484,26 @@ public class ClubController {
         return "clubs/calendar";
     }
 
-    // 모임 가입
     @PostMapping("/{clubId}/join")
     public String joinClub(@PathVariable Long clubId, HttpSession session, RedirectAttributes ra) {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
 
-        // 로그인 여부 확인
         if (currentUserId == null) {
             ra.addFlashAttribute("error", "로그인 후 가입할 수 있습니다.");
             ra.addFlashAttribute("openLogin", true); // 로그인 모달 바로 열기
             return "redirect:/clubs/" + clubId; // 현재 상세 페이지로 리다이렉트
         }
 
-        // 서비스 로직 호출
         try {
             clubService.joinClub(clubId, currentUserId);
             ra.addFlashAttribute("msg", "모임에 가입되었습니다.");
         } catch (IllegalStateException | IllegalArgumentException e) {
-            // 이미 가입했거나, 유저/모임 ID가 잘못된 경우
             ra.addFlashAttribute("error", e.getMessage());
         }
 
-        // 결과 페이지로 리다이렉트
         return "redirect:/clubs/" + clubId;
     }
 
-    // 모임 생성
     @PostMapping
     public String create(@ModelAttribute ClubForm form,
                          HttpSession session,
@@ -165,24 +511,18 @@ public class ClubController {
 
         Long ownerId = (Long) session.getAttribute("LOGIN_USER_ID");
 
-        // 로그인 안 되어 있으면 경고 + 로그인 모달 열기
         if (ownerId == null) {
             ra.addFlashAttribute("error", "로그인 후 모임을 만들 수 있습니다.");
             ra.addFlashAttribute("openLogin", true);
             return "redirect:/clubs";
         }
 
-        // 서비스 호출 시 DTO 전달
         clubService.createClub(ownerId, form);
 
-        // 성공 토스트 메시지
         ra.addFlashAttribute("msg", "모임이 생성되었습니다.");
         return "redirect:/clubs";
     }
 
-    /**
-     * 상세/탭 페이지 공통 속성 추가 헬퍼 메소드
-     */
     private boolean addClubDetailAttributes(Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
         // 현재 사용자 ID 가져오기
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
@@ -204,6 +544,8 @@ public class ClubController {
         model.addAttribute("memberCount", dto.members().size());
         model.addAttribute("isOwner", dto.isOwner());
         model.addAttribute("isAlreadyMember", dto.isAlreadyMember());
+
+        model.addAttribute("members", dto.members());
 
         // --- 프래그먼트(사이드바, 검색바)용 공통 데이터 ---
         model.addAttribute("dos", clubService.getAllDos());

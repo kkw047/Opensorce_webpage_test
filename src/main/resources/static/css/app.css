@@ -527,3 +527,225 @@ a.card.club:hover {
 /* 메시지 입력 폼 스타일 */
 .chat-input-form { display: flex; gap: 8px; }
 .chat-input-form input { flex: 1; }
+
+/* 게시판 - 그리드 스타일 */
+.post-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.post-card {
+    background-color: #0f231e;
+    border: 1px solid #1a332c;
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-color: #29433b;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.profile-thumb {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #0b1b17;
+    border: 1px solid #29433b;
+}
+
+.author-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.author-name {
+    font-weight: bold;
+    color: #e7f3ee;
+    font-size: 0.95em;
+}
+
+.post-date {
+    font-size: 0.8em;
+    color: #9ec8b8;
+}
+
+.post-title a {
+    color: #e7f3ee;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.post-title a:hover {
+    text-decoration: underline;
+    color: #1db954;
+}
+
+.post-preview {
+    color: #b0c4de;
+    font-size: 0.9em;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.no-posts-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 40px;
+    color: #9ec8b8;
+    background: #0f231e;
+    border-radius: 12px;
+    border: 1px dashed #29433b;
+}
+
+/* 상세 보기 & 댓글 스타일 */
+.post-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #e7f3ee;
+}
+
+.post-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9em;
+    color: #9ec8b8;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #1a332c;
+    margin-bottom: 20px;
+}
+
+.author-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #e7f3ee;
+    font-weight: 600;
+}
+
+.profile-thumb-detail {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #0b1b17;
+}
+
+.profile-thumb-detail.default-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #29433b;
+    font-size: 14px;
+    color: #9ec8b8;
+}
+
+.meta-divider {
+    color: #29433b;
+}
+
+.post-content {
+    min-height: 200px;
+    line-height: 1.8;
+    font-size: 1.05em;
+    color: #d8efe4;
+    white-space: pre-wrap;
+}
+
+/* 댓글 리스트 스타일 */
+.comment-list {
+    margin-top: 20px;
+}
+
+.comment-item {
+    padding: 15px 0;
+    border-bottom: 1px solid #1a332c;
+}
+.comment-item:last-child { border-bottom: none; }
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.comment-content {
+    color: #d8efe4;
+    padding-left: 38px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.comment-actions {
+    text-align: right;
+    margin-top: 5px;
+}
+
+.btn-comment-action {
+    background: none;
+    border: none;
+    color: #9ec8b8;
+    font-size: 0.85em;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: none;
+}
+.btn-comment-action:hover { color: #e7f3ee; }
+.btn-comment-action.delete:hover { color: #ff8a8a; }
+
+
+/* 버튼 크기 통일 (a 태그와 button 태그 크기 맞춤 및 삭제 버튼 스타일) */
+button.btn {
+    font-family: inherit;
+    font-size: 1rem; /* 16px */
+    line-height: normal;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: auto;
+    margin: 0;
+}
+
+.btn.btn-danger {
+    background-color: #3f1a1a;
+    border-color: #5c2b2b;
+    color: #ffc2c2;
+}
+.btn.btn-danger:hover {
+    background-color: #5c2b2b;
+    color: #ffffff;
+}
+
+/* 공통 UI 요소 (탭 배경용 박스) */
+.detail-card {
+    border: 1px solid #1a332c;
+    border-radius: 14px;
+    background: #0f231e;
+    padding: 16px;
+    margin-bottom: 16px;
+}
