@@ -152,36 +152,6 @@ public class ClubController {
         return "post_new";
     }
 
-//    @PostMapping("/{clubId}/board/new")
-//    public String createPost(@PathVariable Long clubId,
-//                             @Valid @ModelAttribute PostForm postForm,
-//                             BindingResult bindingResult,
-//                             HttpSession session,
-//                             Model model,
-//                             RedirectAttributes ra) {
-//        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
-//
-//        if (currentUserId == null) {
-//            return "redirect:/login";
-//        }
-//
-//        boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
-//        if (!isMember) {
-//            ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
-//            return "redirect:/clubs/" + clubId + "/board";
-//        }
-//
-//        if (bindingResult.hasErrors()) {
-//
-//            addClubDetailAttributes(clubId, model, session, ra);
-//            model.addAttribute("clubId", clubId);
-//            return "post_new";
-//        }
-//
-//        postService.createPost(clubId, postForm, currentUserId);
-//        return "redirect:/clubs/" + clubId + "/board";
-//    }
-
     @PostMapping("/{clubId}/board/new")
     public String createPost(@PathVariable Long clubId,
                              @Valid @ModelAttribute PostForm postForm,
@@ -189,46 +159,29 @@ public class ClubController {
                              HttpSession session,
                              Model model,
                              RedirectAttributes ra) {
-
-        // 🚨 [CCTV] 요청이 들어왔는지 확인
-        System.out.println("========== [DEBUG] 게시글 작성 요청 도착! ==========");
-        System.out.println(">>> clubId: " + clubId);
-        System.out.println(">>> data: " + postForm);
-
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
 
         if (currentUserId == null) {
-            System.out.println(">>> [DEBUG] 로그인 안 됨");
             return "redirect:/login";
         }
 
-        // 멤버 체크 로직
         boolean isMember = clubMemberRepository.existsById(new ClubMemberId(clubId, currentUserId));
         if (!isMember) {
-            System.out.println(">>> [DEBUG] 멤버 아님");
             ra.addFlashAttribute("error", "클럽 멤버만 게시글을 작성할 수 있습니다.");
             return "redirect:/clubs/" + clubId + "/board";
         }
 
-        // 유효성 검사 실패 확인
         if (bindingResult.hasErrors()) {
-            System.out.println(">>> [DEBUG] 유효성 검사 실패: " + bindingResult.getAllErrors()); // 👈 여기가 범인일 수도 있음
 
             addClubDetailAttributes(clubId, model, session, ra);
             model.addAttribute("clubId", clubId);
             return "post_new";
         }
 
-        try {
-            postService.createPost(clubId, postForm, currentUserId);
-            System.out.println(">>> [DEBUG] 게시글 저장 성공!");
-        } catch (Exception e) {
-            System.out.println(">>> [ERROR] 저장 중 에러 발생!");
-            e.printStackTrace(); // 👈 에러 내용 출력
-        }
-
+        postService.createPost(clubId, postForm, currentUserId);
         return "redirect:/clubs/" + clubId + "/board";
     }
+
 
     @GetMapping("/{clubId}/board/{postId}")
     public String getPostDetail(@PathVariable Long clubId,

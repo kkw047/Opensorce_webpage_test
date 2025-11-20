@@ -749,3 +749,8 @@ button.btn {
     padding: 16px;
     margin-bottom: 16px;
 }
+
+#registerModal .modal-card {
+    width: 520px;
+    max-width: 95vw;
+}
