@@ -17,23 +17,26 @@
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
 
     <main class="content">
-        <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
 
         <div class="detail-card">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; margin-top: 30px;">
-            <h2 style="margin: 0; font-size: 24px;">게시판</h2>
+        <div class="detail-card" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 16px;">
+            <h2 style="margin: 0; font-size: 20px;">게시판 목록</h2>
+
             <a th:if="${isAlreadyMember}"
                th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
                class="btn primary">
-                ✏️ 글쓰기
+                게시글 작성
             </a>
         </div>
 
         <div class="post-grid-container">
-            <div class="post-card" th:each="post : ${posts}">
+
+            <div class="post-card" th:each="post : ${posts}"
+                 th:onclick="|location.href='@{/clubs/{clubId}/board/{postId}(clubId=${club.id}, postId=${post.id})}'|">
+
                 <div class="card-header">
                     <img th:if="${post.author.imageUrl != null}"
                          th:src="${post.author.imageUrl}"
@@ -52,23 +55,64 @@
                 </div>
 
                 <div class="card-content">
-                    <div class="post-title">
-                        <a th:href="@{/clubs/{clubId}/board/{postId}(clubId=${club.id}, postId=${post.id})}"
-                           th:text="${post.title}">제목</a>
+                    <div class="post-title" th:text="${post.title}">
+                        제목이 여기에 들어갑니다.
                     </div>
-                    <p class="post-preview" th:text="${post.content}">내용 미리보기가 여기에 나옵니다.</p>
+
+                    <p class="post-preview" th:text="${post.content}">
+                        내용 미리보기가 여기에 나옵니다.
+                    </p>
                 </div>
             </div>
 
-            <div th:if="${#lists.isEmpty(posts)}" class="no-posts-message">
-                아직 작성된 게시물이 없습니다. 첫 번째 글을 남겨보세요!
+            <div th:if="${posts.totalElements == 0}" class="empty-state">
+                <h3 class="empty-title">아직 작성된 게시글이 없습니다.</h3>
+                <p class="empty-desc">
+                    이 모임의 첫 번째 이야기를 시작해보세요!<br>
+                    멤버들과 소소한 일상을 공유할 수 있습니다.
+                </p>
+
+                <a th:if="${isAlreadyMember}"
+                   th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
+                   class="btn primary mt12">
+                    첫 글 작성하기
+                </a>
             </div>
         </div>
+        <div class="pagination-wrapper" th:if="${posts.totalPages > 0}">
+
+            <div class="page-info">
+                총 <span th:text="${posts.totalElements}">0</span>개의 글
+            </div>
+
+            <div class="pagination-buttons">
+
+                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number - 1})}"
+                   class="page-btn prev-next"
+                   th:classappend="${posts.first} ? 'disabled' : ''">
+                    &lt; 이전
+                </a>
+
+                <a th:each="page : ${#numbers.sequence(startPage, endPage)}"
+                   th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${page - 1})}"
+                   th:text="${page}"
+                   class="page-btn"
+                   th:classappend="${page == nowPage} ? 'active' : ''">
+                    1
+                </a>
+
+                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number + 1})}"
+                   class="page-btn prev-next"
+                   th:classappend="${posts.last} ? 'disabled' : ''">
+                    다음 &gt;
+                </a>
+            </div>
+        </div>
+
+        <div style="height: 60px;"></div>
+
     </main>
 </div>
-
-<div th:replace="~{fragments/common :: modals}"></div>
-<div th:replace="~{fragments/common :: scripts}"></div>
 
 <div id="toast"
      th:if="${error != null or msg != null}"
@@ -76,11 +120,25 @@
      class="toast show">
 </div>
 
-<script th:if="${openLogin}">
-    document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
-</script>
-<script th:if="${openRegister}">
-    document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+<script th:inline="javascript">
+    // 1. 로그인/회원가입 모달 자동 열기
+    if([[${openLogin}]]) {
+        document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
+    }
+    if([[${openRegister}]]) {
+        document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
+    }
+
+    // 2. 토스트 메시지가 있으면 3초 뒤에 사라지게 함
+    const toast = document.getElementById('toast');
+    if (toast) {
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
 </script>
 
 </body>

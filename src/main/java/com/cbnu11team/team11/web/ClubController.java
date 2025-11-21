@@ -116,13 +116,28 @@ public class ClubController {
     }
 
     @GetMapping("/{clubId}/board")
-    public String getBoardPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+    public String getBoardPage(@PathVariable Long clubId,
+                               @RequestParam(value = "page", defaultValue = "0") int page,
+                               Model model,
+                               RedirectAttributes ra,
+                               HttpSession session) {
+
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
 
-        List<Post> posts = postService.getPostsByClubId(clubId);
-        model.addAttribute("posts", posts);
+        Page<Post> postPage = postService.getPostsByClubId(clubId, page);
+
+        int nowPage = postPage.getPageable().getPageNumber() + 1;
+        int startPage = Math.max(nowPage - 2, 1);
+        int endPage = Math.min(nowPage + 2, postPage.getTotalPages());
+
+        if (endPage == 0) endPage = 1;
+
+        model.addAttribute("posts", postPage);
+        model.addAttribute("nowPage", nowPage);
+        model.addAttribute("startPage", startPage);
+        model.addAttribute("endPage", endPage);
 
         model.addAttribute("activeTab", "board");
         return "clubs/board";
@@ -179,6 +194,9 @@ public class ClubController {
         }
 
         postService.createPost(clubId, postForm, currentUserId);
+
+        ra.addFlashAttribute("msg", "게시글이 등록되었습니다.");
+
         return "redirect:/clubs/" + clubId + "/board";
     }
 

@@ -531,8 +531,8 @@ a.card.club:hover {
 /* 게시판 - 그리드 스타일 */
 .post-grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    flex-direction: column;
+    gap: 12px;
     margin-top: 20px;
 }
 
@@ -541,16 +541,18 @@ a.card.club:hover {
     border: 1px solid #1a332c;
     border-radius: 12px;
     padding: 20px;
-    transition: transform 0.2s, box-shadow 0.2s;
+
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, boarder-color 0.2s;
 }
 
 .post-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    background-color: #142a24;
     border-color: #29433b;
+    transform: translateX(5px);
 }
 
 .card-header {
@@ -585,23 +587,20 @@ a.card.club:hover {
     color: #9ec8b8;
 }
 
-.post-title a {
+.post-title {
     color: #e7f3ee;
-    text-decoration: none;
     font-size: 1.1em;
     font-weight: 600;
-    display: block;
     margin-bottom: 8px;
 }
 
-.post-title a:hover {
-    text-decoration: underline;
+.post-card:hover .post-title {
     color: #1db954;
 }
 
 .post-preview {
     color: #b0c4de;
-    font-size: 0.9em;
+    font-size: 0.95em;
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -753,4 +752,157 @@ button.btn {
 #registerModal .modal-card {
     width: 520px;
     max-width: 95vw;
+}
+
+textarea {
+    resize: none;
+}
+
+.post-content,
+.comment-content {
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+textarea::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.post-content::-webkit-scrollbar,
+.comment-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.post-content::-webkit-scrollbar-track,
+.comment-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+textarea::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.post-content::-webkit-scrollbar-thumb,
+.comment-content::-webkit-scrollbar-thumb {
+    background: rgba(29, 185, 84, 0.25);
+    border-radius: 999px;
+}
+
+textarea:hover::-webkit-scrollbar-thumb,
+body:hover::-webkit-scrollbar-thumb,
+.post-content:hover::-webkit-scrollbar-thumb,
+.comment-content:hover::-webkit-scrollbar-thumb {
+    background: rgba(29, 185, 84, 0.6);
+}
+
+textarea, body, .post-content, .comment-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(29, 185, 84, 0.6) transparent;
+}
+
+.pagination-wrapper {
+    margin-top: 40px;
+    margin-bottom: 40px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-info {
+    color: #9ec8b8;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
+}
+
+.page-btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+
+    background: #0f231e;
+    border: 1px solid #1a332c;
+    border-radius: 8px;
+
+    color: #9ec8b8;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(.disabled):not(.active) {
+    background: #142a24;
+    color: #1db954;
+    border-color: #29433b;
+    transform: translateY(-2px);
+}
+
+.page-btn.active {
+    background: #1db954;
+    color: #062016;
+    border-color: #1db954;
+    font-weight: 700;
+    cursor: default;
+    pointer-events: none;
+}
+
+.page-btn.prev-next {
+    min-width: 60px;
+    font-weight: 600;
+}
+
+.page-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 60px 20px;
+    margin-top: 20px;
+
+    background-color: #0f231e;
+    border: 1px dashed #29433b;
+    border-radius: 16px;
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.8;
+}
+
+.empty-title {
+    font-size: 1.2rem;
+    color: #e7f3ee;
+    margin: 0 0 8px 0;
+    font-weight: 700;
+}
+
+.empty-desc {
+    color: #9ec8b8;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.mt12 {
+    margin-top: 12px;
 }

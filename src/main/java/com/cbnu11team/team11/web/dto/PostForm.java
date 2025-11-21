@@ -10,5 +10,6 @@ public record PostForm(
         String title,
 
         @NotBlank(message = "내용은 필수 입력 사항입니다.")
+        @Size(max = 1000, message = "내용은 1000자를 넘을 수 없습니다.")
         String content
 ) { }

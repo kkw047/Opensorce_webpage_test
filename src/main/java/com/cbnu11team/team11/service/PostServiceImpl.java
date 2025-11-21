@@ -13,6 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import java.util.Optional;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -27,8 +32,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Post> getPostsByClubId(Long clubId) {
-        return postRepository.findPostsWithAuthorByClubId(clubId);
+    public Page<Post> getPostsByClubId(Long clubId, int page) {
+        Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return postRepository.findPostsWithAuthorByClubId(clubId, pageable);
     }
 
     @Override

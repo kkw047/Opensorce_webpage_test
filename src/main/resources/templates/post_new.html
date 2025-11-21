@@ -73,10 +73,12 @@
 
                 <div class="form-group">
                     <div class="label" for="content">내용</div>
-                    <textarea id="content" th:field="*{content}" rows="10" required></textarea>
-                    <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error-message">
-                        내용을 입력해주세요.
-                    </div>
+                    <textarea th:field="*{content}"
+                              rows="10"
+                              maxlength="1000"
+                              placeholder="내용을 입력하세요 (최대 1000자)"
+                              style="resize: none;"
+                              class="form-control"></textarea>
                 </div>
 
                 <div class="button-group">

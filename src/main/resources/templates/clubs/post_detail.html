@@ -5,16 +5,18 @@
     <title th:text="${post.title} + ' - ' + ${club.name}"></title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body class="bg-deep">
+<body class="bg-deep"
+      th:data-msg="${msg}"
+      th:data-error="${error}"
+      th:data-open-login="${openLogin}"
+      th:data-open-register="${openRegister}">
 
 <header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
 
 <div class="wrap">
-
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
 
     <main class="content">
-        <form class="toolbar" th:replace="~{fragments/common :: searchbar}"></form>
 
         <div class="detail-card">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
@@ -42,15 +44,18 @@
                     게시글 내용...
                 </div>
 
-                <div class="button-group" style="margin-top: 30px; border-top: 1px solid #1a332c; padding-top: 15px;">
+                <div class="button-group" style="margin-top: 30px; border-top: 1px solid #1a332c; padding-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+
                     <a th:href="@{/clubs/{clubId}/board(clubId=${club.id})}" class="btn">목록</a>
 
                     <th:block th:if="${session.LOGIN_USER_ID == post.author.id}">
                         <a th:href="@{/clubs/{clubId}/board/{postId}/edit(clubId=${club.id}, postId=${post.id})}" class="btn">수정</a>
-                        <form th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${club.id}, postId=${post.id})}"
-                              method="post" style="display: inline-block; margin: 0;"
-                              onsubmit="return confirm('정말 이 게시물을 삭제하시겠습니까?');">
-                            <button type="submit" class="btn btn-danger">삭제</button>
+
+                        <button type="button" class="btn btn-danger" onclick="openDeleteModal()">삭제</button>
+
+                        <form id="deleteForm"
+                              th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${post.club.id}, postId=${post.id})}"
+                              method="post" style="display:none;">
                         </form>
                     </th:block>
                 </div>
@@ -64,7 +69,12 @@
                   th:object="${commentForm}" method="post">
 
                 <div class="form-group">
-                    <textarea th:field="*{content}" rows="4" placeholder="댓글을 입력하세요..." style="min-height: 80px;"></textarea>
+                    <textarea th:field="*{content}"
+                              rows="3"
+                              maxlength="300"
+                              placeholder="댓글을 입력하세요 (최대 300자)"
+                              style="resize: none; width: 100%;"
+                              class="form-control"></textarea>
                     <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error-message"></div>
                 </div>
 
@@ -100,11 +110,11 @@
                             <a th:href="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
                                class="btn-comment-action">수정</a>
 
-                            <form th:action="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/delete(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
-                                  method="post" style="display: inline-block;">
-                                <button type="submit" class="btn-comment-action delete"
-                                        onclick="return confirm('정말 삭제하시겠습니까?')">삭제</button>
-                            </form>
+                            <button type="button"
+                                    class="btn-comment-action delete"
+                                    th:onclick="|openCommentDeleteModal('${club.id}', '${post.id}', '${comment.id}')|">
+                                삭제
+                            </button>
                         </th:block>
                     </div>
                 </div>
@@ -114,20 +124,83 @@
     </main>
 </div>
 
-<div th:replace="~{fragments/common :: modals}"></div>
-<div th:replace="~{fragments/common :: scripts}"></div>
-
 <div id="toast"
      th:if="${error != null or msg != null}"
      th:text="${error ?: msg}"
      class="toast show">
 </div>
 
-<script th:if="${openLogin}">
-    document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
-</script>
-<script th:if="${openRegister}">
-    document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-card" style="text-align: center; width: 360px;">
+        <h3 style="margin-top: 0; color: #e7f3ee;">게시글 삭제</h3>
+        <p style="color: #b0c4de; margin: 20px 0;">
+            정말로 삭제하시겠습니까?<br>
+            삭제된 글은 복구할 수 없습니다.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button type="button" class="btn" onclick="closeDeleteModal()">취소</button>
+            <button type="button" class="btn btn-danger" onclick="confirmDelete()">삭제하기</button>
+        </div>
+    </div>
+</div>
+
+<div id="commentDeleteModal" class="modal" style="display: none;">
+    <div class="modal-card" style="text-align: center; width: 360px;">
+        <h3 style="margin-top: 0; color: #e7f3ee;">댓글 삭제</h3>
+        <p style="color: #b0c4de; margin: 20px 0;">
+            정말로 댓글을 삭제하시겠습니까?
+        </p>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button type="button" class="btn" onclick="closeCommentDeleteModal()">취소</button>
+
+            <form id="commentDeleteForm" method="post">
+                <button type="submit" class="btn btn-danger">삭제하기</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+<script th:inline="javascript">
+
+    const toast = document.getElementById('toast');
+    if (toast) {
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    function openDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+    function confirmDelete() {
+        document.getElementById('deleteForm').submit();
+    }
+
+    function openCommentDeleteModal(clubId, postId, commentId) {
+        const form = document.getElementById('commentDeleteForm');
+
+        form.action = `/clubs/${clubId}/board/${postId}/comment/${commentId}/delete`;
+
+        document.getElementById('commentDeleteModal').style.display = 'flex';
+    }
+
+    function closeCommentDeleteModal() {
+        document.getElementById('commentDeleteModal').style.display = 'none';
+    }
+
+    window.addEventListener('click', function(event) {
+        const postModal = document.getElementById('deleteModal');
+        const commentModal = document.getElementById('commentDeleteModal');
+
+        if (event.target === postModal) closeDeleteModal();
+        if (event.target === commentModal) closeCommentDeleteModal();
+    });
 </script>
 
 </body>
