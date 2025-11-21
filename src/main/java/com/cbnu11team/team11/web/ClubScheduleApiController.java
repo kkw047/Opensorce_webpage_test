@@ -42,20 +42,6 @@ public class ClubScheduleApiController {
 
         Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
 
-        // --- [디버깅용 로그 시작] ---
-        System.out.println("=========================================");
-        System.out.println(">>> [Controller] 일정 등록 요청 도착");
-        System.out.println(">>> Club ID: " + clubId);
-        System.out.println(">>> User ID: " + userId);
-        if (request != null) {
-            System.out.println(">>> Title: " + request.getTitle());
-            System.out.println(">>> StartDate: " + request.getStart());
-        } else {
-            System.out.println(">>> Request Body is NULL!");
-        }
-        System.out.println("=========================================");
-        // --- [디버깅용 로그 끝] ---
-
         if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         // [중요] clubId를 반드시 두 번째 인자로 넘겨야 함
