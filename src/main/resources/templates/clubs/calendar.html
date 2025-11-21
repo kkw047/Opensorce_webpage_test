@@ -16,8 +16,8 @@
 
         /* [1] 캘린더 레이아웃 & 폰트 */
         #calendar {
-            height: auto;          /* 높이 자동 조절 */
-            min-height: 800px;     /* 최소 높이 유지 */
+            height: auto;
+            min-height: 800px;
             font-family: 'Pretendard', sans-serif;
         }
 
@@ -34,98 +34,296 @@
         .fc-day-sun .fc-col-header-cell-cushion, .fc-day-sun .fc-daygrid-day-number { color: #ff5252 !important; }
 
         .fc-theme-standard .fc-scrollgrid, .fc-theme-standard td, .fc-theme-standard th,
-        .fc-col-header-cell, .fc-daygrid-day, .fc-daygrid-day-frame, .fc-scrollgrid-sync-table { border-color: #4a635d !important; }
+        .fc-col-header-cell, .fc-daygrid-day, .fc-daygrid-day-frame, .fc-scrollgrid-sync-table {
+            border-color: #4a635d !important;
+        }
 
         /* 오늘 날짜 강조 */
-        .fc-day-today { background-color: rgba(255, 255, 255, 0.08) !important; border: 2px solid #26a69a !important; }
-        .fc-daygrid-day:hover { background-color: rgba(255, 255, 255, 0.03); transition: background-color 0.2s; }
+        .fc-day-today {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            border: 2px solid #26a69a !important;
+        }
+        .fc-daygrid-day:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+            transition: background-color 0.2s;
+        }
 
         /* [3] 상단 툴바 */
         .fc-header-toolbar { position: relative; margin-bottom: 20px !important; }
-        .fc-toolbar-chunk:nth-child(2) { position: absolute; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; }
-        .fc-toolbar-title { color: #fff; font-size: 2em !important; font-weight: 900 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .fc-toolbar-chunk:nth-child(2) {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: center;
+        }
+        .fc-toolbar-title {
+            color: #fff;
+            font-size: 2em !important;
+            font-weight: 900 !important;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
 
         /* [4] 버튼 & 이벤트 */
-        .fc-button { background-color: #2a3b37 !important; border: 1px solid #4a635d !important; color: #fff !important; font-weight: bold; border-radius: 8px !important; padding: 8px 16px !important; }
-        .fc-button:hover { background-color: #3e524d !important; border-color: #fff !important; }
+        .fc-button {
+            background-color: #2a3b37 !important;
+            border: 1px solid #4a635d !important;
+            color: #fff !important;
+            font-weight: bold;
+            border-radius: 8px !important;
+            padding: 8px 16px !important;
+        }
+        .fc-button:hover {
+            background-color: #3e524d !important;
+            border-color: #fff !important;
+        }
 
         /* [10] 일정 막대 슬림하게 */
-        .fc-event { border: none; border-radius: 3px; padding: 1px 3px !important; margin-bottom: 1px !important; font-size: 0.85em !important; font-weight: 700; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.2); line-height: 1.2 !important; }
+        .fc-event {
+            border: none;
+            border-radius: 3px;
+            padding: 1px 3px !important;
+            margin-bottom: 1px !important;
+            font-size: 0.85em !important;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            line-height: 1.2 !important;
+        }
 
         /* [5] 모달 스타일 */
-        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1100; }
-        .modal-backdrop .modal-content { min-width: 400px; max-width: 500px; background: #0f231e; padding: 25px; border-radius: 16px; border: 1px solid #4a635d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+        }
+        .modal-backdrop .modal-content {
+            min-width: 400px;
+            max-width: 500px;
+            background: #0f231e;
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid #4a635d;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
 
-        .modal-close-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 24px; color: #888; cursor: pointer; transition: color 0.2s; line-height: 1; z-index: 10; }
+        .modal-close-btn {
+            position: absolute;
+            top: 15px; right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #888;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+            z-index: 10;
+        }
         .modal-close-btn:hover { color: #ff5252; }
         .hidden { display: none !important; }
 
-        /* 폼 요소 */
-        label { display: block; margin: 10px 0 5px; font-weight: bold; color: #ddd; }
-        input[type=text], input[type=date], textarea { width: 100%; box-sizing: border-box; background: #1a2623; color: #fff; border: 1px solid #4a635d; padding: 10px; border-radius: 6px; font-size: 1em; margin-bottom: 10px; }
+        /* 폼 요소 (모달 안에서만) */
+        .modal-backdrop label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            color: #ddd;
+        }
+        input[type=text], input[type=date], textarea {
+            width: 100%;
+            box-sizing: border-box;
+            background: #1a2623;
+            color: #fff;
+            border: 1px solid #4a635d;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
         textarea { resize: none; }
         ::placeholder { color: #888; opacity: 1; }
 
         /* Flatpickr */
-        .flatpickr-calendar { background: #1a2623 !important; border: 1px solid #4a635d !important; box-shadow: 0 10px 25px rgba(0,0,0,0.7) !important; z-index: 9999 !important; }
-        .flatpickr-months .flatpickr-month, .flatpickr-current-month .flatpickr-monthDropdown-months { background: #1a2623 !important; color: #fff !important; fill: #fff !important; }
-        .flatpickr-current-month input.cur-year { color: #fff !important; font-weight: bold !important; }
-        .flatpickr-monthDropdown-months { background-color: #1a2623 !important; color: #fff !important; }
-        .flatpickr-monthDropdown-months option { background-color: #0f231e; color: #fff; }
-        .flatpickr-day { color: #eee !important; font-weight: 600 !important; }
-        .flatpickr-day.selected { background: #26a69a !important; border-color: #26a69a !important; color: #fff !important; }
-        .flatpickr-months .flatpickr-prev-month svg, .flatpickr-months .flatpickr-next-month svg { fill: #fff !important; }
+        .flatpickr-calendar {
+            background: #1a2623 !important;
+            border: 1px solid #4a635d !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7) !important;
+            z-index: 9999 !important;
+        }
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            background: #1a2623 !important;
+            color: #fff !important;
+            fill: #fff !important;
+        }
+        .flatpickr-current-month input.cur-year {
+            color: #fff !important;
+            font-weight: bold !important;
+        }
+        .flatpickr-monthDropdown-months {
+            background-color: #1a2623 !important;
+            color: #fff !important;
+        }
+        .flatpickr-monthDropdown-months option {
+            background-color: #0f231e;
+            color: #fff;
+        }
+        .flatpickr-day {
+            color: #eee !important;
+            font-weight: 600 !important;
+        }
+        .flatpickr-day.selected {
+            background: #26a69a !important;
+            border-color: #26a69a !important;
+            color: #fff !important;
+        }
+        .flatpickr-months .flatpickr-prev-month svg,
+        .flatpickr-months .flatpickr-next-month svg {
+            fill: #fff !important;
+        }
 
         /* 버튼 그룹 (양쪽 정렬) */
-        .modal-actions { display: flex; justify-content: space-between; margin-top: 20px; }
-        .btn-primary { background-color: #26a69a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em; }
-        .btn-danger { background-color: #e53935; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9em; }
-        .btn-secondary { background-color: #757575; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 5px; font-size: 0.9em; }
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .btn-primary {
+            background-color: #26a69a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .btn-danger {
+            background-color: #e53935;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .btn-secondary {
+            background-color: #757575;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 5px;
+            font-size: 0.9em;
+        }
 
-        .manage-btn-group { display: inline-block; margin-left: 10px; }
-        .manage-btn-group button { font-size: 0.7em; padding: 2px 6px; margin-left: 3px; border-radius: 3px; border:none; cursor:pointer; color:white; font-weight: bold; }
-        .btn-approve { background: #2e7d32; } .btn-approve:hover { background: #1b5e20; }
-        .btn-reject { background: #c62828; } .btn-reject:hover { background: #b71c1c; }
+        .manage-btn-group {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .manage-btn-group button {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            margin-left: 3px;
+            border-radius: 3px;
+            border:none;
+            cursor:pointer;
+            color:white;
+            font-weight: bold;
+        }
+        .btn-approve { background: #2e7d32; }
+        .btn-approve:hover { background: #1b5e20; }
+        .btn-reject { background: #c62828; }
+        .btn-reject:hover { background: #b71c1c; }
 
         /* 참가자 목록 스타일 */
-        .participant-item { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #4a635d; color: #ddd; font-size: 0.9em; }
-        .status-ACCEPTED { color: #4caf50; font-weight: bold; } .status-PENDING { color: #ffb74d; } .status-REJECTED { color: #e57373; }
+        .participant-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            border-bottom: 1px solid #4a635d;
+            color: #ddd;
+            font-size: 0.9em;
+        }
+        .status-ACCEPTED { color: #4caf50; font-weight: bold; }
+        .status-PENDING { color: #ffb74d; }
+        .status-REJECTED { color: #e57373; }
 
         /* [9] 카드 디자인 */
-        .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .detail-card {
+            border: 1px solid #1a332c;
+            border-radius: 14px;
+            background: #0f231e;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
         /* [10] 스크롤바 커스텀 */
         textarea::-webkit-scrollbar, .detail-box::-webkit-scrollbar { width: 8px; }
-        textarea::-webkit-scrollbar-track, .detail-box::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 4px; }
-        textarea::-webkit-scrollbar-thumb, .detail-box::-webkit-scrollbar-thumb { background-color: #4a635d; border-radius: 4px; }
-        textarea::-webkit-scrollbar-thumb:hover, .detail-box::-webkit-scrollbar-thumb:hover { background-color: #26a69a; }
+        textarea::-webkit-scrollbar-track, .detail-box::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb, .detail-box::-webkit-scrollbar-thumb {
+            background-color: #4a635d;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover, .detail-box::-webkit-scrollbar-thumb:hover {
+            background-color: #26a69a;
+        }
 
-        /* [11] 상세내역 박스 (줄바꿈 및 스크롤) */
-        .detail-box { width: 100%; min-height: 80px; max-height: 200px; overflow-y: auto; overflow-x: hidden; background-color: #1a2623; padding: 12px; border-radius: 8px; border: 1px solid #4a635d; color: #bbb; margin-top: 5px; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap; word-break: break-all; box-sizing: border-box; }
+        /* [11] 상세내역 박스 */
+        .detail-box {
+            width: 100%;
+            min-height: 80px;
+            max-height: 200px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: #1a2623;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #4a635d;
+            color: #bbb;
+            margin-top: 5px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+            box-sizing: border-box;
+        }
 
         /* [2] 팝업 모드 전용 스타일 (상세 조회용) */
         #scheduleDetailModal {
-            position: fixed; /* 화면 기준 배치 (좌표 계산하여 이동) */
-            z-index: 1000;   /* 캘린더보다 위에 */
-            width: auto;     /* 전체 화면 덮지 않음 */
+            position: fixed;
+            z-index: 1000;
+            width: auto;
             height: auto;
-            background: transparent; /* 배경 투명 */
-            pointer-events: none; /* 팝업 영역 외에는 클릭 통과 */
+            background: transparent;
+            pointer-events: none;
             display: none;
         }
-
         #scheduleDetailModal:not(.hidden) { display: block; }
 
-        /* 팝업 내부 카드 */
         #scheduleDetailModal .modal-content {
-            pointer-events: auto; /* 내용물은 클릭 가능 */
-            width: 350px;         /* 너비 고정 */
-            max-height: 600px;    /* 높이 제한 */
+            pointer-events: auto;
+            width: 350px;
+            max-height: 600px;
             background: #0f231e;
             padding: 20px;
             border-radius: 12px;
             border: 1px solid #4a635d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8); /* 진한 그림자 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
             position: relative;
             animation: popIn 0.2s ease-out;
         }
@@ -136,13 +334,41 @@
         }
 
         /* 커스텀 확인 모달 (중앙 정렬) */
-        .modal-content-center { min-width: 350px; max-width: 400px; background: #0f231e; padding: 25px; border-radius: 16px; border: 1px solid #4a635d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; text-align: center; }
+        .modal-content-center {
+            min-width: 350px;
+            max-width: 400px;
+            background: #0f231e;
+            padding: 25px;
+            border-radius: 16px;
+            border: 1px solid #4a635d;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+            text-align: center;
+        }
 
         /* [14] 더보기 링크 & 팝업 */
-        .fc-more-link { color: #ddd !important; font-size: 0.8em !important; font-weight: bold; text-decoration: none; }
-        .fc-more-link:hover { color: #fff !important; background-color: rgba(255,255,255,0.1); border-radius: 4px; }
-        .fc-popover { background-color: #1a2623 !important; border: 1px solid #4a635d !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; z-index: 9999 !important; }
-        .fc-popover-header { background-color: #0f231e !important; color: #fff !important; font-weight: bold; }
+        .fc-more-link {
+            color: #ddd !important;
+            font-size: 0.8em !important;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .fc-more-link:hover {
+            color: #fff !important;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        .fc-popover {
+            background-color: #1a2623 !important;
+            border: 1px solid #4a635d !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+            z-index: 9999 !important;
+        }
+        .fc-popover-header {
+            background-color: #0f231e !important;
+            color: #fff !important;
+            font-weight: bold;
+        }
         .fc-popover-body { background-color: #1a2623 !important; }
     </style>
 </head>
@@ -153,8 +379,15 @@
 <div class="wrap">
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
     <main class="content">
-        <div class="detail-card">
+        <div class="detail-card" th:object="${club}">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
+
+            <div class="club-header" style="margin-top: 16px;">
+                <h1 th:text="*{name}">모임 이름</h1>
+                <div class="chips club-chips">
+                    <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
+                </div>
+            </div>
         </div>
 
         <div class="detail-card" style="background: #0f231e; padding: 20px; border-radius: 14px; border: 1px solid #4a635d; margin-top: 20px;">
@@ -226,8 +459,10 @@
             <input type="text" id="edit-title" placeholder="예) 11월 정기 모임" required>
             <label>시작일</label>
             <input type="text" id="edit-startDate" class="datepicker" required>
-            <label>종료일</label><input type="text" id="edit-endDate" class="datepicker" required>
-            <label>참여비</label><input type="text" id="edit-fee" placeholder="예) 10,000원 또는 1/N">
+            <label>종료일</label>
+            <input type="text" id="edit-endDate" class="datepicker" required>
+            <label>참여비</label>
+            <input type="text" id="edit-fee" placeholder="예) 10,000원 또는 1/N">
             <label>상세 설명</label>
             <textarea id="edit-details" rows="3" placeholder="예) 변경된 내용을 입력해주세요 (최대 500자)" maxlength="500"></textarea>
             <div style="text-align: right; margin-top: 20px;">
@@ -269,7 +504,9 @@
     const eventColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'];
     function getColorForEvent(id) {
         let hash = 0; const str = String(id);
-        for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
         return eventColors[Math.abs(hash) % eventColors.length];
     }
 
@@ -283,7 +520,6 @@
         else location.href = '/login';
     }
 
-    // [커스텀 Confirm 함수]
     function openConfirm(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('customConfirmModal');
@@ -318,13 +554,16 @@
         flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark" });
 
         const topLoginBtn = document.getElementById('openLoginBtn');
-        if(topLoginBtn) {
+        if (topLoginBtn) {
             topLoginBtn.onclick = (e) => { e.preventDefault(); openLoginModal(); };
         }
 
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', locale: 'ko', height: 'auto', dayMaxEvents: true,
+            initialView: 'dayGridMonth',
+            locale: 'ko',
+            height: 'auto',
+            dayMaxEvents: true,
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'addEventButton' },
             events: `/api/club/${clubId}/schedules`,
 
@@ -336,7 +575,6 @@
                 info.el.style.fontWeight = '700';
             },
 
-            // [핵심] 클릭 시 마우스 위치 계산 함수 호출
             eventClick: function(info) { showScheduleDetailModal(info); },
 
             customButtons: {
@@ -359,10 +597,13 @@
         });
         calendar.render();
 
-        if(createForm) createForm.addEventListener('submit', function(e) { e.preventDefault(); handleCreateSchedule(); });
-        if(editForm) editForm.addEventListener('submit', function(e) { e.preventDefault(); handleUpdateSchedule(); });
+        if (createForm) createForm.addEventListener('submit', function(e) {
+            e.preventDefault(); handleCreateSchedule();
+        });
+        if (editForm) editForm.addEventListener('submit', function(e) {
+            e.preventDefault(); handleUpdateSchedule();
+        });
 
-        // [추가] 팝업 바깥 클릭 시 닫기
         document.addEventListener('click', function(e) {
             if (!detailModal.classList.contains('hidden') &&
                 !detailModal.querySelector('.modal-content').contains(e.target) &&
@@ -372,14 +613,17 @@
         });
     });
 
-    // --- 상세 팝업 (마우스 위치 기준) ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
-        const jsEvent = info.jsEvent; // 마우스 이벤트
+        const jsEvent = info.jsEvent;
 
         try {
             const response = await fetch(`/api/club/${clubId}/schedule/${scheduleId}`, { credentials: 'include' });
-            if (response.status === 401) { safeShowToast('로그인이 필요합니다.', 'error'); openLoginModal(); return; }
+            if (response.status === 401) {
+                safeShowToast('로그인이 필요합니다.', 'error');
+                openLoginModal();
+                return;
+            }
             if (!response.ok) throw new Error('일정 정보 로딩 실패');
             const dto = await response.json();
 
@@ -399,8 +643,8 @@
                     const div = document.createElement('div');
                     div.className = 'participant-item';
                     let statusBadge = '';
-                    if(p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
-                    else if(p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
+                    if (p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
+                    else if (p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
                     else statusBadge = '<span class="status-REJECTED">거절</span>';
 
                     let html = `<span>${p.nickname}</span> ${statusBadge}`;
@@ -438,7 +682,6 @@
                 adminGroup.classList.add('hidden');
             }
 
-            // [핵심] 팝업 위치 계산 (마우스 기준)
             detailModal.classList.remove('hidden');
             const modalContent = detailModal.querySelector('.modal-content');
             const modalWidth = 350;
@@ -446,19 +689,15 @@
             const mouseX = jsEvent.clientX;
             const mouseY = jsEvent.clientY;
 
-            // 기본: 마우스 오른쪽 20px, 아래 10px
             let left = mouseX + 20;
             let top = mouseY + 10;
 
-            // 오른쪽 화면 넘어가면 왼쪽으로 이동
             if (left + modalWidth > window.innerWidth) {
                 left = mouseX - modalWidth - 20;
             }
-            // 아래쪽 화면 넘어가면 위로 이동
             if (top + modalHeight > window.innerHeight) {
                 top = window.innerHeight - modalHeight - 20;
             }
-            // 위쪽도 잘리면 고정
             if (top < 10) top = 10;
 
             detailModal.style.top = `${top}px`;
@@ -488,10 +727,10 @@
 
     async function changeStatus(scheduleId, participantId, status) {
         const msg = status === 'ACCEPTED' ? '승인하시겠습니까?' : '거절하시겠습니까?';
-        if(!(await openConfirm(msg))) return;
+        if (!(await openConfirm(msg))) return;
         const url = `/api/club/${clubId}/schedule/${scheduleId}/participant/${participantId}?status=${status}`;
         sendRequest(url, 'PUT', null, () => {
-            hideDetailModal(); // 위치 계산 이슈로 닫는 게 깔끔
+            hideDetailModal();
             safeShowToast('처리되었습니다.', 'success');
         });
     }
@@ -504,9 +743,9 @@
             fee: document.getElementById('create-fee').value,
             details: document.getElementById('create-details').value
         };
-        if(!data.title) return safeShowToast('제목을 입력해주세요.', 'error');
-        if(!data.start || !data.end) return safeShowToast('날짜를 선택해주세요.', 'error');
-        if(data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
+        if (!data.title) return safeShowToast('제목을 입력해주세요.', 'error');
+        if (!data.start || !data.end) return safeShowToast('날짜를 선택해주세요.', 'error');
+        if (data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
 
         sendRequest(`/api/club/${clubId}/schedule`, 'POST', data, () => {
             safeShowToast('일정이 등록되었습니다.', 'success');
@@ -524,7 +763,7 @@
             fee: document.getElementById('edit-fee').value,
             details: document.getElementById('edit-details').value
         };
-        if(data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
+        if (data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
 
         sendRequest(`/api/club/${clubId}/schedule/${id}`, 'PUT', data, () => {
             safeShowToast('일정이 수정되었습니다.', 'success');
@@ -534,7 +773,7 @@
     }
 
     async function handleDelete(id) {
-        if(await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
+        if (await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}`, 'DELETE', null, () => {
                 safeShowToast('일정이 삭제되었습니다.', 'success');
                 hideDetailModal();
@@ -544,17 +783,21 @@
     }
 
     async function handleJoin(id) {
-        if (!isLoggedIn) { safeShowToast('로그인 필요', 'error'); openLoginModal(); return; }
-        if(await openConfirm('참가 신청하시겠습니까?')) {
+        if (!isLoggedIn) {
+            safeShowToast('로그인 필요', 'error');
+            openLoginModal();
+            return;
+        }
+        if (await openConfirm('참가 신청하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'POST', null, () => {
                 safeShowToast('참가 신청이 완료되었습니다', 'success');
-                hideDetailModal(); // 팝업 닫음 (UX)
+                hideDetailModal();
             });
         }
     }
 
     async function handleLeave(id) {
-        if(await openConfirm('참가를 취소하시겠습니까?')) {
+        if (await openConfirm('참가를 취소하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'DELETE', null, () => {
                 safeShowToast('참가가 취소되었습니다.', 'success');
                 hideDetailModal();
@@ -564,12 +807,16 @@
 
     async function sendRequest(url, method, body, onSuccess) {
         try {
-            const opt = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
-            if(body) opt.body = JSON.stringify(body);
+            const opt = {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            };
+            if (body) opt.body = JSON.stringify(body);
             const res = await fetch(url, opt);
-            if(!res.ok) {
+            if (!res.ok) {
                 const txt = await res.text();
-                if(txt.includes('<!DOCTYPE html>') || res.status===401 || res.status===403) {
+                if (txt.includes('<!DOCTYPE html>') || res.status === 401 || res.status === 403) {
                     safeShowToast('로그인이 필요한 서비스입니다.', 'error');
                     openLoginModal();
                     return;
@@ -577,7 +824,9 @@
                 throw new Error(txt);
             }
             onSuccess();
-        } catch(e) { safeShowToast(e.message, 'error'); }
+        } catch (e) {
+            safeShowToast(e.message, 'error');
+        }
     }
 </script>
 </body>
