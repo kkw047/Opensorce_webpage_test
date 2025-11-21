@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>멤버 관리</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="bg-deep">
+
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="wrap">
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+
+    <main class="content">
+
+        <div class="detail-card">
+            <div th:replace="~{fragments/common :: club-tabs}"></div>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <a th:href="@{/clubs/{id}/manager(id=${club.id})}" class="btn">
+                관리 홈으로
+            </a>
+        </div>
+
+        <div class="detail-card" th:if="${!#lists.isEmpty(waitingList)}">
+            <h3 style="margin-top: 0;">가입 대기 인원</h3>
+            <p class="muted" style="margin-bottom: 15px;">새로운 멤버가 가입을 기다리고 있습니다.</p>
+
+            <div class="post-grid-container"> <div class="post-card" th:each="member : ${waitingList}" style="cursor: default;">
+                <div class="card-header">
+                    <div class="profile-thumb" style="display:flex; align-items:center; justify-content:center;"></div>
+                    <div class="author-info">
+                        <span class="author-name" th:text="${member.user.nickname}">닉네임</span>
+                        <span class="post-date" th:text="|가입신청일: ${#temporals.format(member.joinedAt, 'yyyy-MM-dd')}|">날짜</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <form th:action="@{/clubs/{cid}/manager/members/{uid}/approve(cid=${club.id}, uid=${member.user.id})}" method="post">
+                        <button class="btn primary">수락</button>
+                    </form>
+                    <form th:action="@{/clubs/{cid}/manager/members/{uid}/kick(cid=${club.id}, uid=${member.user.id})}" method="post">
+                        <button class="btn btn-danger">거절</button>
+                    </form>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <h3 style="margin-top: 0;">활동 중인 멤버 (<span th:text="${#lists.size(activeList)}">0</span>명)</h3>
+
+            <div class="post-grid-container">
+                <div class="post-card" th:each="member : ${activeList}" style="cursor: default;">
+                    <div class="card-header">
+                        <div class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
+                        <div class="author-info">
+                            <span class="author-name" th:text="${member.user.nickname}">닉네임</span>
+                            <span class="post-date" th:if="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
+                                  style="color: #1db954; font-weight: bold;">모임장</span>
+                            <span class="post-date" th:unless="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}">일반 멤버</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;"
+                         th:if="${member.role.name() != 'MANAGER' and member.role.name() != 'ADMIN'}">
+
+                        <form th:action="@{/clubs/{cid}/manager/members/{uid}/kick(cid=${club.id}, uid=${member.user.id})}"
+                              method="post"
+                              onsubmit="return confirm('정말 이 멤버를 추방하시겠습니까?');">
+                            <button class="btn btn-danger" style="padding: 6px 12px; font-size: 13px;">추방</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+</body>
+</html>

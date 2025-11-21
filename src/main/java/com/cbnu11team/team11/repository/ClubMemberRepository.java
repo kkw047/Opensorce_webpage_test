@@ -2,6 +2,7 @@ package com.cbnu11team.team11.repository;
 
 import com.cbnu11team.team11.domain.ClubMember;
 import com.cbnu11team.team11.domain.ClubMemberId;
+import com.cbnu11team.team11.domain.ClubMemberStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +22,7 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemb
         Long getClubId();
         Long getCnt();
     }
+
+    @Query("SELECT cm FROM ClubMember cm JOIN FETCH cm.user WHERE cm.club.id = :clubId AND cm.status = :status")
+    List<ClubMember> findByClubIdAndStatusWithUser(@Param("clubId") Long clubId, @Param("status") ClubMemberStatus status);
 }

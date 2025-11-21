@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${club.name} + ' - 관리'">모임 관리</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="bg-deep"
+      th:data-msg="${msg}"
+      th:data-error="${error}">
+
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="wrap">
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+
+    <main class="content">
+
+        <div class="detail-card">
+            <div th:replace="~{fragments/common :: club-tabs}"></div>
+        </div>
+
+        <div class="detail-card" style="margin-top: 16px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 20px;">모임 관리</h2>
+                    <p style="margin: 4px 0 0 0; color: #9ec8b8; font-size: 14px;">
+                        모임 설정과 멤버를 관리할 수 있는 공간입니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="post-grid-container" style="display: flex; flex-direction: column; gap: 20px; margin-top: 30px;">
+
+            <div class="post-card" style="cursor: pointer;">
+                <div class="card-content" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 class="post-title" style="margin-bottom: 6px;">모임 정보 수정</h3>
+                        <p class="post-preview" style="margin: 0;">모임 이름, 소개글, 대표 이미지를 수정합니다.</p>
+                    </div>
+                    <span style="font-size: 20px; color: #9ec8b8;">&gt;</span>
+                </div>
+            </div>
+
+            <div class="post-card"
+                 th:onclick="|location.href='@{/clubs/{id}/manager/members(id=${club.id})}'|"
+                 style="cursor: pointer;">
+                <div class="card-content" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 class="post-title" style="margin-bottom: 6px;">멤버 관리</h3>
+                        <p class="post-preview" style="margin: 0;">멤버 목록을 확인하고 추방하거나 등급을 변경합니다.</p>
+                    </div>
+                    <span style="font-size: 20px; color: #9ec8b8;">&gt;</span>
+                </div>
+            </div>
+
+            <div class="post-card" style="cursor: pointer; border: 1px solid #5c2b2b; background: #1a0f0f;">
+                <div class="card-content" style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h3 class="post-title" style="color: #ff8a8a; margin-bottom: 6px;">모임 삭제</h3>
+                        <p class="post-preview" style="margin: 0; color: #d18e8e;">모임을 영구적으로 삭제합니다. (복구 불가)</p>
+                    </div>
+                    <span style="font-size: 20px; color: #ff8a8a;">&gt;</span>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+</body>
+</html>

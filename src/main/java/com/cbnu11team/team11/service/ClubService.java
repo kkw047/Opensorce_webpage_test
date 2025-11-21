@@ -12,6 +12,9 @@ import com.cbnu11team.team11.repository.UserRepository;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.web.dto.ClubDetailDto;
 import com.cbnu11team.team11.web.dto.ClubForm;
+import com.cbnu11team.team11.domain.ClubRole;
+import com.cbnu11team.team11.domain.ClubMemberStatus;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -82,7 +85,7 @@ public class ClubService {
             ownerMembership.setId(new ClubMemberId(null, owner.getId()));
             ownerMembership.setClub(club);
             ownerMembership.setUser(owner);
-            ownerMembership.setRole("ADMIN");
+            ownerMembership.setRole(ClubRole.MANAGER);
 
             club.getMembers().add(ownerMembership);
         }
@@ -109,7 +112,7 @@ public class ClubService {
         newMember.setId(memberId);
         newMember.setClub(club);
         newMember.setUser(user);
-        newMember.setRole("MEMBER");
+        newMember.setRole(ClubRole.MEMBER);
 
         clubMemberRepository.save(newMember);
     }
@@ -208,13 +211,48 @@ public class ClubService {
         boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
 
         boolean isAlreadyMember = false;
+        boolean isManager = false;
+
         if (currentUserId != null) {
             ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
-            isAlreadyMember = clubMemberRepository.existsById(memberId);
+
+            Optional<ClubMember> memberOpt = clubMemberRepository.findById(memberId);
+
+            if (memberOpt.isPresent()) {
+                isAlreadyMember = true;
+
+                // 역할이 MANAGER이면 관리자 true
+                ClubRole role = memberOpt.get().getRole();
+
+                if (role == ClubRole.MANAGER || role == ClubRole.ADMIN) {
+                    isManager = true;
+                }
+            }
         }
 
         // 엔티티 -> DTO 변환
-        ClubDetailDto dto = ClubDetailDto.fromEntity(club, isOwner, isAlreadyMember);
+        ClubDetailDto dto = ClubDetailDto.fromEntity(club, isOwner, isManager, isAlreadyMember);
         return Optional.of(dto);
+    }
+    @Transactional(readOnly = true)
+    public List<ClubMember> getMembersByStatus(Long clubId, ClubMemberStatus status) {
+        return clubMemberRepository.findByClubIdAndStatusWithUser(clubId, status);
+    }
+
+    // 가입 승인 (WAITING -> ACTIVE)
+    @Transactional
+    public void approveMember(Long clubId, Long memberId) {
+        ClubMemberId id = new ClubMemberId(clubId, memberId);
+        ClubMember member = clubMemberRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("멤버가 존재하지 않습니다."));
+
+        member.setStatus(ClubMemberStatus.ACTIVE); // 상태 변경
+    }
+
+    // 추방 또는 거절 (DB에서 삭제)
+    @Transactional
+    public void kickMember(Long clubId, Long memberId) {
+        ClubMemberId id = new ClubMemberId(clubId, memberId);
+        clubMemberRepository.deleteById(id); // 아예 삭제해버림
     }
 }

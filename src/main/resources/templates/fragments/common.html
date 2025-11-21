@@ -88,10 +88,8 @@
         <a class="btn" th:classappend="${activeTab == 'board' ? 'primary' : ''}" th:href="@{/clubs/{id}/board(id=${club.id})}">게시판</a>
         <a class="btn" th:classappend="${activeTab == 'chat' ? 'primary' : ''}" th:href="@{/clubs/{id}/chat(id=${club.id})}">채팅</a>
         <a class="btn" th:classappend="${activeTab == 'calendar' ? 'primary' : ''}" th:href="@{/clubs/{id}/calendar(id=${club.id})}">캘린더</a>
+        <a class="btn" th:if="${club.isManager}" th:classappend="${activeTab == 'manager' ? 'primary' : ''}" th:href="@{/clubs/{id}/manager(id=${club.id})}">관리</a>
     </nav>
-    <a th:if="${isOwner}" th:href="@{/clubs/{id}/manage(id=${club.id})}" class="btn">
-        관리
-    </a>
 </div>
 
 <div th:fragment="modals">

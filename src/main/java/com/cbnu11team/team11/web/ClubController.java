@@ -700,4 +700,73 @@ public class ClubController {
             return "redirect:/clubs/" + clubId + "/chat";
         }
     }
+
+    @GetMapping("/{clubId}/manager")
+    public String getManagerPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
+
+        // 로그인 체크
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) {
+            ra.addFlashAttribute("error", "로그인이 필요합니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+
+        // 기본 정보 로드 (DTO 가져오기)
+        if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        // 권한 체크: DTO에 있는 isManager 값을 확인
+        ClubDetailDto dto = (ClubDetailDto) model.getAttribute("club");
+
+        // 매니저가 아니면 접근 불가
+        if (dto == null || !dto.isManager()) {
+            ra.addFlashAttribute("error", "모임 관리자만 접근할 수 있습니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+
+        // 뷰 설정
+        model.addAttribute("activeTab", "manager"); // 탭 활성화용
+        return "clubs/manager"; // manager.html로 이동
+    }
+
+    @GetMapping("/{clubId}/manager/members")
+    public String getMemberManagementPage(@PathVariable Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
+        // 관리자 권한 체크 (아까 만든 로직 재사용 권장)
+        // ... (권한 체크 코드 생략: 위 getManagerPage 참조) ...
+
+        // 편의상 바로직접 구현
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
+        if(optDto.isEmpty() || !optDto.get().isManager()) {
+            return "redirect:/clubs/" + clubId;
+        }
+
+        model.addAttribute("club", optDto.get());
+
+        // 대기 중인 멤버 (수락/거절용)
+        List<ClubMember> waitingList = clubService.getMembersByStatus(clubId, ClubMemberStatus.WAITING);
+        model.addAttribute("waitingList", waitingList);
+
+        // 활동 중인 멤버 (추방용)
+        List<ClubMember> activeList = clubService.getMembersByStatus(clubId, ClubMemberStatus.ACTIVE);
+        model.addAttribute("activeList", activeList);
+
+        model.addAttribute("activeTab", "manager");
+        return "clubs/manager_members"; // 새 HTML 파일
+    }
+
+    // 멤버 승인 (POST)
+    @PostMapping("/{clubId}/manager/members/{memberId}/approve")
+    public String approveMember(@PathVariable Long clubId, @PathVariable Long memberId) {
+        clubService.approveMember(clubId, memberId);
+        return "redirect:/clubs/" + clubId + "/manager/members";
+    }
+
+    // 멤버 추방/거절 (POST)
+    @PostMapping("/{clubId}/manager/members/{memberId}/kick")
+    public String kickMember(@PathVariable Long clubId, @PathVariable Long memberId) {
+        clubService.kickMember(clubId, memberId);
+        return "redirect:/clubs/" + clubId + "/manager/members";
+    }
 }
