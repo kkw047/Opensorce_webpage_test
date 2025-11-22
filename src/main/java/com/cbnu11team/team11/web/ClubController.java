@@ -118,6 +118,8 @@ public class ClubController {
     @GetMapping("/{clubId}/board")
     public String getBoardPage(@PathVariable Long clubId,
                                @RequestParam(value = "page", defaultValue = "0") int page,
+                               @RequestParam(value = "type", required = false) String type,
+                               @RequestParam(value = "keyword", required = false) String keyword,
                                Model model,
                                RedirectAttributes ra,
                                HttpSession session) {
@@ -126,18 +128,21 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
-        Page<Post> postPage = postService.getPostsByClubId(clubId, page);
+        Page<Post> postPage = postService.getPostsByClubId(clubId, page, type, keyword);
 
         int nowPage = postPage.getPageable().getPageNumber() + 1;
         int startPage = Math.max(nowPage - 2, 1);
         int endPage = Math.min(nowPage + 2, postPage.getTotalPages());
-
         if (endPage == 0) endPage = 1;
 
         model.addAttribute("posts", postPage);
         model.addAttribute("nowPage", nowPage);
         model.addAttribute("startPage", startPage);
         model.addAttribute("endPage", endPage);
+
+        // 검색어 유지를 위해 모델에 담기
+        model.addAttribute("searchType", type);
+        model.addAttribute("searchKeyword", keyword);
 
         model.addAttribute("activeTab", "board");
         return "clubs/board";
@@ -468,7 +473,8 @@ public class ClubController {
 
         try {
             clubService.joinClub(clubId, currentUserId);
-            ra.addFlashAttribute("msg", "모임에 가입되었습니다.");
+            ra.addFlashAttribute("msg", "가입 신청이 완료되었습니다. 모임장의 승인을 기다려주세요.");
+
         } catch (IllegalStateException | IllegalArgumentException e) {
             ra.addFlashAttribute("error", e.getMessage());
         }
@@ -733,41 +739,194 @@ public class ClubController {
 
     @GetMapping("/{clubId}/manager/members")
     public String getMemberManagementPage(@PathVariable Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
-        // 관리자 권한 체크 (아까 만든 로직 재사용 권장)
-        // ... (권한 체크 코드 생략: 위 getManagerPage 참조) ...
 
-        // 편의상 바로직접 구현
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
-        if(optDto.isEmpty() || !optDto.get().isManager()) {
+        if (optDto.isEmpty() || !optDto.get().isManager()) {
+            ra.addFlashAttribute("error", "관리자 권한이 없습니다.");
             return "redirect:/clubs/" + clubId;
         }
-
-        model.addAttribute("club", optDto.get());
 
         // 대기 중인 멤버 (수락/거절용)
         List<ClubMember> waitingList = clubService.getMembersByStatus(clubId, ClubMemberStatus.WAITING);
         model.addAttribute("waitingList", waitingList);
 
-        // 활동 중인 멤버 (추방용)
+        // 활동 중인 멤버
         List<ClubMember> activeList = clubService.getMembersByStatus(clubId, ClubMemberStatus.ACTIVE);
-        model.addAttribute("activeList", activeList);
 
+        List<ClubMember> sortedActiveList = activeList.stream()
+                .sorted((m1, m2) -> {
+                    // 우선순위 1: 역할 (MANAGER > MEMBER)
+                    // m1이 MANAGER면 -1 (앞으로), m2가 MANAGER면 1 (뒤로)
+                    boolean m1IsManager = m1.getRole() == ClubRole.MANAGER || m1.getRole() == ClubRole.ADMIN;
+                    boolean m2IsManager = m2.getRole() == ClubRole.MANAGER || m2.getRole() == ClubRole.ADMIN;
+
+                    if (m1IsManager && !m2IsManager) return -1; // m1이 위로
+                    if (!m1IsManager && m2IsManager) return 1;  // m2가 위로
+
+                    // 우선순위 2: 닉네임 (가나다순)
+                    return m1.getUser().getNickname().compareTo(m2.getUser().getNickname());
+                })
+                .toList(); // 리스트로 변환
+
+        model.addAttribute("club", optDto.get());
+        model.addAttribute("waitingList", waitingList);
+        model.addAttribute("activeList", sortedActiveList);
         model.addAttribute("activeTab", "manager");
-        return "clubs/manager_members"; // 새 HTML 파일
+        return "clubs/manager_members";
     }
 
     // 멤버 승인 (POST)
     @PostMapping("/{clubId}/manager/members/{memberId}/approve")
-    public String approveMember(@PathVariable Long clubId, @PathVariable Long memberId) {
+    public String approveMember(@PathVariable Long clubId, @PathVariable Long memberId, RedirectAttributes ra) {
         clubService.approveMember(clubId, memberId);
+        ra.addFlashAttribute("msg", "멤버 가입이 승인되었습니다.");
         return "redirect:/clubs/" + clubId + "/manager/members";
     }
 
     // 멤버 추방/거절 (POST)
     @PostMapping("/{clubId}/manager/members/{memberId}/kick")
-    public String kickMember(@PathVariable Long clubId, @PathVariable Long memberId) {
+    public String kickMember(@PathVariable Long clubId, @PathVariable Long memberId, RedirectAttributes ra) {
         clubService.kickMember(clubId, memberId);
+        ra.addFlashAttribute("msg", "멤버를 모임에서 추방했습니다.");
         return "redirect:/clubs/" + clubId + "/manager/members";
+    }
+
+    @PostMapping("/{clubId}/manager/members/{memberId}/reject")
+    public String rejectMember(@PathVariable Long clubId,
+                               @PathVariable Long memberId,
+                               @RequestParam("reason") String reason,
+                               RedirectAttributes ra) {
+
+        clubService.rejectMember(clubId, memberId, reason);
+
+        // 거절 전용 메시지
+        ra.addFlashAttribute("msg", "가입 요청을 거절했습니다.");
+
+        return "redirect:/clubs/" + clubId + "/manager/members";
+    }
+
+    @PostMapping("/{clubId}/delete")
+    public String deleteClub(@PathVariable Long clubId, HttpSession session, RedirectAttributes ra) {
+        // 로그인 & 관리자 권한 체크
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
+
+        if (optDto.isEmpty() || !optDto.get().isManager()) {
+            ra.addFlashAttribute("error", "모임 삭제 권한이 없습니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+
+        // 삭제 진행
+        try {
+            clubService.deleteClub(clubId);
+            ra.addFlashAttribute("msg", "모임이 삭제되었습니다.");
+            return "redirect:/clubs"; // 삭제 후엔 메인 목록으로 이동
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "모임 삭제 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/clubs/" + clubId + "/manager";
+        }
+    }
+
+    @GetMapping("/{clubId}/manager/edit")
+    public String getClubEditForm(@PathVariable Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        // 권한 체크 (관리자만)
+        Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
+        if (optDto.isEmpty() || !optDto.get().isManager()) {
+            ra.addFlashAttribute("error", "수정 권한이 없습니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+
+        ClubDetailDto club = optDto.get();
+
+        ClubForm form = new ClubForm(
+                club.name(),        // name
+                club.description(), // description
+                null,               // regionDo (수정 안 함)
+                null,               // regionSi (수정 안 함)
+                null,               // categoryIds (수정 안 함)
+                null,               // newCategoryName
+                null                // imageFile (파일은 비워둠)
+        );
+
+        model.addAttribute("club", club);
+        model.addAttribute("clubForm", form);
+        model.addAttribute("activeTab", "manager");
+
+        return "clubs/club_edit";
+    }
+
+    @PostMapping("/{clubId}/manager/edit")
+    public String updateClub(@PathVariable Long clubId,
+                             @ModelAttribute ClubForm clubForm,
+                             HttpSession session,
+                             RedirectAttributes ra) {
+
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        try {
+            clubService.updateClub(clubId, clubForm, currentUserId);
+            ra.addFlashAttribute("msg", "모임 정보가 수정되었습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "수정 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/clubs/" + clubId + "/manager/edit";
+        }
+
+        return "redirect:/clubs/" + clubId + "/manager";
+    }
+
+    @GetMapping("/{clubId}/manager/features")
+    public String getClubFeaturesForm(@PathVariable Long clubId, Model model, HttpSession session, RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
+        if (optDto.isEmpty() || !optDto.get().isManager()) {
+            ra.addFlashAttribute("error", "관리자 권한이 없습니다.");
+            return "redirect:/clubs/" + clubId;
+        }
+        model.addAttribute("club", optDto.get());
+        model.addAttribute("activeTab", "manager");
+
+        return "clubs/manager_features";
+    }
+
+    @PostMapping("/{clubId}/manager/features")
+    public String updateClubFeatures(@PathVariable Long clubId,
+                                     @RequestParam("policy") ClubJoinPolicy policy,
+                                     RedirectAttributes ra) {
+
+        clubService.updateClubPolicy(clubId, policy);
+        ra.addFlashAttribute("msg", "가입 방식이 변경되었습니다.");
+
+        return "redirect:/clubs/" + clubId + "/manager";
+    }
+
+    @PostMapping("/{clubId}/manager/members/{memberId}/ban")
+    public String banMember(@PathVariable Long clubId,
+                            @PathVariable Long memberId,
+                            RedirectAttributes ra) {
+
+        clubService.banMember(clubId, memberId);
+
+        ra.addFlashAttribute("msg", "해당 멤버를 영구 차단했습니다.");
+
+        return "redirect:/clubs/" + clubId + "/manager/members";
+    }
+
+    @PostMapping("/{clubId}/leave")
+    public String leaveClub(@PathVariable Long clubId, HttpSession session, RedirectAttributes ra) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+
+        try {
+            clubService.leaveClub(clubId, currentUserId);
+            ra.addFlashAttribute("msg", "모임에서 탈퇴했습니다.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/clubs/" + clubId;
+        }
+
+        return "redirect:/clubs";
     }
 }

@@ -23,7 +23,7 @@
         </div>
 
         <div class="detail-card" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 16px;">
-            <h2 style="margin: 0; font-size: 20px;">게시판 목록</h2>
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">게시판 목록</h2>
 
             <a th:if="${isAlreadyMember}"
                th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
@@ -48,6 +48,12 @@
 
                         <div class="author-info">
                             <span class="author-name" th:text="${post.author.nickname}">작성자</span>
+
+                            <span class="badge-owner"
+                                  th:if="${post.author.id == club.ownerId}">
+                                [모임장]
+                            </span>
+
                             <span class="post-date" th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd')}">날짜</span>
                         </div>
                     </div>
@@ -62,20 +68,29 @@
                 </div>
             </div>
 
-            <div th:if="${posts.totalElements == 0}" class="empty-state">
-                <h3 class="empty-title">아직 작성된 게시글이 없습니다.</h3>
-                <p class="empty-desc">
-                    이 모임의 첫 번째 이야기를 시작해보세요!<br>
-                    멤버들과 소소한 일상을 공유할 수 있습니다.
-                </p>
+            <div th:if="${posts.totalElements == 0}">
 
-                <a th:if="${isAlreadyMember}"
-                   th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
-                   class="btn primary mt12">
-                    첫 글 작성하기
-                </a>
+                <div th:if="${searchKeyword != null and searchKeyword != ''}" class="empty-state">
+                    <h3 class="empty-title">검색 결과가 없습니다.</h3>
+                    <p class="empty-desc">
+                        '<span th:text="${searchKeyword}" style="color: #1db954; font-weight: bold;"></span>'에 대한 검색 결과를 찾지 못했습니다.<br>
+                        다른 검색어로 다시 시도해 보세요.
+                    </p>
+                </div>
+
+                <div th:if="${searchKeyword == null or searchKeyword == ''}" class="empty-state">
+                    <h3 class="empty-title">아직 작성된 게시글이 없습니다.</h3>
+                    <p class="empty-desc">
+                        이 모임의 첫 번째 이야기를 시작해보세요!<br>
+                        멤버들과 소소한 일상을 공유할 수 있습니다.
+                    </p>
+
+                    <a th:if="${isAlreadyMember}"
+                       th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
+                       class="btn primary mt12">첫 글 작성하기</a>
+                </div>
+
             </div>
-        </div>
         <div class="pagination-wrapper" th:if="${posts.totalPages > 0}">
 
             <div class="page-info">
@@ -84,21 +99,21 @@
 
             <div class="pagination-buttons">
 
-                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number - 1})}"
+                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number - 1}, type=${searchType}, keyword=${searchKeyword})}"
                    class="page-btn prev-next"
                    th:classappend="${posts.first} ? 'disabled' : ''">
                     &lt; 이전
                 </a>
 
                 <a th:each="page : ${#numbers.sequence(startPage, endPage)}"
-                   th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${page - 1})}"
+                   th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${page - 1}, type=${searchType}, keyword=${searchKeyword})}"
                    th:text="${page}"
                    class="page-btn"
                    th:classappend="${page == nowPage} ? 'active' : ''">
                     1
                 </a>
 
-                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number + 1})}"
+                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number + 1}, type=${searchType}, keyword=${searchKeyword})}"
                    class="page-btn prev-next"
                    th:classappend="${posts.last} ? 'disabled' : ''">
                     다음 &gt;
@@ -106,8 +121,26 @@
             </div>
         </div>
 
-        <div style="height: 60px;"></div>
+            <div class="search-container" style="display: flex; justify-content: center; margin-bottom: 60px;">
+                <form th:action="@{/clubs/{clubId}/board(clubId=${club.id})}" method="get"
+                      style="display: flex; gap: 8px; background: #0f231e; padding: 10px; border-radius: 12px; border: 1px solid #1a332c;">
 
+                    <select name="type" class="custom-select" style="width: 120px;">
+                        <option value="all" th:selected="${searchType == 'all'}">제목+내용</option>
+                        <option value="title" th:selected="${searchType == 'title'}">제목</option>
+                        <option value="content" th:selected="${searchType == 'content'}">내용</option>
+                    </select>
+
+                    <input type="text" name="keyword" th:value="${searchKeyword}"
+                           class="form-control" placeholder="검색어를 입력하세요"
+                           style="width: 250px; height: 40px; border: none; background: #1a332c;">
+
+                    <button type="submit" class="btn primary" style="height: 40px; padding: 0 20px;">검색</button>
+                </form>
+            </div>
+
+        <div style="height: 60px;"></div>
+        </div>
     </main>
 </div>
 
@@ -135,6 +168,38 @@
         setTimeout(() => {
             toast.classList.remove('show');
         }, 3000);
+    }
+</script>
+
+<script th:inline="javascript">
+    // 검색어 하이라이트 기능
+    document.addEventListener("DOMContentLoaded", function() {
+        const keyword = [[${searchKeyword}]]; // 서버에서 받은 검색어
+
+        if (keyword && keyword.trim() !== "") {
+            const posts = document.querySelectorAll('.post-card');
+
+            posts.forEach(card => {
+                // 제목(.post-title)과 내용(.post-preview)에서 검색어 찾기
+                const titleEl = card.querySelector('.post-title');
+                const contentEl = card.querySelector('.post-preview');
+
+                if (titleEl) highlightText(titleEl, keyword);
+                if (contentEl) highlightText(contentEl, keyword);
+            });
+        }
+    });
+
+    function highlightText(element, keyword) {
+        const originalText = element.textContent;
+        // 대소문자 구분 없이 검색 (gi)
+        const regex = new RegExp(`(${keyword})`, 'gi');
+
+        // 검색된 단어를 span class="highlight" 로 감싸기
+        if (originalText.match(regex)) {
+            const newHtml = originalText.replace(regex, '<span class="highlight">$1</span>');
+            element.innerHTML = newHtml;
+        }
     }
 </script>
 

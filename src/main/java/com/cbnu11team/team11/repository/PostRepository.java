@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
-import java.util.List;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
     @Query(value = "SELECT p FROM Post p JOIN FETCH p.author WHERE p.club.id = :clubId",
@@ -17,4 +16,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT p FROM Post p JOIN FETCH p.author LEFT JOIN FETCH p.images WHERE p.id = :postId")
     Optional<Post> findPostWithAuthorById(@Param("postId") Long postId);
-}
+
+    // 제목 검색
+    @Query("SELECT p FROM Post p JOIN FETCH p.author LEFT JOIN FETCH p.images WHERE p.club.id = :clubId AND p.title LIKE %:keyword%")
+    Page<Post> findByClubIdAndTitleContaining(@Param("clubId") Long clubId, @Param("keyword") String keyword, Pageable pageable);
+
+    // 내용 검색
+    @Query("SELECT p FROM Post p JOIN FETCH p.author LEFT JOIN FETCH p.images WHERE p.club.id = :clubId AND p.content LIKE %:keyword%")
+    Page<Post> findByClubIdAndContentContaining(@Param("clubId") Long clubId, @Param("keyword") String keyword, Pageable pageable);
+
+    // 제목+내용 검색
+    @Query("SELECT p FROM Post p JOIN FETCH p.author LEFT JOIN FETCH p.images WHERE p.club.id = :clubId AND (p.title LIKE %:keyword% OR p.content LIKE %:keyword%)")
+    Page<Post> findByClubIdAndTitleOrContentContaining(@Param("clubId") Long clubId, @Param("keyword") String keyword, Pageable pageable);}

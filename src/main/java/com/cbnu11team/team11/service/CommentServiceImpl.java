@@ -68,16 +68,18 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void deleteComment(Long commentId, Long currentUserId) {
-        // 댓글 조회
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
 
-        // 권한 검사
-        if (!comment.getAuthor().getId().equals(currentUserId)) {
+        Long clubOwnerId = comment.getPost().getClub().getOwner().getId();
+
+        boolean isAuthor = comment.getAuthor().getId().equals(currentUserId);
+        boolean isClubOwner = clubOwnerId.equals(currentUserId);
+
+        if (!isAuthor && !isClubOwner) {
             throw new SecurityException("댓글을 삭제할 권한이 없습니다.");
         }
 
-        // 삭제
         commentRepository.delete(comment);
     }
 

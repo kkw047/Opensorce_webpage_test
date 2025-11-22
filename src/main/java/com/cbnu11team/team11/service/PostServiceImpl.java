@@ -34,11 +34,28 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Post> getPostsByClubId(Long clubId, int page) {
+    public Page<Post> getPostsByClubId(Long clubId, int page, String type, String keyword) {
         Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Post> postPage;
 
-        Page<Post> postPage = postRepository.findPostsWithAuthorByClubId(clubId, pageable);
+        // 검색어가 없으면 전체 조회
+        if (keyword == null || keyword.isBlank()) {
+            postPage = postRepository.findPostsWithAuthorByClubId(clubId, pageable);
+        }
+        // 제목 검색
+        else if ("title".equals(type)) {
+            postPage = postRepository.findByClubIdAndTitleContaining(clubId, keyword, pageable);
+        }
+        // 내용 검색
+        else if ("content".equals(type)) {
+            postPage = postRepository.findByClubIdAndContentContaining(clubId, keyword, pageable);
+        }
+        // 제목+내용 검색 (기본값)
+        else {
+            postPage = postRepository.findByClubIdAndTitleOrContentContaining(clubId, keyword, pageable);
+        }
 
+        // 이미지 초기화 (Lazy 로딩 방지)
         postPage.forEach(post -> post.getImages().size());
 
         return postPage;
@@ -87,7 +104,10 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findPostWithAuthorById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시물을 찾을 수 없습니다. ID: " + postId));
 
-        if (!post.getAuthor().getId().equals(currentUserId)) {
+        boolean isAuthor = post.getAuthor().getId().equals(currentUserId);
+        boolean isClubOwner = post.getClub().getOwner().getId().equals(currentUserId);
+
+        if (!isAuthor && !isClubOwner) {
             throw new SecurityException("게시물을 삭제할 권한이 없습니다.");
         }
 

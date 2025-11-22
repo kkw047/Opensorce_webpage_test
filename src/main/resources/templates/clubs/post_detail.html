@@ -32,7 +32,13 @@
                         <div class="author-display">
                             <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
                             <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
+
                             <span th:text="*{author.nickname}">작성자명</span>
+
+                            <span class="badge-owner"
+                                  th:if="${post.author.id == club.ownerId}">
+                                [모임장]
+                            </span>
                         </div>
 
                         <span class="meta-divider">|</span>
@@ -59,13 +65,16 @@
 
                     <th:block th:if="${session.LOGIN_USER_ID == post.author.id}">
                         <a th:href="@{/clubs/{clubId}/board/{postId}/edit(clubId=${club.id}, postId=${post.id})}" class="btn">수정</a>
+                    </th:block>
 
-                        <button type="button" class="btn btn-danger" onclick="openDeleteModal()">삭제</button>
+                        <th:block th:if="${session.LOGIN_USER_ID == post.author.id or session.LOGIN_USER_ID == club.ownerId}">
 
-                        <form id="deleteForm"
-                              th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${post.club.id}, postId=${post.id})}"
-                              method="post" style="display:none;">
-                        </form>
+                            <button type="button" class="btn btn-danger" onclick="openDeleteModal()">삭제</button>
+
+                            <form id="deleteForm"
+                                  th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${post.club.id}, postId=${post.id})}"
+                                  method="post" style="display:none;">
+                            </form>
                     </th:block>
                 </div>
 
@@ -107,6 +116,12 @@
                         <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
 
                         <strong th:text="*{author.nickname}">닉네임</strong>
+
+                        <span class="badge-owner"
+                              th:if="${comment.author.id == club.ownerId}">
+                            [모임장]
+                        </span>
+
                         <span style="font-size: 0.8em; color: #555;">•</span>
                         <span style="font-size: 0.8em; color: #9ec8b8;"
                               th:text="*{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : ''}">날짜</span>
@@ -115,16 +130,18 @@
                     <div class="comment-content" th:text="*{content}">내용</div>
 
                     <div class="comment-actions">
-                        <th:block th:if="${session.LOGIN_USER_ID == comment.author.id}">
-                            <a th:href="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
-                               class="btn-comment-action">수정</a>
+                        <a th:if="${session.LOGIN_USER_ID == comment.author.id}"
+                           th:href="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
+                           class="btn-comment-action">
+                            수정
+                        </a>
 
-                            <button type="button"
-                                    class="btn-comment-action delete"
-                                    th:onclick="|openCommentDeleteModal('${club.id}', '${post.id}', '${comment.id}')|">
-                                삭제
-                            </button>
-                        </th:block>
+                        <button type="button"
+                                class="btn-comment-action delete"
+                                th:if="${session.LOGIN_USER_ID == comment.author.id or session.LOGIN_USER_ID == club.ownerId}"
+                                th:onclick="|openCommentDeleteModal('${club.id}', '${post.id}', '${comment.id}')|">
+                            삭제
+                        </button>
                     </div>
                 </div>
             </div>

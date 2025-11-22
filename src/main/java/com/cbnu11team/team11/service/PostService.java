@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface PostService {
 
-    Page<Post> getPostsByClubId(Long clubId, int page);
+    Page<Post> getPostsByClubId(Long clubId, int page, String type, String keyword);
 
     Optional<Post> findPostById(Long postId);
 

@@ -163,6 +163,17 @@
             </form>
         </div>
 
+            <div th:if="${isAlreadyMember and !isOwner}"
+                 style="margin-top: 20px; border-top: 1px solid #1a332c; padding-top: 15px; display: flex; justify-content: flex-end;">
+
+                <button type="button"
+                        class="btn"
+                        onclick="openLeaveModal()"
+                        style="font-size: 13px; color: #9ec8b8; background: transparent; border: 1px solid #29433b; cursor: pointer;">
+                    모임 탈퇴하기
+                </button>
+            </div>
+
         </div> </main>
 </div>
 <div th:replace="~{fragments/common :: modals}"></div>
@@ -174,6 +185,39 @@
 </div>
 
 <div th:replace="~{fragments/common :: scripts}"></div>
+
+<div id="leaveModal" class="modal" style="display: none;">
+    <div class="modal-card" style="text-align: center; width: 360px;">
+        <h3 style="margin-top: 0; color: #e7f3ee;">모임 탈퇴</h3>
+        <p style="color: #b0c4de; margin: 20px 0;">
+            정말로 이 모임에서 나가시겠습니까?<br>
+            작성한 게시글과 댓글은 삭제되지 않습니다.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button type="button" class="btn" onclick="closeLeaveModal()">취소</button>
+
+            <form th:action="@{/clubs/{id}/leave(id=${club.id})}" method="post">
+                <button type="submit" class="btn btn-danger">네, 탈퇴합니다</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLeaveModal() {
+        document.getElementById('leaveModal').style.display = 'flex';
+    }
+    function closeLeaveModal() {
+        document.getElementById('leaveModal').style.display = 'none';
+    }
+
+    // 모달 바깥 클릭 시 닫기
+    window.addEventListener('click', function(event) {
+        if (event.target == document.getElementById('leaveModal')) {
+            closeLeaveModal();
+        }
+    });
+</script>
 
 </body>
 </html>

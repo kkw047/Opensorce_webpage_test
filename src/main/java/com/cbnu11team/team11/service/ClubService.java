@@ -1,10 +1,6 @@
 package com.cbnu11team.team11.service;
 
-import com.cbnu11team.team11.domain.Category;
-import com.cbnu11team.team11.domain.Club;
-import com.cbnu11team.team11.domain.User;
-import com.cbnu11team.team11.domain.ClubMember;
-import com.cbnu11team.team11.domain.ClubMemberId;
+import com.cbnu11team.team11.domain.*;
 import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.repository.ClubRepository;
 import com.cbnu11team.team11.repository.RegionKorRepository;
@@ -12,9 +8,8 @@ import com.cbnu11team.team11.repository.UserRepository;
 import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.web.dto.ClubDetailDto;
 import com.cbnu11team.team11.web.dto.ClubForm;
-import com.cbnu11team.team11.domain.ClubRole;
-import com.cbnu11team.team11.domain.ClubMemberStatus;
 
+import com.cbnu11team.team11.web.dto.ClubMemberDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
@@ -93,12 +88,27 @@ public class ClubService {
         return clubRepository.save(club);
     }
 
-    /* ===== Join Club ===== */
+    @Transactional
+    public void banMember(Long clubId, Long userId) {
+        ClubMemberId id = new ClubMemberId(clubId, userId);
+        ClubMember member = clubMemberRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("멤버가 존재하지 않습니다."));
+
+        member.setStatus(ClubMemberStatus.BANNED);
+        member.setRole(ClubRole.MEMBER); // 혹시 매니저였다면 일반 등급으로 강등 후 차단
+    }
+
     @Transactional
     public void joinClub(Long clubId, Long userId) {
         ClubMemberId memberId = new ClubMemberId(clubId, userId);
         if (clubMemberRepository.existsById(memberId)) {
-            throw new IllegalStateException("이미 가입한 모임입니다.");
+            ClubMember existingMember = clubMemberRepository.findById(memberId).get();
+
+            if (existingMember.getStatus() == ClubMemberStatus.BANNED) {
+                throw new IllegalStateException("이 모임에서 차단되어 재가입할 수 없습니다.");
+            }
+
+            throw new IllegalStateException("이미 가입(또는 신청)한 모임입니다.");
         }
 
         // 연관 엔티티 조회
@@ -113,6 +123,12 @@ public class ClubService {
         newMember.setClub(club);
         newMember.setUser(user);
         newMember.setRole(ClubRole.MEMBER);
+
+        if (club.getJoinPolicy() == ClubJoinPolicy.AUTOMATIC) {
+            newMember.setStatus(ClubMemberStatus.ACTIVE); // 자동 가입 -> 활동 중
+        } else {
+            newMember.setStatus(ClubMemberStatus.WAITING); // 승인제 -> 대기 중
+        }
 
         clubMemberRepository.save(newMember);
     }
@@ -209,29 +225,40 @@ public class ClubService {
         Club club = optClub.get();
 
         boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
-
         boolean isAlreadyMember = false;
         boolean isManager = false;
 
         if (currentUserId != null) {
             ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
-
             Optional<ClubMember> memberOpt = clubMemberRepository.findById(memberId);
 
             if (memberOpt.isPresent()) {
                 isAlreadyMember = true;
 
-                // 역할이 MANAGER이면 관리자 true
-                ClubRole role = memberOpt.get().getRole();
-
-                if (role == ClubRole.MANAGER || role == ClubRole.ADMIN) {
+                if (memberOpt.get().getRole() == ClubRole.MANAGER || memberOpt.get().getRole() == ClubRole.ADMIN) {
                     isManager = true;
                 }
             }
         }
 
-        // 엔티티 -> DTO 변환
-        ClubDetailDto dto = ClubDetailDto.fromEntity(club, isOwner, isManager, isAlreadyMember);
+        List<ClubMember> activeMembers = club.getMembers().stream()
+                .filter(m -> m.getStatus() == ClubMemberStatus.ACTIVE)
+                .toList();
+
+        ClubDetailDto dto = new ClubDetailDto(
+                club.getId(),
+                club.getName(),
+                club.getDescription(),
+                club.getImageUrl(),
+                isOwner,
+                isManager,
+                isAlreadyMember,
+                club.getCategories().stream().map(Category::getName).toList(),
+                activeMembers.stream().map(ClubMemberDto::fromEntity).toList(),
+                club.getJoinPolicy(),
+                club.getOwner().getId()
+        );
+
         return Optional.of(dto);
     }
     @Transactional(readOnly = true)
@@ -254,5 +281,58 @@ public class ClubService {
     public void kickMember(Long clubId, Long memberId) {
         ClubMemberId id = new ClubMemberId(clubId, memberId);
         clubMemberRepository.deleteById(id); // 아예 삭제해버림
+    }
+
+    @Transactional
+    public void rejectMember(Long clubId, Long userId, String reason) {
+        ClubMemberId id = new ClubMemberId(clubId, userId);
+
+        System.out.println("========== 가입 거절 ==========");
+        System.out.println("Club ID: " + clubId + ", User ID: " + userId);
+        System.out.println("거절 사유: " + reason);
+        System.out.println("=============================");
+
+        clubMemberRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteClub(Long clubId) {
+        // 관련된 데이터(멤버, 게시글 등)는 Entity의 CascadeType.ALL 설정에 의해 같이 삭제되거나, DB의 ON DELETE CASCADE 설정에 의해 삭제됨
+        clubRepository.deleteById(clubId);
+    }
+
+    @Transactional
+    public void updateClub(Long clubId, ClubForm form, Long userId) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
+
+        club.setName(form.name());
+        club.setDescription(form.description());
+
+        // 파일이 있으면 교체
+        if (form.imageFile() != null && !form.imageFile().isEmpty()) {
+            String imageUrl = fileStorageService.save(form.imageFile());
+            club.setImageUrl(imageUrl);
+        }
+    }
+
+    @Transactional
+    public void updateClubPolicy(Long clubId, ClubJoinPolicy policy) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
+
+        club.setJoinPolicy(policy);
+    }
+
+    @Transactional
+    public void leaveClub(Long clubId, Long userId) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
+
+        if (club.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("모임장은 탈퇴할 수 없습니다. 모임을 삭제하거나 권한을 양도하세요.");
+        }
+
+        clubMemberRepository.deleteByClubIdAndUserId(clubId, userId);
     }
 }
