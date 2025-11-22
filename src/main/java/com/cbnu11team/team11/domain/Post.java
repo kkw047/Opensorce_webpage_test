@@ -32,6 +32,10 @@ public class Post {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PostImage> images = new ArrayList<>();
+
     // --- 관계 매핑 ---
 
     @ManyToOne(fetch = FetchType.LAZY)

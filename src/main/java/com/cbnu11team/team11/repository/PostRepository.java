@@ -15,6 +15,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             countQuery = "SELECT count(p) FROM Post p WHERE p.club.id = :clubId")
     Page<Post> findPostsWithAuthorByClubId(@Param("clubId") Long clubId, Pageable pageable);
 
-    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.id = :postId")
+    @Query("SELECT p FROM Post p JOIN FETCH p.author LEFT JOIN FETCH p.images WHERE p.id = :postId")
     Optional<Post> findPostWithAuthorById(@Param("postId") Long postId);
 }

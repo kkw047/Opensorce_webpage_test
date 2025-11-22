@@ -906,3 +906,152 @@ textarea, body, .post-content, .comment-content {
 .mt12 {
     margin-top: 12px;
 }
+
+/* 입력창도 본문과 똑같은 폰트 사용 */
+input, textarea, select, button {
+    font-family: inherit; /* 부모(body) 폰트 따라가기 */
+    font-size: 1rem;
+}
+
+/* 파일 업로드 버튼 커스텀 (기존 못생긴 버튼 숨기기용) */
+.file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-upload-label {
+    display: inline-block;
+    padding: 8px 16px;
+    color: #e7f3ee;
+    background-color: #142a24; /* 버튼 배경색 */
+    border: 1px solid #29433b;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.file-upload-label:hover {
+    background-color: #1b3830;
+    border-color: #1db954;
+    color: #1db954;
+}
+
+/* 실제 파일 input은 숨김 */
+.hidden-file-input {
+    display: none;
+}
+
+/* 선택된 파일명 표시 텍스트 */
+.file-name-display {
+    font-size: 0.9rem;
+    color: #9ec8b8;
+}
+
+/* 3) 게시글 목록 디자인 변경 (가로 배치: 텍스트 왼쪽, 사진 오른쪽) */
+/* 기존 .post-card 스타일을 덮어씁니다. */
+.post-card {
+    flex-direction: row; /* 가로 배치로 변경 */
+    align-items: center; /* 수직 중앙 정렬 */
+    gap: 20px;
+}
+
+.card-content-wrapper {
+    flex: 1; /* 남은 공간 다 차지 (텍스트 영역) */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0; /* 텍스트 말줄임(...)을 위해 필수 */
+}
+
+/* 리스트용 썸네일 (작고 네모나게) */
+.list-thumbnail {
+    width: 120px;        /* 고정 너비 */
+    height: 120px;       /* 고정 높이 */
+    border-radius: 12px;
+    object-fit: cover;   /* 꽉 차게 자르기 */
+    border: 1px solid #29433b;
+    flex-shrink: 0;      /* 공간 부족해도 찌그러지지 않음 */
+    background-color: #000;
+}
+
+/* 모바일에서는 다시 세로로 (선택사항) */
+@media (max-width: 600px) {
+    .post-card {
+        flex-direction: column-reverse; /* 사진을 위로, 글을 아래로 */
+        align-items: flex-start;
+    }
+    .list-thumbnail {
+        width: 100%;
+        height: 180px;
+    }
+}
+
+/* 전체를 덮는 검은 배경 */
+.image-viewer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* 85% 투명한 검은색 */
+    z-index: 9999; /* 최상단에 위치 */
+    display: none; /* 평소엔 숨김 */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px); /* 배경 살짝 흐리게 (고급진 느낌) */
+}
+
+/* 확대될 이미지 */
+.viewer-image {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    cursor: grab; /* 평소엔 손바닥 */
+    transform-origin: center center; /* 변형 기준점 */
+
+    -webkit-user-drag: none;  /* 크롬, 사파리, 엣지 */
+        -khtml-user-drag: none;   /* 구형 브라우저 */
+        -moz-user-drag: none;     /* 파이어폭스 */
+        -o-user-drag: none;       /* 오페라 */
+        user-drag: none;          /* 표준 */
+
+        /* 텍스트 선택 방지 */
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+}
+
+/* 클릭해서 잡았을 때 */
+.viewer-image:active {
+    cursor: grabbing; /* 주먹 쥔 손 */
+}
+
+/* 닫기 버튼 (우측 상단 X) */
+.viewer-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #ffffff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10000;
+    transition: color 0.2s;
+}
+
+.viewer-close-btn:hover {
+    color: #ff6b6b; /* 호버 시 빨간색 */
+}
+
+/* 게시글 본문의 이미지에 마우스 올렸을 때 */
+.post-detail-content img {
+    cursor: zoom-in; /* 돋보기 커서 */
+    transition: filter 0.2s;
+}
+.post-detail-content img:hover {
+    filter: brightness(0.9); /* 살짝 어두워지며 클릭 유도 */
+}

@@ -162,7 +162,7 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
-        model.addAttribute("postForm", new PostForm("", ""));
+        model.addAttribute("postForm", new PostForm("", "", null, null));
         model.addAttribute("clubId", clubId);
         return "post_new";
     }
@@ -265,9 +265,10 @@ public class ClubController {
         }
 
         addClubDetailAttributes(clubId, model, session, ra);
-        model.addAttribute("postForm", new PostForm(post.getTitle(), post.getContent()));
+        model.addAttribute("postForm", new PostForm(post.getTitle(), post.getContent(), null, null));
         model.addAttribute("clubId", clubId);
         model.addAttribute("postId", postId);
+        model.addAttribute("post", post);
 
         return "post_edit";
     }

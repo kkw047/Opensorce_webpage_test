@@ -40,6 +40,15 @@
                     </div>
                 </div>
 
+                <div th:if="${!post.images.isEmpty()}" style="margin-bottom: 20px;">
+                    <div th:each="img : ${post.images}" style="margin-bottom: 10px;">
+                        <img th:src="${img.imageUrl}"
+                             alt="첨부 이미지"
+                             style="max-width: 100%; border-radius: 8px; border: 1px solid #1a332c; cursor: grab;"
+                             onclick="openImageViewer(this.src)">
+                    </div>
+                </div>
+
                 <div class="post-content" th:text="*{content}">
                     게시글 내용...
                 </div>
@@ -201,6 +210,99 @@
         if (event.target === postModal) closeDeleteModal();
         if (event.target === commentModal) closeCommentDeleteModal();
     });
+</script>
+
+<div id="imageViewer" class="image-viewer-overlay" onclick="closeImageViewer()">
+    <span class="viewer-close-btn">&times;</span>
+    <img id="viewerImage" class="viewer-image" src="" alt="확대 이미지" onclick="event.stopPropagation()">
+</div>
+
+<script>
+    // 상태 변수들
+    let currentScale = 1; // 현재 배율
+    let currentX = 0;     // 현재 X 위치 (이동 거리)
+    let currentY = 0;     // 현재 Y 위치 (이동 거리)
+
+    // 드래그 관련 변수
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const viewer = document.getElementById('imageViewer');
+    const img = document.getElementById('viewerImage');
+
+    // 브라우저의 고유 이미지 드래그 (복사) 기능 차단
+    img.ondragstart = function() { return false; };
+
+    // 뷰어 열기 (열 때마다 상태 초기화)
+    function openImageViewer(src) {
+        img.src = src;
+        viewer.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // 뒷배경 스크롤 방지
+
+        // 열 때마다 위치와 배율을 0, 1로 리셋
+        currentScale = 1;
+        currentX = 0;
+        currentY = 0;
+        img.style.cursor = 'grab';
+        updateTransform();
+    }
+
+    // 뷰어 닫기
+    function closeImageViewer() {
+        viewer.style.display = 'none';
+        document.body.style.overflow = 'auto'; // 스크롤 허용
+    }
+
+    // CSS 변형 적용 함수 (확대 + 이동 동시 적용)
+    function updateTransform() {
+        img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
+    }
+
+    // 마우스 눌렀을 때 (시작)
+    img.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        isDragging = true;
+        startX = e.clientX - currentX;
+        startY = e.clientY - currentY;
+
+        img.style.cursor = 'grabbing';
+    });
+
+    // 마우스 움직일 때 (이동)
+    window.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        currentX = e.clientX - startX;
+        currentY = e.clientY - startY;
+
+        updateTransform();
+    });
+
+    // 마우스 뗐을 때 (종료)
+    window.addEventListener('mouseup', function() {
+        if (isDragging) {
+            isDragging = false;
+            img.style.cursor = 'grab';
+        }
+    });
+
+    viewer.addEventListener('wheel', function(event) {
+        event.preventDefault();
+
+        if (event.deltaY < 0) {
+            currentScale += 0.1;
+        } else {
+            currentScale -= 0.1;
+        }
+
+        // 배율 제한 (0.5배 ~ 5배)
+        if (currentScale < 0.5) currentScale = 0.5;
+        if (currentScale > 5.0) currentScale = 5.0;
+
+        updateTransform();
+    }, { passive: false });
+
 </script>
 
 </body>

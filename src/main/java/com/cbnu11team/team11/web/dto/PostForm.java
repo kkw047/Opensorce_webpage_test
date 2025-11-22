@@ -2,6 +2,9 @@ package com.cbnu11team.team11.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 public record PostForm(
 
@@ -11,5 +14,7 @@ public record PostForm(
 
         @NotBlank(message = "내용은 필수 입력 사항입니다.")
         @Size(max = 1000, message = "내용은 1000자를 넘을 수 없습니다.")
-        String content
+        String content,
+        List<MultipartFile> imageFiles,
+        List<Long> deleteImageIds
 ) { }

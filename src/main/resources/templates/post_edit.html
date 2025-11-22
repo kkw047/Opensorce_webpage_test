@@ -22,7 +22,8 @@
 
             <form th:action="@{/clubs/{clubId}/board/{postId}/edit(clubId=${clubId}, postId=${postId})}"
                   th:object="${postForm}"
-                  method="post">
+                  method="post"
+                  enctype="multipart/form-data">
 
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label for="title" style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">제목</label>
@@ -37,6 +38,64 @@
                          th:errors="*{title}"
                          style="color: #ff6b6b; font-size: 0.9em; margin-top: 4px;"></div>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">사진 첨부</label>
+
+                    <div th:if="${post != null and !post.images.isEmpty()}" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                        <p style="margin: 0; font-size: 13px; color: #9ec8b8;">현재 등록된 사진 (체크하면 삭제됩니다)</p>
+
+                        <div th:each="img : ${post.images}"
+                             style="display: flex; align-items: center; gap: 15px; padding: 10px; border: 1px dashed #29433b; border-radius: 8px; background: #0b1b17;">
+
+                            <img th:src="${img.imageUrl}" alt="기존 이미지" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;">
+
+                            <label style="font-size: 14px; color: #ff8a8a; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="deleteImageIds" th:value="${img.id}" style="width: 16px; height: 16px; accent-color: #ff8a8a;">
+                                삭제하기
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="file-upload-wrapper">
+                        <label for="imageFiles" class="file-upload-label">사진 추가하기 (최대 10장)</label>
+                        <input type="file"
+                               id="imageFiles"
+                               th:field="*{imageFiles}"
+                               class="hidden-file-input"
+                               accept="image/*"
+                               multiple
+                               onchange="updateFileNames(this)"> <span id="fileNameDisplay" class="file-name-display">선택된 파일 없음</span>
+                    </div>
+                    <p style="font-size: 12px; color: #9ec8b8; margin-top: 8px;">사진을 추가하면 기존 사진 뒤에 붙습니다.</p>
+                </div>
+
+                <script>
+                    function updateFileNames(input) {
+                        const display = document.getElementById('fileNameDisplay');
+
+                        if (input.files && input.files.length > 0) {
+                            if (input.files.length > 10) {
+                                alert("사진은 최대 10장까지만 선택할 수 있습니다.");
+                                input.value = "";
+                                display.textContent = "선택된 파일 없음";
+                                return;
+                            }
+
+                            // 파일 이름 목록 만들기
+                            let names = [];
+                            for (let i = 0; i < input.files.length; i++) {
+                                names.push(input.files[i].name);
+                            }
+
+                            display.textContent = names.join(', ');
+                            display.style.color = "#1db954";
+                        } else {
+                            display.textContent = "변경할 파일 없음";
+                            display.style.color = "#9ec8b8";
+                        }
+                    }
+                </script>
 
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label for="content" style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">내용</label>
@@ -62,8 +121,7 @@
                     </a>
                     <button type="submit" class="btn primary">수정 완료</button>
                 </div>
-            </form>
-        </div>
+            </form> </div>
     </main>
 </div>
 

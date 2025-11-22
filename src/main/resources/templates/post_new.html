@@ -2,46 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>새 게시물 작성</title>
+    <title>새 게시글 작성</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-
-    <style>
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-group .label {
-            /* app.css의 .toolbar .label 스타일을 가져옴 */
-            color: #9ec8b8;
-            font-size: 12px;
-            margin-bottom: 6px; /* label과 input 사이 간격 */
-        }
-
-        /* 3. 유효성 검사 에러 메시지 스타일 (다크 테마) */
-        .error-message {
-            color: #ff8a8a; /* 밝은 빨간색 */
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-
-        /* 4. app.css의 기본 input/textarea 스타일을 그대로 사용함 */
-        /* .form-control { width: 100%; ... } 등은 필요 없음 */
-
-        .button-group {
-            text-align: right;
-            margin-top: 20px;
-        }
-
-        /* app.css에 .btn-secondary가 없다면 정의 */
-        .btn.btn-secondary {
-            border-color: #29433b;
-            background: #142a24;
-            color: #e7f3ee;
-            margin-right: 8px;
-        }
-        .btn.btn-secondary:hover {
-            filter: brightness(1.05);
-        }
-    </style>
 </head>
 <body class="bg-deep">
 
@@ -52,40 +14,79 @@
 
     <main class="content">
         <div class="detail-card">
-            <h1>새 게시물 작성</h1>
+            <div th:replace="~{fragments/common :: club-tabs}"></div>
+        </div>
+
+        <div class="detail-card" style="margin-top: 16px;">
+            <h2 style="margin-bottom: 20px; font-size: 24px;">새 게시글 작성</h2>
 
             <form th:action="@{/clubs/{clubId}/board/new(clubId=${clubId})}"
-                  th:object="${postForm}" method="post">
+                  th:object="${postForm}"
+                  method="post"
+                  enctype="multipart/form-data">
 
-                <div th:if="${errorMessage}" class="error-message"
-                     style="background-color: #3f2a2a; padding: 10px; border-radius: 8px; margin-bottom: 15px;"
-                     th:text="${errorMessage}">
-                    오류가 발생했습니다.
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="title" style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">제목</label>
+                    <input type="text" id="title" th:field="*{title}" class="form-control" placeholder="제목을 입력하세요">
+                    <div class="error-message" th:if="${#fields.hasErrors('title')}" th:errors="*{title}" style="color: #ff6b6b; font-size: 0.9em; margin-top: 4px;"></div>
                 </div>
 
-                <div class="form-group">
-                    <div class="label" for="title">제목</div>
-                    <input type="text" id="title" th:field="*{title}" required>
-                    <div th:if="${#fields.hasErrors('title')}" th:errors="*{title}" class="error-message">
-                        제목을 입력해주세요.
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">사진 첨부</label>
+
+                    <div class="file-upload-wrapper">
+                        <label for="imageFiles" class="file-upload-label">사진 선택하기 (최대 10장)</label>
+                        <input type="file"
+                               id="imageFiles"
+                               th:field="*{imageFiles}"
+                               class="hidden-file-input"
+                               accept="image/*"
+                               multiple
+                               onchange="updateFileNames(this)">
+
+                        <span id="fileNameDisplay" class="file-name-display">선택된 파일 없음</span>
                     </div>
+                    <p style="font-size: 12px; color: #9ec8b8; margin-top: 8px;">* 사진은 최대 10장까지 선택 가능합니다.</p>
                 </div>
 
-                <div class="form-group">
-                    <div class="label" for="content">내용</div>
-                    <textarea th:field="*{content}"
-                              rows="10"
-                              maxlength="1000"
-                              placeholder="내용을 입력하세요 (최대 1000자)"
-                              style="resize: none;"
-                              class="form-control"></textarea>
+                <script>
+                    function updateFileNames(input) {
+                        const display = document.getElementById('fileNameDisplay');
+
+                        // 파일이 선택되었을 때
+                        if (input.files && input.files.length > 0) {
+                            if (input.files.length > 10) {
+                                alert("사진은 최대 10장까지만 선택할 수 있습니다.");
+                                input.value = "";
+                                display.textContent = "선택된 파일 없음";
+                                return;
+                            }
+
+                            // 파일 이름들을 가져와서 쉼표로 연결
+                            let names = [];
+                            for (let i = 0; i < input.files.length; i++) {
+                                names.push(input.files[i].name);
+                            }
+
+                            display.textContent = names.join(', '); // "사진1.jpg, 사진2.png"
+                            display.style.color = "#1db954";
+                        } else {
+                            display.textContent = "선택된 파일 없음";
+                            display.style.color = "#9ec8b8";
+                        }
+                    }
+                </script>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="content" style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">내용</label>
+                    <textarea id="content" th:field="*{content}" rows="10" maxlength="1000" class="form-control" style="resize: none;" placeholder="내용을 입력하세요 (최대 1000자)"></textarea>
+                    <div class="error-message" th:if="${#fields.hasErrors('content')}" th:errors="*{content}" style="color: #ff6b6b; font-size: 0.9em; margin-top: 4px;"></div>
                 </div>
 
-                <div class="button-group">
-                    <a th:href="@{/clubs/{clubId}/board(clubId=${clubId})}" class="btn btn-secondary">취소</a>
-                    <button type="submit" class="btn primary">게시물 등록</button>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <a th:href="@{/clubs/{clubId}/board(clubId=${clubId})}" class="btn">취소</a>
+                    <button type="submit" class="btn primary">등록 완료</button>
                 </div>
-
             </form>
         </div>
     </main>
@@ -93,13 +94,6 @@
 
 <div th:replace="~{fragments/common :: modals}"></div>
 <div th:replace="~{fragments/common :: scripts}"></div>
-
-<script th:if="${openLogin}">
-    document.addEventListener("DOMContentLoaded", () => modal("loginModal", true));
-</script>
-<script th:if="${openRegister}">
-    document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
-</script>
 
 </body>
 </html>
