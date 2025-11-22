@@ -26,4 +26,10 @@ public class CalendarParticipant {
     private ParticipantStatus status; // PENDING, ACCEPTED, REJECTED
 
     private boolean isConfirmed; // 참여 확정 여부
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean isAttended; // [추가]
+
+    public void toggleAttended() { this.isAttended = !this.isAttended; }
+    public boolean isAttended() { return isAttended; }
 }

@@ -67,4 +67,8 @@ public class ScheduleDto {
         private String fee;
         private String details;
     }
+
+
+    @JsonProperty("isDone")
+    private boolean isDone;
 }

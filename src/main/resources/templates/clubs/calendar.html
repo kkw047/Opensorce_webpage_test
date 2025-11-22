@@ -16,8 +16,7 @@
 
         /* [1] 캘린더 레이아웃 & 폰트 */
         #calendar {
-            height: auto;
-            min-height: 800px;
+            width: 100%;
             font-family: 'Pretendard', sans-serif;
         }
 
@@ -286,18 +285,18 @@
         /* [11] 상세내역 박스 */
         .detail-box {
             width: 100%;
-            min-height: 80px;
-            max-height: 200px;
+            min-height: 150px;    /* [수정] 80px -> 150px (기본 높이 확보) */
+            max-height: 400px;    /* [수정] 200px -> 400px (스크롤 생기는 기준 완화) */
             overflow-y: auto;
             overflow-x: hidden;
             background-color: #1a2623;
-            padding: 12px;
+            padding: 15px;
             border-radius: 8px;
             border: 1px solid #4a635d;
             color: #bbb;
-            margin-top: 5px;
-            font-size: 0.9em;
-            line-height: 1.5;
+            margin-top: 10px;
+            font-size: 0.95em;
+            line-height: 1.6;
             white-space: pre-wrap;
             word-break: break-all;
             box-sizing: border-box;
@@ -317,13 +316,13 @@
 
         #scheduleDetailModal .modal-content {
             pointer-events: auto;
-            width: 350px;
-            max-height: 600px;
+            width: 450px;         /* [수정] 350px -> 450px (너비 확대) */
+            max-height: 800px;    /* [수정] 600px -> 800px (최대 높이 확대) */
             background: #0f231e;
-            padding: 20px;
+            padding: 25px;        /* 패딩도 살짝 키움 */
             border-radius: 12px;
             border: 1px solid #4a635d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.9); /* 그림자 더 진하게 */
             position: relative;
             animation: popIn 0.2s ease-out;
         }
@@ -485,6 +484,8 @@
 
 <div th:replace="~{fragments/common :: scripts}"></div>
 
+<div th:replace="~{fragments/common :: scripts}"></div>
+
 <script th:inline="javascript">
     /*<![CDATA[*/
     const clubId = /*[[${club.id}]]*/ 1;
@@ -504,9 +505,7 @@
     const eventColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'];
     function getColorForEvent(id) {
         let hash = 0; const str = String(id);
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
+        for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
         return eventColors[Math.abs(hash) % eventColors.length];
     }
 
@@ -520,6 +519,7 @@
         else location.href = '/login';
     }
 
+    // [커스텀 Confirm]
     function openConfirm(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('customConfirmModal');
@@ -554,16 +554,13 @@
         flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark" });
 
         const topLoginBtn = document.getElementById('openLoginBtn');
-        if (topLoginBtn) {
+        if(topLoginBtn) {
             topLoginBtn.onclick = (e) => { e.preventDefault(); openLoginModal(); };
         }
 
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'ko',
-            height: 'auto',
-            dayMaxEvents: true,
+            initialView: 'dayGridMonth', locale: 'ko', dayMaxEvents: true, aspectRatio: 2,
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'addEventButton' },
             events: `/api/club/${clubId}/schedules`,
 
@@ -575,6 +572,7 @@
                 info.el.style.fontWeight = '700';
             },
 
+            // [핵심] 클릭 시 팝업
             eventClick: function(info) { showScheduleDetailModal(info); },
 
             customButtons: {
@@ -597,12 +595,8 @@
         });
         calendar.render();
 
-        if (createForm) createForm.addEventListener('submit', function(e) {
-            e.preventDefault(); handleCreateSchedule();
-        });
-        if (editForm) editForm.addEventListener('submit', function(e) {
-            e.preventDefault(); handleUpdateSchedule();
-        });
+        if(createForm) createForm.addEventListener('submit', function(e) { e.preventDefault(); handleCreateSchedule(); });
+        if(editForm) editForm.addEventListener('submit', function(e) { e.preventDefault(); handleUpdateSchedule(); });
 
         document.addEventListener('click', function(e) {
             if (!detailModal.classList.contains('hidden') &&
@@ -613,18 +607,17 @@
         });
     });
 
+    // --- 상세 팝업 (마우스 옆 위치) ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
+        const eventEl = info.el;
         const jsEvent = info.jsEvent;
 
         try {
             const response = await fetch(`/api/club/${clubId}/schedule/${scheduleId}`, { credentials: 'include' });
-            if (response.status === 401) {
-                safeShowToast('로그인이 필요합니다.', 'error');
-                openLoginModal();
-                return;
-            }
+            if (response.status === 401) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
             if (!response.ok) throw new Error('일정 정보 로딩 실패');
+
             const dto = await response.json();
 
             document.getElementById('modal-title').textContent = dto.title;
@@ -643,8 +636,8 @@
                     const div = document.createElement('div');
                     div.className = 'participant-item';
                     let statusBadge = '';
-                    if (p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
-                    else if (p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
+                    if(p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
+                    else if(p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
                     else statusBadge = '<span class="status-REJECTED">거절</span>';
 
                     let html = `<span>${p.nickname}</span> ${statusBadge}`;
@@ -682,10 +675,13 @@
                 adminGroup.classList.add('hidden');
             }
 
+            // [핵심] 팝업 위치 계산
             detailModal.classList.remove('hidden');
             const modalContent = detailModal.querySelector('.modal-content');
-            const modalWidth = 350;
+            // [수정] 크기 자동 인식
+            const modalWidth = modalContent.offsetWidth;
             const modalHeight = modalContent.offsetHeight;
+
             const mouseX = jsEvent.clientX;
             const mouseY = jsEvent.clientY;
 
@@ -699,6 +695,7 @@
                 top = window.innerHeight - modalHeight - 20;
             }
             if (top < 10) top = 10;
+            if (left < 10) left = 10;
 
             detailModal.style.top = `${top}px`;
             detailModal.style.left = `${left}px`;
@@ -727,9 +724,8 @@
 
     async function changeStatus(scheduleId, participantId, status) {
         const msg = status === 'ACCEPTED' ? '승인하시겠습니까?' : '거절하시겠습니까?';
-        if (!(await openConfirm(msg))) return;
-        const url = `/api/club/${clubId}/schedule/${scheduleId}/participant/${participantId}?status=${status}`;
-        sendRequest(url, 'PUT', null, () => {
+        if(!(await openConfirm(msg))) return;
+        sendRequest(`/api/club/${clubId}/schedule/${scheduleId}/participant/${participantId}?status=${status}`, 'PUT', null, () => {
             hideDetailModal();
             safeShowToast('처리되었습니다.', 'success');
         });
@@ -743,9 +739,9 @@
             fee: document.getElementById('create-fee').value,
             details: document.getElementById('create-details').value
         };
-        if (!data.title) return safeShowToast('제목을 입력해주세요.', 'error');
-        if (!data.start || !data.end) return safeShowToast('날짜를 선택해주세요.', 'error');
-        if (data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
+        if(!data.title) return safeShowToast('제목을 입력해주세요.', 'error');
+        if(!data.start || !data.end) return safeShowToast('날짜를 선택해주세요.', 'error');
+        if(data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
 
         sendRequest(`/api/club/${clubId}/schedule`, 'POST', data, () => {
             safeShowToast('일정이 등록되었습니다.', 'success');
@@ -763,17 +759,17 @@
             fee: document.getElementById('edit-fee').value,
             details: document.getElementById('edit-details').value
         };
-        if (data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
+        if(data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
 
         sendRequest(`/api/club/${clubId}/schedule/${id}`, 'PUT', data, () => {
-            safeShowToast('일정이 수정되었습니다.', 'success');
+            safeShowToast('수정되었습니다.', 'success');
             hideEditModal();
             calendar.refetchEvents();
         });
     }
 
     async function handleDelete(id) {
-        if (await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
+        if(await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}`, 'DELETE', null, () => {
                 safeShowToast('일정이 삭제되었습니다.', 'success');
                 hideDetailModal();
@@ -783,21 +779,17 @@
     }
 
     async function handleJoin(id) {
-        if (!isLoggedIn) {
-            safeShowToast('로그인 필요', 'error');
-            openLoginModal();
-            return;
-        }
-        if (await openConfirm('참가 신청하시겠습니까?')) {
+        if (!isLoggedIn) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
+        if(await openConfirm('참가 신청하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'POST', null, () => {
-                safeShowToast('참가 신청이 완료되었습니다', 'success');
+                safeShowToast('참가 신청이 완료되었습니다.', 'success');
                 hideDetailModal();
             });
         }
     }
 
     async function handleLeave(id) {
-        if (await openConfirm('참가를 취소하시겠습니까?')) {
+        if(await openConfirm('참가를 취소하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'DELETE', null, () => {
                 safeShowToast('참가가 취소되었습니다.', 'success');
                 hideDetailModal();
@@ -807,16 +799,12 @@
 
     async function sendRequest(url, method, body, onSuccess) {
         try {
-            const opt = {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            };
-            if (body) opt.body = JSON.stringify(body);
+            const opt = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
+            if(body) opt.body = JSON.stringify(body);
             const res = await fetch(url, opt);
-            if (!res.ok) {
+            if(!res.ok) {
                 const txt = await res.text();
-                if (txt.includes('<!DOCTYPE html>') || res.status === 401 || res.status === 403) {
+                if(txt.includes('<!DOCTYPE html>') || res.status===401) {
                     safeShowToast('로그인이 필요한 서비스입니다.', 'error');
                     openLoginModal();
                     return;
@@ -824,9 +812,7 @@
                 throw new Error(txt);
             }
             onSuccess();
-        } catch (e) {
-            safeShowToast(e.message, 'error');
-        }
+        } catch(e) { safeShowToast(e.message, 'error'); }
     }
 </script>
 </body>

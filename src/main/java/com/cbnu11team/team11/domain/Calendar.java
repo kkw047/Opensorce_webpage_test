@@ -51,4 +51,10 @@ public class Calendar {
         this.endDate = end;
         this.fee = fee;
     }
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean isDone; // [추가]
+
+    public void toggleDone() { this.isDone = !this.isDone; }
+    public boolean isDone() { return isDone; }
 }

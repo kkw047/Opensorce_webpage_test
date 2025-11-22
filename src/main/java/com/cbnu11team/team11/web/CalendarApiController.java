@@ -55,4 +55,13 @@ public class CalendarApiController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    @PostMapping("/events/{eventId}/done") // 또는 "/schedule/{scheduleId}/done" (컨트롤러에 맞춰서)
+    public ResponseEntity<Boolean> toggleDone(@PathVariable Long eventId, HttpSession session) {
+        Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        boolean result = calendarService.toggleDone(eventId, userId);
+        return ResponseEntity.ok(result);
+    }
 }

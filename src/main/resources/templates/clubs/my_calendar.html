@@ -11,16 +11,10 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
 
     <style>
-        .content {
-            flex: 1;
-            min-width: 0; /* 가로 스크롤 넘침 방지 */
-            padding-right: 20px;
-        }
 
-        /* [2] 캘린더 레이아웃 & 폰트 */
+
         #calendar {
-            height: auto;          /* 높이 자동 조절 */
-            min-height: 800px;     /* 최소 높이 유지 */
+            width: 100%;
             font-family: 'Pretendard', sans-serif;
         }
 
@@ -70,18 +64,17 @@
 
         /* 팝업 내부 카드 */
         #scheduleDetailModal .modal-content {
-            pointer-events: auto; /* 내용물은 클릭 가능 */
-            width: 350px;         /* 너비 고정 */
-            max-height: 600px;    /* 높이 제한 */
+            pointer-events: auto;
+            width: 450px;         /* [변경] 너비를 350px -> 450px로 넓힘 */
+            max-height: 800px;    /* [변경] 최대 높이를 600px -> 800px로 높임 */
             background: #0f231e;
-            padding: 20px;
+            padding: 25px;        /* 내부 여백도 살짝 키움 */
             border-radius: 12px;
             border: 1px solid #4a635d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8); /* 진한 그림자 */
+            box-shadow: 0 15px 40px rgba(0,0,0,0.9);
             position: relative;
             animation: popIn 0.2s ease-out;
         }
-
         @keyframes popIn {
             from { opacity: 0; transform: translateY(5px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
@@ -115,8 +108,24 @@
         textarea::-webkit-scrollbar-thumb:hover, .detail-box::-webkit-scrollbar-thumb:hover { background-color: #26a69a; }
 
         /* [13] 상세내역 박스 (줄바꿈 및 스크롤) */
-        .detail-box { width: 100%; min-height: 100px; max-height: 300px; overflow-y: auto; overflow-x: hidden; background-color: #1a2623; padding: 15px; border-radius: 8px; border: 1px solid #4a635d; color: #bbb; margin-top: 5px; font-size: 0.9em; line-height: 1.6; white-space: pre-wrap; word-break: break-all; overflow-wrap: break-word; box-sizing: border-box; }
-
+        .detail-box {
+            width: 100%;
+            min-height: 150px;    /* [변경] 최소 높이 80px -> 150px */
+            max-height: 400px;    /* [변경] 스크롤 생기는 기준 200px -> 400px */
+            overflow-y: auto;
+            overflow-x: hidden;
+            background-color: #1a2623;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #4a635d;
+            color: #bbb;
+            margin-top: 5px;
+            font-size: 0.95em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-all;
+            box-sizing: border-box;
+        }
         /* [14] 더보기 링크 & 팝업 */
         .fc-more-link { color: #ddd !important; font-size: 0.8em !important; font-weight: bold; text-decoration: none; }
         .fc-more-link:hover { color: #fff !important; background-color: rgba(255,255,255,0.1); border-radius: 4px; }
@@ -240,20 +249,33 @@
 
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', locale: 'ko', height: 'auto', dayMaxEvents: true,
+            initialView: 'dayGridMonth', locale: 'ko', dayMaxEvents: true, aspectRatio: 2,
             headerToolbar: { left: 'prev,next today', center: 'title', right: '' }, // 버튼 없음
 
             events: '/api/calendar/events', // 통합 일정 조회
 
+            // [핵심 수정] 출석(완료) 여부에 따른 색상 변경 로직
             eventDidMount: function(info) {
-                const color = getColorForEvent(info.event.id);
-                info.el.style.backgroundColor = color;
-                info.el.style.borderColor = color;
-                info.el.style.color = '#222222';
+                const isDone = info.event.extendedProps.isDone;
+
+                if (isDone) {
+                    // [완료된 일정] 어두운 회색 + 취소선 + 투명도
+                    info.el.style.backgroundColor = '#2c2c2c';
+                    info.el.style.borderColor = '#444';
+                    info.el.style.color = '#888';
+                    info.el.style.textDecoration = 'line-through';
+                    info.el.style.opacity = '0.6';
+                } else {
+                    // [미완료] 고유 색상 적용
+                    const color = getColorForEvent(info.event.id);
+                    info.el.style.backgroundColor = color;
+                    info.el.style.borderColor = color;
+                    info.el.style.color = '#222222';
+                }
                 info.el.style.fontWeight = '700';
             },
 
-            // [핵심] 클릭 시 마우스 위치 계산 함수 호출
+            // 클릭 시 팝업
             eventClick: function(info) { showScheduleDetailModal(info); }
         });
         calendar.render();
@@ -268,14 +290,14 @@
         });
     });
 
-    // --- 상세 팝업 (마우스 위치 기준) ---
+    // --- 상세 팝업 (마우스 옆 위치) ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
         const eventEl = info.el;
         const jsEvent = info.jsEvent;
 
         try {
-            // 통합 캘린더는 clubId를 알 수 없으므로, info.event.extendedProps.clubId를 확인해야 함
+            // 통합 캘린더는 clubId를 알 수 없으므로, info.event.extendedProps.clubId를 확인
             const clubId = info.event.extendedProps.clubId;
 
             let url;
@@ -283,23 +305,45 @@
             else url = `/api/calendar/events/${scheduleId}`;
 
             const response = await fetch(url, { credentials: 'include' });
+            if (response.status === 401) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
+            if (!response.ok) throw new Error('일정 정보 로딩 실패');
 
-            // 로그인 체크
-            if (response.status === 401) {
-                safeShowToast('로그인이 필요한 서비스입니다.', 'error');
-                openLoginModal();
-                return;
-            }
-
-            if (!response.ok) throw new Error('일정 정보를 불러올 수 없습니다.');
             const dto = await response.json();
 
             // 데이터 바인딩
             document.getElementById('modal-title').textContent = dto.title;
             document.getElementById('modal-date').textContent = `${dto.start} ~ ${dto.end}`;
             document.getElementById('modal-fee').textContent = dto.fee || '-';
-            document.getElementById('modal-details').textContent = dto.details ? dto.details : '(상세 내용 없음)';
+            document.getElementById('modal-details').textContent = dto.details ? dto.details : '(내용 없음)';
 
+            // [추가] 출석/완료 버튼 생성 및 상태 반영
+            const actionBtnGroup = document.querySelector('.modal-actions');
+            const oldBtn = document.getElementById('btn-toggle-done');
+            if(oldBtn) oldBtn.remove();
+
+            const doneBtn = document.createElement('button');
+            doneBtn.id = 'btn-toggle-done';
+            doneBtn.style.marginRight = 'auto'; // 왼쪽 정렬
+
+            // 버튼 초기 상태 설정
+            if (dto.isDone) {
+                doneBtn.textContent = '출석 취소';
+                doneBtn.className = 'btn-secondary';
+            } else {
+                doneBtn.textContent = '출석 완료';
+                doneBtn.className = 'btn-primary';
+                doneBtn.style.backgroundColor = '#4caf50';
+            }
+
+            // 버튼 표시 조건: (개인 일정) OR (모임 일정이고 참가 승인된 상태)
+            const showDoneBtn = (clubId == null) || (dto.isParticipating && dto.myStatus === 'ACCEPTED');
+
+            if (showDoneBtn) {
+                doneBtn.onclick = () => handleToggleDone(scheduleId, clubId, doneBtn);
+                actionBtnGroup.prepend(doneBtn);
+            }
+
+            // 모임 정보 영역 처리
             const clubArea = document.getElementById('club-event-area');
             const linkBtn = document.getElementById('modal-link-btn');
 
@@ -316,7 +360,6 @@
                 participants.forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'participant-item';
-                    // 여기서는 리스트만 보여줌 (수정/승인은 해당 모임 캘린더에서)
                     div.innerHTML = `<span>${p.nickname}</span> <span>${p.status === 'ACCEPTED' ? '✅' : '⏳'}</span>`;
                     list.appendChild(div);
                 });
@@ -334,28 +377,21 @@
                 deleteBtn.classList.add('hidden');
             }
 
-            // [핵심] 팝업 위치 계산
+            // 팝업 위치 계산
             detailModal.classList.remove('hidden');
             const modalContent = detailModal.querySelector('.modal-content');
-            const modalWidth = 350;
+            const modalWidth = modalContent.offsetWidth;
             const modalHeight = modalContent.offsetHeight;
             const mouseX = jsEvent.clientX;
             const mouseY = jsEvent.clientY;
 
-            // 기본: 마우스 오른쪽 20px, 아래 10px
             let left = mouseX + 20;
             let top = mouseY + 10;
 
-            // 오른쪽 화면 넘어가면 왼쪽으로 이동
-            if (left + modalWidth > window.innerWidth) {
-                left = mouseX - modalWidth - 20;
-            }
-            // 아래쪽 화면 넘어가면 위로 이동
-            if (top + modalHeight > window.innerHeight) {
-                top = window.innerHeight - modalHeight - 20;
-            }
-            // 위쪽도 잘리면 고정
+            if (left + modalWidth > window.innerWidth) left = mouseX - modalWidth - 20;
+            if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
             if (top < 10) top = 10;
+            if (left < 10) left = 10;
 
             detailModal.style.top = `${top}px`;
             detailModal.style.left = `${left}px`;
@@ -368,7 +404,54 @@
 
     function hideDetailModal() { detailModal.classList.add('hidden'); }
 
-    // [수정] 삭제 -> 커스텀 팝업 사용
+    // [추가] 출석 토글 함수
+    async function handleToggleDone(scheduleId, clubId, btn) {
+        let url;
+        // URL 분기: 모임 일정이면 모임 컨트롤러, 아니면 개인 컨트롤러
+        if (clubId) url = `/api/club/${clubId}/schedule/${scheduleId}/done`; // 주의: ClubScheduleApiController에 매핑 필요
+        else url = `/api/calendar/events/${scheduleId}/done`;
+
+        try {
+            // *만약 ClubScheduleApiController에 /done 매핑이 없다면 공통으로 CalendarApiController 사용 가능
+            // 여기서는 안전하게 CalendarApiController의 경로를 사용하도록 수정할 수도 있음
+            // 일단 위 로직대로 시도
+
+            // [수정] CalendarApiController가 통합 처리하도록 경로 통일 (가장 안전)
+            // CalendarApiController에 @PostMapping("/events/{eventId}/done")이 있다면 이걸 씁니다.
+            url = `/api/calendar/events/${scheduleId}/done`;
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (res.ok) {
+                const isDone = await res.json(); // 서버에서 변경된 상태(true/false) 반환
+
+                if (isDone) {
+                    btn.textContent = '출석 취소';
+                    btn.className = 'btn-secondary';
+                    safeShowToast('출석 체크 완료!', 'success');
+                } else {
+                    btn.textContent = '출석 완료';
+                    btn.className = 'btn-primary';
+                    btn.style.backgroundColor = '#4caf50';
+                    safeShowToast('출석이 취소되었습니다.', 'success');
+                }
+
+                // [핵심] 캘린더 이벤트를 다시 불러와서 색상을 갱신함
+                calendar.refetchEvents();
+            } else {
+                throw new Error('처리 실패');
+            }
+        } catch (e) {
+            console.error(e);
+            safeShowToast('오류가 발생했습니다.', 'error');
+        }
+    }
+
+    // 삭제 함수
     async function handleDelete(id, clubId) {
         if(await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
             let url;
