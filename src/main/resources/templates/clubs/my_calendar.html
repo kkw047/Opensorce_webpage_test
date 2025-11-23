@@ -166,7 +166,7 @@
         <div id="modal-details" class="detail-box"></div>
 
         <div id="club-event-area" class="hidden" style="margin-top: 15px;">
-            <p style="color: #81c784; font-weight: bold; font-size: 0.9em; margin-bottom: 5px;">👥 참여 현황 (<span id="modal-participant-count">0</span>명)</p>
+            <p style="color: #81c784; font-weight: bold; font-size: 0.9em; margin-bottom: 5px;"> 참여 현황 (<span id="modal-participant-count">0</span>명)</p>
             <div id="modal-participant-list" style="max-height: 120px; overflow-y: auto; padding: 5px; background: #13201d; border-radius: 6px;"></div>
         </div>
 
@@ -195,6 +195,7 @@
     const sessionUserId = /*[[${session['LOGIN_USER_ID']}]]*/ null;
     /*]]>*/
 
+    // 안전한 토스트 알림
     function safeShowToast(message, type) {
         if (typeof showToast === 'function') {
             showToast(message, type);
@@ -203,6 +204,7 @@
         }
     }
 
+    // 일정 색상 팔레트
     const eventColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'];
     function getColorForEvent(id) {
         let hash = 0; const str = String(id);
@@ -239,6 +241,7 @@
                 resolve(false);
             };
 
+            // 이벤트 리스너 덮어쓰기 (간단한 중복 방지)
             btnOk.onclick = handleOk;
             btnCancel.onclick = handleCancel;
         });
@@ -250,11 +253,12 @@
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth', locale: 'ko', dayMaxEvents: true, aspectRatio: 2,
+            // aspectRatio 삭제 (CSS height: auto로 제어)
             headerToolbar: { left: 'prev,next today', center: 'title', right: '' }, // 버튼 없음
 
             events: '/api/calendar/events', // 통합 일정 조회
 
-            // [핵심 수정] 출석(완료) 여부에 따른 색상 변경 로직
+            // [핵심] 출석(완료) 여부에 따른 색상 처리
             eventDidMount: function(info) {
                 const isDone = info.event.extendedProps.isDone;
 
@@ -264,9 +268,9 @@
                     info.el.style.borderColor = '#444';
                     info.el.style.color = '#888';
                     info.el.style.textDecoration = 'line-through';
-                    info.el.style.opacity = '0.6';
+                    info.el.style.opacity = '0.7';
                 } else {
-                    // [미완료] 고유 색상 적용
+                    // [미완료] 고유 색상
                     const color = getColorForEvent(info.event.id);
                     info.el.style.backgroundColor = color;
                     info.el.style.borderColor = color;
@@ -305,9 +309,15 @@
             else url = `/api/calendar/events/${scheduleId}`;
 
             const response = await fetch(url, { credentials: 'include' });
-            if (response.status === 401) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
-            if (!response.ok) throw new Error('일정 정보 로딩 실패');
 
+            // 로그인 체크
+            if (response.status === 401) {
+                safeShowToast('로그인이 필요한 서비스입니다.', 'error');
+                openLoginModal();
+                return;
+            }
+
+            if (!response.ok) throw new Error('일정 정보를 불러올 수 없습니다.');
             const dto = await response.json();
 
             // 데이터 바인딩
@@ -316,34 +326,37 @@
             document.getElementById('modal-fee').textContent = dto.fee || '-';
             document.getElementById('modal-details').textContent = dto.details ? dto.details : '(내용 없음)';
 
-            // [추가] 출석/완료 버튼 생성 및 상태 반영
+            // [추가] 출석/완료 버튼 처리
             const actionBtnGroup = document.querySelector('.modal-actions');
+
+            // 기존 버튼 제거 (중복 방지)
             const oldBtn = document.getElementById('btn-toggle-done');
             if(oldBtn) oldBtn.remove();
 
+            // 버튼 생성
             const doneBtn = document.createElement('button');
             doneBtn.id = 'btn-toggle-done';
-            doneBtn.style.marginRight = 'auto'; // 왼쪽 정렬
 
-            // 버튼 초기 상태 설정
+            // 상태에 따른 버튼 디자인
             if (dto.isDone) {
                 doneBtn.textContent = '출석 취소';
-                doneBtn.className = 'btn-secondary';
+                doneBtn.className = 'btn-secondary'; // 회색
             } else {
-                doneBtn.textContent = '출석 완료';
-                doneBtn.className = 'btn-primary';
+                doneBtn.textContent = '출석 완료 ✔️';
+                doneBtn.className = 'btn-primary';   // 녹색
                 doneBtn.style.backgroundColor = '#4caf50';
             }
+            doneBtn.style.marginRight = 'auto'; // 왼쪽 정렬
 
             // 버튼 표시 조건: (개인 일정) OR (모임 일정이고 참가 승인된 상태)
             const showDoneBtn = (clubId == null) || (dto.isParticipating && dto.myStatus === 'ACCEPTED');
 
             if (showDoneBtn) {
-                doneBtn.onclick = () => handleToggleDone(scheduleId, clubId, doneBtn);
+                doneBtn.onclick = () => handleToggleDone(scheduleId, doneBtn);
                 actionBtnGroup.prepend(doneBtn);
             }
 
-            // 모임 정보 영역 처리
+            // 모임 정보 영역 처리 (통합 캘린더 전용)
             const clubArea = document.getElementById('club-event-area');
             const linkBtn = document.getElementById('modal-link-btn');
 
@@ -360,7 +373,20 @@
                 participants.forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'participant-item';
-                    div.innerHTML = `<span>${p.nickname}</span> <span>${p.status === 'ACCEPTED' ? '✅' : '⏳'}</span>`;
+
+                    // 출석 여부 텍스트 표시
+                    let attendStatus = '';
+                    if (dto.isAttendanceActive && p.status === 'ACCEPTED') {
+                        if (p.isAttended) attendStatus = '<span style="color:#4caf50; margin-left:5px; font-weight:bold;">(출석)</span>';
+                        else attendStatus = '<span style="color:#666; margin-left:5px;">(미출석)</span>';
+                    }
+
+                    let statusBadge = '';
+                    if(p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
+                    else if(p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
+                    else statusBadge = '<span class="status-REJECTED">거절</span>';
+
+                    div.innerHTML = `<span>${p.nickname} ${attendStatus}</span> ${statusBadge}`;
                     list.appendChild(div);
                 });
             } else {
@@ -377,7 +403,7 @@
                 deleteBtn.classList.add('hidden');
             }
 
-            // 팝업 위치 계산
+            // [핵심] 팝업 위치 계산 (마우스 기준)
             detailModal.classList.remove('hidden');
             const modalContent = detailModal.querySelector('.modal-content');
             const modalWidth = modalContent.offsetWidth;
@@ -404,54 +430,57 @@
 
     function hideDetailModal() { detailModal.classList.add('hidden'); }
 
-    // [추가] 출석 토글 함수
-    async function handleToggleDone(scheduleId, clubId, btn) {
-        let url;
-        // URL 분기: 모임 일정이면 모임 컨트롤러, 아니면 개인 컨트롤러
-        if (clubId) url = `/api/club/${clubId}/schedule/${scheduleId}/done`; // 주의: ClubScheduleApiController에 매핑 필요
-        else url = `/api/calendar/events/${scheduleId}/done`;
+    // [수정] 출석 토글 함수 (에러 메시지 처리 강화)
+    async function handleToggleDone(scheduleId, btn) {
+        // 안전하게 Calendar API 사용 (Service에서 로직 처리됨)
+        let url = `/api/calendar/events/${scheduleId}/done`;
 
         try {
-            // *만약 ClubScheduleApiController에 /done 매핑이 없다면 공통으로 CalendarApiController 사용 가능
-            // 여기서는 안전하게 CalendarApiController의 경로를 사용하도록 수정할 수도 있음
-            // 일단 위 로직대로 시도
-
-            // [수정] CalendarApiController가 통합 처리하도록 경로 통일 (가장 안전)
-            // CalendarApiController에 @PostMapping("/events/{eventId}/done")이 있다면 이걸 씁니다.
-            url = `/api/calendar/events/${scheduleId}/done`;
-
             const res = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
 
+            // 1. 로그인 안 된 경우 (401)
+            if (res.status === 401) {
+                safeShowToast('로그인이 필요한 서비스입니다.', 'error');
+                openLoginModal();
+                return;
+            }
+
+            // 2. 성공한 경우 (200)
             if (res.ok) {
-                const isDone = await res.json(); // 서버에서 변경된 상태(true/false) 반환
+                const isDone = await res.json(); // true/false
 
                 if (isDone) {
                     btn.textContent = '출석 취소';
                     btn.className = 'btn-secondary';
-                    safeShowToast('출석 체크 완료!', 'success');
+                    // 스타일 초기화
+                    btn.style.backgroundColor = '';
+                    safeShowToast('출석이 완료되었습니다', 'success');
                 } else {
-                    btn.textContent = '출석 완료';
+                    btn.textContent = '출석 체크';
                     btn.className = 'btn-primary';
                     btn.style.backgroundColor = '#4caf50';
                     safeShowToast('출석이 취소되었습니다.', 'success');
                 }
-
-                // [핵심] 캘린더 이벤트를 다시 불러와서 색상을 갱신함
+                // 캘린더 색상 갱신
                 calendar.refetchEvents();
-            } else {
-                throw new Error('처리 실패');
+            }
+            // 3. 실패한 경우 (400 Bad Request 등) -> 서버 메시지 출력
+            else {
+                const errorMsg = await res.text();
+                // 서버가 보낸 "아직 출석 체크가 시작되지 않았습니다." 메시지를 띄움
+                safeShowToast(errorMsg, 'error');
             }
         } catch (e) {
             console.error(e);
-            safeShowToast('오류가 발생했습니다.', 'error');
+            safeShowToast('서버 통신 중 오류가 발생했습니다.', 'error');
         }
     }
 
-    // 삭제 함수
+    // [수정] 삭제 -> 커스텀 팝업 사용
     async function handleDelete(id, clubId) {
         if(await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
             let url;

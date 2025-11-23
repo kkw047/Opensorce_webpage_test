@@ -56,12 +56,19 @@ public class CalendarApiController {
         }
     }
 
-    @PostMapping("/events/{eventId}/done") // 또는 "/schedule/{scheduleId}/done" (컨트롤러에 맞춰서)
-    public ResponseEntity<Boolean> toggleDone(@PathVariable Long eventId, HttpSession session) {
+    // [수정] 출석/완료 토글 (예외 처리 추가)
+    @PostMapping("/events/{eventId}/done")
+    public ResponseEntity<?> toggleDone(@PathVariable Long eventId, HttpSession session) {
         Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
         if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
-        boolean result = calendarService.toggleDone(eventId, userId);
-        return ResponseEntity.ok(result);
+        try {
+            // 성공하면 true/false 반환
+            boolean result = calendarService.toggleDone(eventId, userId);
+            return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
+            // [핵심] 실패하면(아직 시작 안함 등) 에러 메시지를 문자열로 반환 (400 에러)
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

@@ -21,17 +21,12 @@ public class CalendarService {
     private final UserRepository userRepository;
     private final ClubRepository clubRepository;
 
-    /**
-     * [헬퍼 메서드] 엔티티 -> DTO 변환 시 출석/완료 여부(isDone)를 자동 계산
-     */
+    // [헬퍼] DTO 변환
     private ScheduleDto convertToDtoWithStatus(Calendar cal, Long userId) {
         ScheduleDto dto = new ScheduleDto(cal);
-
         if (cal.getClub() == null) {
-            // 개인 일정: 작성자의 isDone 필드 사용
             dto.setDone(cal.isDone());
         } else {
-            // 모임 일정: 나의 참가 정보(CalendarParticipant)의 isAttended 확인
             boolean attended = participantRepository.findByCalendarIdAndUserId(cal.getId(), userId)
                     .map(CalendarParticipant::isAttended)
                     .orElse(false);
@@ -40,54 +35,36 @@ public class CalendarService {
         return dto;
     }
 
-    /**
-     * [조회] 나의 캘린더용 (수정됨: 상태값 포함)
-     */
     @Transactional(readOnly = true)
     public List<ScheduleDto> getMyPersonalEvents(Long userId) {
         return calendarRepository.findAllRelatedToUser(userId).stream()
-                .map(cal -> convertToDtoWithStatus(cal, userId)) // 헬퍼 메서드 사용
+                .map(cal -> convertToDtoWithStatus(cal, userId))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * [조회] 모임 일정 목록 조회 (수정됨: 상태값 포함)
-     */
     @Transactional(readOnly = true)
     public List<ScheduleDto> getClubSchedules(Long clubId, Long userId) {
         return calendarRepository.findAllByClubId(clubId).stream()
-                .map(cal -> convertToDtoWithStatus(cal, userId)) // 헬퍼 메서드 사용
+                .map(cal -> convertToDtoWithStatus(cal, userId))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * [상세] 일정 상세 조회
-     */
     @Transactional(readOnly = true)
     public ScheduleDto getScheduleDetail(Long scheduleId, Long currentUserId) {
-        Calendar cal = calendarRepository.findById(scheduleId)
-                .orElseThrow(() -> new IllegalArgumentException("일정이 존재하지 않습니다."));
-
-        // 상세 조회에서도 헬퍼 메서드 로직을 활용하거나, 기존처럼 수동 세팅
+        Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
         ScheduleDto dto = convertToDtoWithStatus(cal, currentUserId);
-        dto.setDetails(cal.getDescription()); // 상세는 목록에 없을 수 있으니 추가 세팅
+        dto.setDetails(cal.getDescription());
         dto.setFee(cal.getFee());
 
-        // 권한 체크
         boolean isWriter = cal.getUser().getId().equals(currentUserId);
-        boolean isClubOwner = false;
-        if (cal.getClub() != null && cal.getClub().getOwner() != null) {
-            if (cal.getClub().getOwner().getId().equals(currentUserId)) isClubOwner = true;
-        }
+        boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(currentUserId));
         dto.setManager(isWriter || isClubOwner);
 
-        // 참가자 리스트
         List<ScheduleDto.ParticipantDto> pList = cal.getParticipants().stream()
                 .map(ScheduleDto.ParticipantDto::new)
                 .collect(Collectors.toList());
         dto.setParticipants(pList);
 
-        // 내 참가 상태 (ACCEPTED 등) 확인
         participantRepository.findByCalendarIdAndUserId(scheduleId, currentUserId)
                 .ifPresentOrElse(
                         p -> {
@@ -96,11 +73,8 @@ public class CalendarService {
                         },
                         () -> dto.setParticipating(false)
                 );
-
         return dto;
     }
-
-    // --- [아래 createEvent, update, delete 등 기존 로직은 그대로 유지] ---
 
     @Transactional
     public Long createEvent(Long userId, Long clubId, ScheduleDto.Request req) {
@@ -109,30 +83,21 @@ public class CalendarService {
         LocalDateTime end = LocalDate.parse(req.getEnd()).atStartOfDay();
 
         Calendar.CalendarBuilder builder = Calendar.builder()
-                .user(user)
-                .title(req.getTitle())
-                .description(req.getDetails())
-                .startDate(start)
-                .endDate(end)
-                .fee(req.getFee());
+                .user(user).title(req.getTitle()).description(req.getDetails())
+                .startDate(start).endDate(end).fee(req.getFee());
 
         if (clubId != null) {
             Club club = clubRepository.findById(clubId).orElseThrow();
             builder.club(club);
         }
-
-        Calendar savedCalendar = calendarRepository.save(builder.build());
+        Calendar saved = calendarRepository.save(builder.build());
 
         if (clubId != null) {
-            CalendarParticipant maker = CalendarParticipant.builder()
-                    .calendar(savedCalendar)
-                    .user(user)
-                    .status(ParticipantStatus.ACCEPTED)
-                    .isConfirmed(true)
-                    .build();
-            participantRepository.save(maker);
+            participantRepository.save(CalendarParticipant.builder()
+                    .calendar(saved).user(user)
+                    .status(ParticipantStatus.ACCEPTED).isConfirmed(true).build());
         }
-        return savedCalendar.getId();
+        return saved.getId();
     }
 
     @Transactional
@@ -148,30 +113,47 @@ public class CalendarService {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
         boolean isWriter = cal.getUser().getId().equals(userId);
         boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(userId));
-        if (!isWriter && !isClubOwner) throw new IllegalStateException("권한 없음");
+        if (!isWriter && !isClubOwner) throw new IllegalStateException("권한이 없습니다.");
         calendarRepository.delete(cal);
     }
 
+    // [수정됨] 출석/완료 토글
     @Transactional
     public boolean toggleDone(Long scheduleId, Long userId) {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
+
         if (cal.getClub() == null) {
-            if (!cal.getUser().getId().equals(userId)) throw new IllegalStateException("권한 없음");
+            if (!cal.getUser().getId().equals(userId)) throw new IllegalStateException("권한이 없습니다.");
             cal.toggleDone();
             return cal.isDone();
         } else {
-            CalendarParticipant p = participantRepository.findByCalendarIdAndUserId(scheduleId, userId)
-                    .orElseThrow(() -> new IllegalArgumentException("참가자 아님"));
+            // [핵심] 활성화 상태가 아니면 무조건 예외 발생 -> "시작되지 않았습니다"
+            if (!cal.isAttendanceActive()) {
+                throw new IllegalStateException("아직 출석 체크가 시작되지 않았습니다.");
+            }
+            CalendarParticipant p = participantRepository.findByCalendarIdAndUserId(scheduleId, userId).orElseThrow();
             p.toggleAttended();
             return p.isAttended();
         }
+    }
+
+    // [수정됨] 관리자 출석 활성화 토글 (단순 True/False 스위치)
+    @Transactional
+    public boolean toggleAttendanceActive(Long scheduleId, Long userId) {
+        Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
+        boolean isWriter = cal.getUser().getId().equals(userId);
+        boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(userId));
+        if (!isWriter && !isClubOwner) throw new IllegalStateException("권한이 없습니다.");
+
+        cal.toggleAttendanceActive(); // DB의 is_attendance_active 값을 반전
+        return cal.isAttendanceActive();
     }
 
     @Transactional
     public void joinSchedule(Long scheduleId, Long userId) {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
         User user = userRepository.findById(userId).orElseThrow();
-        if(participantRepository.findByCalendarIdAndUserId(scheduleId, userId).isPresent()) throw new IllegalStateException("이미 신청함");
+        if (participantRepository.findByCalendarIdAndUserId(scheduleId, userId).isPresent()) throw new IllegalStateException("이미 신청했습니다.");
         participantRepository.save(CalendarParticipant.builder().calendar(cal).user(user).status(ParticipantStatus.PENDING).isConfirmed(false).build());
     }
 

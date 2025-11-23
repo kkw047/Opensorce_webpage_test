@@ -81,10 +81,27 @@ public class ClubScheduleApiController {
         return ResponseEntity.ok().build();
     }
 
-    // [추가] 출석 토글용 (만약 경로가 필요하다면)
     @PostMapping("/schedule/{scheduleId}/done")
-    public ResponseEntity<Boolean> toggleDone(@PathVariable Long scheduleId, HttpSession session) {
+    // (참고: 만약 CalendarApiController를 쓰고 계시다면 그 파일의 toggleDone을 수정하세요)
+    public ResponseEntity<?> toggleDone(@PathVariable Long scheduleId, HttpSession session) {
         Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
-        return ResponseEntity.ok(calendarService.toggleDone(scheduleId, userId));
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        try {
+            // 성공 시: 변경된 상태(Boolean) 반환
+            boolean result = calendarService.toggleDone(scheduleId, userId);
+            return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
+            // [핵심] 실패 시: 서비스에서 던진 에러 메시지("아직 출석 체크가...")를 그대로 반환
+            // 400 Bad Request 상태코드 사용
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    // [추가] 출석 활성화 토글 (관리자용)
+    @PostMapping("/schedule/{scheduleId}/attendance-active")
+    public ResponseEntity<Boolean> toggleAttendanceActive(@PathVariable Long scheduleId, HttpSession session) {
+        Long userId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(calendarService.toggleAttendanceActive(scheduleId, userId));
     }
 }

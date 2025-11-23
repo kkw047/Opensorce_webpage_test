@@ -1,7 +1,6 @@
 package com.cbnu11team.team11.web.dto;
 
 import com.cbnu11team.team11.domain.Calendar;
-// [중요] 이 import 문이 꼭 있어야 합니다!
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,18 +16,25 @@ public class ScheduleDto {
     private String end;
     private String fee;
     private String details;
+    private String writer; // 작성자 닉네임
 
-    // [핵심 수정] JSON으로 나갈 때 이름을 "isManager"로 고정!
+    // [권한/상태 관련 Boolean 필드]
+    // Jackson이 'is'를 떼어버리는 것을 방지하기 위해 @JsonProperty 명시
+
     @JsonProperty("isManager")
-    private boolean isManager;
+    private boolean isManager;        // 관리자 여부 (수정/삭제/승인 권한)
 
-    // [핵심 수정] 마찬가지로 고정
     @JsonProperty("isParticipating")
-    private boolean isParticipating;
+    private boolean isParticipating;  // 내가 참가 중인지
 
-    private String myStatus;
+    @JsonProperty("isDone")
+    private boolean isDone;           // 완료(출석) 여부 (개인: 완료, 모임: 출석)
+
+    @JsonProperty("isAttendanceActive")
+    private boolean isAttendanceActive; // [추가] 관리자가 출석 체크를 활성화했는지
+
+    private String myStatus;          // 나의 참가 상태 (ACCEPTED, PENDING...)
     private List<ParticipantDto> participants;
-    private String writer; // [추가] 작성자 닉네임
 
     // Entity -> DTO 변환 생성자
     public ScheduleDto(Calendar entity) {
@@ -39,12 +45,14 @@ public class ScheduleDto {
         this.fee = entity.getFee();
         this.details = entity.getDescription();
 
-        // [추가] 작성자 닉네임 매핑
+        // 기본값 매핑
+        this.isDone = entity.isDone(); // 개인 일정일 경우 엔티티 값 사용
+        this.isAttendanceActive = entity.isAttendanceActive(); // 출석 활성화 여부
+
         if (entity.getUser() != null) {
             this.writer = entity.getUser().getNickname();
         }
     }
-
 
     @Data
     @NoArgsConstructor
@@ -54,8 +62,11 @@ public class ScheduleDto {
         private String nickname;
         private String status;
 
-        @JsonProperty("isConfirmed") // 혹시 모르니 여기도 추가
-        private boolean isConfirmed;
+        @JsonProperty("isConfirmed")
+        private boolean isConfirmed; // 참가 확정 여부
+
+        @JsonProperty("isAttended")
+        private boolean isAttended;  // [추가] 개별 출석 여부
 
         public ParticipantDto(com.cbnu11team.team11.domain.CalendarParticipant p) {
             this.participantId = p.getId();
@@ -63,6 +74,7 @@ public class ScheduleDto {
             this.nickname = p.getUser().getNickname();
             this.status = p.getStatus().name();
             this.isConfirmed = p.isConfirmed();
+            this.isAttended = p.isAttended(); // 엔티티에서 가져옴
         }
     }
 
@@ -74,8 +86,4 @@ public class ScheduleDto {
         private String fee;
         private String details;
     }
-
-
-    @JsonProperty("isDone")
-    private boolean isDone;
 }

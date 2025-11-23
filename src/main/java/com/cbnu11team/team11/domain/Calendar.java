@@ -57,4 +57,11 @@ public class Calendar {
 
     public void toggleDone() { this.isDone = !this.isDone; }
     public boolean isDone() { return isDone; }
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean isAttendanceActive; // [추가] 출석 활성화 여부
+
+    public void toggleAttendanceActive() {
+        this.isAttendanceActive = !this.isAttendanceActive;
+    }
 }

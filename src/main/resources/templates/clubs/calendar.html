@@ -513,7 +513,6 @@
         else location.href = '/login';
     }
 
-    // [커스텀 Confirm]
     function openConfirm(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('customConfirmModal');
@@ -524,14 +523,8 @@
             msgEl.textContent = message;
             modal.classList.remove('hidden');
 
-            const handleOk = () => {
-                modal.classList.add('hidden');
-                resolve(true);
-            };
-            const handleCancel = () => {
-                modal.classList.add('hidden');
-                resolve(false);
-            };
+            const handleOk = () => { modal.classList.add('hidden'); resolve(true); };
+            const handleCancel = () => { modal.classList.add('hidden'); resolve(false); };
 
             btnOk.onclick = handleOk;
             btnCancel.onclick = handleCancel;
@@ -545,7 +538,7 @@
         createForm = document.getElementById('createScheduleForm');
         editForm = document.getElementById('editScheduleForm');
 
-        flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark" });
+        flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark", static: false, allowInput: true });
 
         const topLoginBtn = document.getElementById('openLoginBtn');
         if(topLoginBtn) {
@@ -560,28 +553,29 @@
 
             eventDidMount: function(info) {
                 const color = getColorForEvent(info.event.id);
-                info.el.style.backgroundColor = color;
-                info.el.style.borderColor = color;
-                info.el.style.color = '#222222';
+                // 출석 완료 시 어둡게 처리
+                if (info.event.extendedProps.isDone) {
+                    info.el.style.backgroundColor = '#2c2c2c';
+                    info.el.style.borderColor = '#444';
+                    info.el.style.color = '#888';
+                    info.el.style.textDecoration = 'line-through';
+                    info.el.style.opacity = '0.7';
+                } else {
+                    info.el.style.backgroundColor = color;
+                    info.el.style.borderColor = color;
+                    info.el.style.color = '#222222';
+                }
                 info.el.style.fontWeight = '700';
             },
 
-            // [핵심] 클릭 시 팝업
             eventClick: function(info) { showScheduleDetailModal(info); },
 
             customButtons: {
                 addEventButton: {
                     text: '일정 제안하기',
                     click: function() {
-                        if (!isLoggedIn) {
-                            safeShowToast('로그인이 필요한 서비스입니다.', 'error');
-                            openLoginModal();
-                            return;
-                        }
-                        if (!isMember) {
-                            safeShowToast('모임 멤버만 일정을 제안할 수 있습니다.', 'error');
-                            return;
-                        }
+                        if (!isLoggedIn) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
+                        if (!isMember) { safeShowToast('모임 멤버만 일정을 제안할 수 있습니다.', 'error'); return; }
                         showCreateModal();
                     }
                 }
@@ -601,99 +595,208 @@
         });
     });
 
-    // --- 상세 팝업 (마우스 옆 위치) ---
+    // --- 상세 팝업 (UI 모드 자동 전환) ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
-        const eventEl = info.el;
-        const jsEvent = info.jsEvent;
+        // info.el이나 jsEvent가 없을 경우(갱신 시) 대비
+        const eventEl = info.el || null;
+        const jsEvent = info.jsEvent || null;
 
         try {
-            const response = await fetch(`/api/club/${clubId}/schedule/${scheduleId}`, { credentials: 'include' });
-            if (response.status === 401) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
-            if (!response.ok) throw new Error('일정 정보 로딩 실패');
+            // [1] API 호출 (통합 캘린더는 clubId 확인 필요)
+            const extProps = info.event ? info.event.extendedProps : {};
+            // 인자로 넘어온 info가 캘린더 event 객체가 아닐 수도 있음(갱신 시).
+            // 안전하게 전역 clubId 변수 혹은 info 확인
+            let currentClubId = (typeof clubId !== 'undefined') ? clubId : (extProps.clubId || null);
+
+            let url;
+            if (currentClubId) url = `/api/club/${currentClubId}/schedule/${scheduleId}`;
+            else url = `/api/calendar/events/${scheduleId}`;
+
+            const response = await fetch(url, { credentials: 'include' });
+
+            if (response.status === 401) {
+                safeShowToast('로그인이 필요한 서비스입니다.', 'error');
+                openLoginModal();
+                return;
+            }
+            if (!response.ok) throw new Error('일정 정보를 불러올 수 없습니다.');
 
             const dto = await response.json();
 
+            // [2] 기본 텍스트 바인딩
             document.getElementById('modal-title').textContent = dto.title;
             document.getElementById('modal-date').textContent = `${dto.start} ~ ${dto.end}`;
             document.getElementById('modal-fee').textContent = dto.fee || '-';
             document.getElementById('modal-details').textContent = dto.details || '(내용 없음)';
-            document.getElementById('modal-writer').textContent = dto.writer || '알 수 없음';
 
+            // [3] 모임 일정 UI 처리
+            const clubArea = document.getElementById('club-event-area');
+            const linkBtn = document.getElementById('modal-link-btn'); // my_calendar용
             const list = document.getElementById('modal-participant-list');
-            list.innerHTML = '';
-            const participants = dto.participants || [];
-            document.getElementById('modal-participant-count').textContent = participants.length;
 
-            if (participants.length > 0) {
-                document.getElementById('club-event-area').classList.remove('hidden');
-                participants.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = 'participant-item';
-                    let statusBadge = '';
-                    if(p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
-                    else if(p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
-                    else statusBadge = '<span class="status-REJECTED">거절</span>';
+            if (currentClubId) {
+                if(clubArea) clubArea.classList.remove('hidden');
+                if(linkBtn) {
+                    linkBtn.classList.remove('hidden');
+                    linkBtn.onclick = () => location.href = `/clubs/${currentClubId}/calendar`;
+                }
 
-                    let html = `<span>${p.nickname}</span> ${statusBadge}`;
+                // -----------------------------------------------------------
+                // [핵심 수정] 상태에 따른 타이틀 변경 ("참여 현황" vs "출석 현황")
+                // -----------------------------------------------------------
+                const pTag = clubArea.querySelector('p'); //  ... 라고 적힌 p태그 찾기
+                const titleText = dto.isAttendanceActive ? "출석 현황" : "참여 현황";
+                const count = dto.participants ? dto.participants.length : 0;
 
-                    if (dto.isManager && p.status === 'PENDING') {
-                        html += `<span class="manage-btn-group">
-                                <button class="btn-approve" onclick="changeStatus(${scheduleId}, ${p.participantId}, 'ACCEPTED')">승인</button>
-                                <button class="btn-reject" onclick="changeStatus(${scheduleId}, ${p.participantId}, 'REJECTED')">거절</button>
-                            </span>`;
-                    }
-                    div.innerHTML = html;
-                    list.appendChild(div);
-                });
+                // HTML 갱신
+                pTag.innerHTML = ` ${titleText} (<span id="modal-participant-count">${count}</span>명)`;
+                // -----------------------------------------------------------
+
+                list.innerHTML = '';
+                const participants = dto.participants || [];
+
+                if (participants.length > 0) {
+                    participants.forEach(p => {
+                        const div = document.createElement('div');
+                        div.className = 'participant-item';
+
+                        // 출석 활성화 여부에 따른 리스트 표시 방식
+                        if (dto.isAttendanceActive) {
+                            // [출석 모드] 출석 여부 표시
+                            let statusHtml = p.isAttended
+                                ? '<span style="color:#4caf50; font-weight:bold;">출석 완료</span>'
+                                : '<span style="color:#666;">미출석</span>';
+                            div.innerHTML = `<span>${p.nickname}</span> ${statusHtml}`;
+                        } else {
+                            // [일반 모드] 승인/대기 상태 표시
+                            let statusBadge = '';
+                            if(p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
+                            else if(p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
+                            else statusBadge = '<span class="status-REJECTED">거절</span>';
+
+                            let html = `<span>${p.nickname}</span> ${statusBadge}`;
+
+                            // 관리자 승인 버튼 (일반 모드일 때만)
+                            if (dto.isManager && p.status === 'PENDING') {
+                                html += `<span class="manage-btn-group">
+                                    <button class="btn-approve" onclick="changeStatus(${scheduleId}, ${p.participantId}, 'ACCEPTED')">승인</button>
+                                    <button class="btn-reject" onclick="changeStatus(${scheduleId}, ${p.participantId}, 'REJECTED')">거절</button>
+                                </span>`;
+                            }
+                            div.innerHTML = html;
+                        }
+                        list.appendChild(div);
+                    });
+                } else {
+                    list.innerHTML = '<div style="color:#666; font-size:0.9em; padding:5px;">인원이 없습니다.</div>';
+                }
             } else {
-                list.innerHTML = '<div style="color:#666; font-size:0.9em;">신청자 없음</div>';
+                // 개인 일정
+                if(clubArea) clubArea.classList.add('hidden');
+                if(linkBtn) linkBtn.classList.add('hidden');
             }
 
+            // [4] 하단 버튼 로직 (참가/출석/취소)
             const joinBtn = document.getElementById('modal-join-btn');
-            if (dto.isParticipating) {
-                joinBtn.textContent = (dto.myStatus === 'ACCEPTED') ? '신청 취소' : '대기중 (취소)';
-                joinBtn.className = 'btn-danger';
-                joinBtn.onclick = () => handleLeave(scheduleId);
-            } else {
-                joinBtn.textContent = '참가 신청';
-                joinBtn.className = 'btn-primary';
-                joinBtn.onclick = () => handleJoin(scheduleId);
+            if (joinBtn) {
+                const newJoinBtn = joinBtn.cloneNode(true);
+                joinBtn.parentNode.replaceChild(newJoinBtn, joinBtn);
+
+                if (dto.isParticipating) {
+                    if (dto.myStatus === 'ACCEPTED') {
+                        if (dto.isAttendanceActive) {
+                            if (dto.isDone) {
+                                newJoinBtn.textContent = '출석 완료 (취소)';
+                                newJoinBtn.className = 'btn-secondary';
+                                newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn); // info 제거
+                            } else {
+                                newJoinBtn.textContent = '출석 체크하기';
+                                newJoinBtn.className = 'btn-primary';
+                                newJoinBtn.style.backgroundColor = '#4caf50';
+                                newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn);
+                            }
+                        } else {
+                            newJoinBtn.textContent = '신청 취소';
+                            newJoinBtn.className = 'btn-danger';
+                            newJoinBtn.onclick = () => handleLeave(scheduleId);
+                        }
+                    } else if (dto.myStatus === 'PENDING') {
+                        newJoinBtn.textContent = '승인 대기중 (취소)';
+                        newJoinBtn.className = 'btn-secondary';
+                        newJoinBtn.onclick = () => handleLeave(scheduleId);
+                    } else {
+                        newJoinBtn.textContent = '거절됨';
+                        newJoinBtn.className = 'btn-secondary';
+                        newJoinBtn.disabled = true;
+                    }
+                } else {
+                    newJoinBtn.textContent = '참가 신청';
+                    newJoinBtn.className = 'btn-primary';
+                    newJoinBtn.disabled = false;
+                    newJoinBtn.onclick = () => handleJoin(scheduleId);
+                }
             }
 
+            // [5] 관리자 버튼 그룹
             const adminGroup = document.getElementById('modal-admin-group');
+            const oldActBtn = document.getElementById('btn-attendance-active');
+            if(oldActBtn) oldActBtn.remove();
+
             if (dto.isManager) {
                 adminGroup.classList.remove('hidden');
+
+                const activeBtn = document.createElement('button');
+                activeBtn.id = 'btn-attendance-active';
+                activeBtn.style.marginRight = '10px';
+                activeBtn.style.padding = '8px 16px';
+                activeBtn.style.borderRadius = '6px';
+                activeBtn.style.fontWeight = 'bold';
+                activeBtn.style.cursor = 'pointer';
+                activeBtn.style.border = 'none';
+                activeBtn.style.fontSize = '0.9em';
+
+                if (dto.isAttendanceActive) {
+                    activeBtn.textContent = '출석 마감';
+                    activeBtn.style.backgroundColor = '#e53935';
+                    activeBtn.style.color = 'white';
+                } else {
+                    activeBtn.textContent = '출석 시작';
+                    activeBtn.style.backgroundColor = '#4caf50';
+                    activeBtn.style.color = 'white';
+                }
+
+                // 버튼 클릭 시 info를 다시 넘겨줘야 팝업 위치가 유지됨
+                activeBtn.onclick = () => handleToggleAttendanceActive(scheduleId, activeBtn, info);
+                adminGroup.prepend(activeBtn);
+
                 document.getElementById('modal-edit-btn').onclick = () => showEditModal(dto);
-                document.getElementById('modal-delete-btn').onclick = () => handleDelete(scheduleId);
+                document.getElementById('modal-delete-btn').onclick = () => handleDelete(scheduleId, currentClubId);
             } else {
                 adminGroup.classList.add('hidden');
             }
 
-            // [핵심] 팝업 위치 계산
+            // [6] 팝업 표시 및 위치 계산 (JS 이벤트가 있을 때만)
             detailModal.classList.remove('hidden');
-            const modalContent = detailModal.querySelector('.modal-content');
-            // [수정] 크기 자동 인식
-            const modalWidth = modalContent.offsetWidth;
-            const modalHeight = modalContent.offsetHeight;
 
-            const mouseX = jsEvent.clientX;
-            const mouseY = jsEvent.clientY;
+            if (jsEvent) {
+                const modalContent = detailModal.querySelector('.modal-content');
+                const modalWidth = modalContent.offsetWidth;
+                const modalHeight = modalContent.offsetHeight;
+                const mouseX = jsEvent.clientX;
+                const mouseY = jsEvent.clientY;
 
-            let left = mouseX + 20;
-            let top = mouseY + 10;
+                let left = mouseX + 20;
+                let top = mouseY + 10;
 
-            if (left + modalWidth > window.innerWidth) {
-                left = mouseX - modalWidth - 20;
+                if (left + modalWidth > window.innerWidth) left = mouseX - modalWidth - 20;
+                if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
+                if (top < 10) top = 10;
+                if (left < 10) left = 10;
+
+                detailModal.style.top = `${top}px`;
+                detailModal.style.left = `${left}px`;
             }
-            if (top + modalHeight > window.innerHeight) {
-                top = window.innerHeight - modalHeight - 20;
-            }
-            if (top < 10) top = 10;
-            if (left < 10) left = 10;
-
-            detailModal.style.top = `${top}px`;
-            detailModal.style.left = `${left}px`;
 
         } catch (err) {
             console.error(err);
@@ -717,10 +820,68 @@
         editModal.classList.remove('hidden');
     }
 
+    // [추가] 관리자 출석 활성화 토글
+    async function handleToggleAttendanceActive(scheduleId, btn, info) {
+        if(!await openConfirm(btn.textContent + ' 하시겠습니까?')) return;
+
+        try {
+            const res = await fetch(`/api/club/${clubId}/schedule/${scheduleId}/attendance-active`, {
+                method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include'
+            });
+            if(res.ok) {
+                const isActive = await res.json();
+                safeShowToast(isActive ? '출석 체크가 시작되었습니다.' : '출석 체크가 마감되었습니다.', 'success');
+                // 상태가 바뀌었으므로 팝업 UI 갱신 (리스트 모양 변경됨)
+                showScheduleDetailModal(info);
+            }
+        } catch(e) { safeShowToast('오류 발생', 'error'); }
+    }
+
+    // [추가] 출석 체크 (참가자)
+    // [수정] 출석 체크 (참가자) - 에러 메시지 처리 강화
+    // [수정] 출석 토글 함수 (에러 메시지 처리 강화)
+    async function handleToggleDone(scheduleId, btn) {
+        let url = `/api/calendar/events/${scheduleId}/done`;
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (res.ok) {
+                // [성공]
+                const isDone = await res.json();
+
+                if (isDone) {
+                    btn.textContent = '출석 취소';
+                    btn.className = 'btn-secondary';
+                    btn.style.backgroundColor = ''; // 스타일 초기화
+                    safeShowToast('출석이 완료되었습니다', 'success');
+                } else {
+                    btn.textContent = '출석 체크';
+                    btn.className = 'btn-primary';
+                    btn.style.backgroundColor = '#4caf50';
+                    safeShowToast('출석이 취소되었습니다.', 'success');
+                }
+                calendar.refetchEvents();
+            } else {
+                // [실패] 서버에서 보낸 에러 메시지("아직 출석 체크가...") 읽기
+                const errorMsg = await res.text();
+                safeShowToast(errorMsg, 'error');
+            }
+        } catch (e) {
+            console.error(e);
+            safeShowToast('서버 통신 오류가 발생했습니다.', 'error');
+        }
+    }
+
     async function changeStatus(scheduleId, participantId, status) {
         const msg = status === 'ACCEPTED' ? '승인하시겠습니까?' : '거절하시겠습니까?';
         if(!(await openConfirm(msg))) return;
         sendRequest(`/api/club/${clubId}/schedule/${scheduleId}/participant/${participantId}?status=${status}`, 'PUT', null, () => {
+            // 리스트 갱신 위해 팝업 닫기 (가장 깔끔)
             hideDetailModal();
             safeShowToast('처리되었습니다.', 'success');
         });
@@ -766,7 +927,7 @@
     async function handleDelete(id) {
         if(await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}`, 'DELETE', null, () => {
-                safeShowToast('일정이 삭제되었습니다.', 'success');
+                safeShowToast('삭제되었습니다.', 'success');
                 hideDetailModal();
                 calendar.refetchEvents();
             });
@@ -774,19 +935,18 @@
     }
 
     async function handleJoin(id) {
-        if (!isLoggedIn) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
         if(await openConfirm('참가 신청하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'POST', null, () => {
-                safeShowToast('참가 신청이 완료되었습니다.', 'success');
+                safeShowToast('신청되었습니다.', 'success');
                 hideDetailModal();
             });
         }
     }
 
     async function handleLeave(id) {
-        if(await openConfirm('참가를 취소하시겠습니까?')) {
+        if(await openConfirm('신청을 취소하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'DELETE', null, () => {
-                safeShowToast('참가가 취소되었습니다.', 'success');
+                safeShowToast('취소되었습니다.', 'success');
                 hideDetailModal();
             });
         }
