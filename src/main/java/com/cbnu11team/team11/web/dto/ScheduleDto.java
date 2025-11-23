@@ -28,8 +28,9 @@ public class ScheduleDto {
 
     private String myStatus;
     private List<ParticipantDto> participants;
+    private String writer; // [추가] 작성자 닉네임
 
-    // 생성자
+    // Entity -> DTO 변환 생성자
     public ScheduleDto(Calendar entity) {
         this.id = entity.getId();
         this.title = entity.getTitle();
@@ -37,7 +38,13 @@ public class ScheduleDto {
         this.end = entity.getEndDate().toLocalDate().toString();
         this.fee = entity.getFee();
         this.details = entity.getDescription();
+
+        // [추가] 작성자 닉네임 매핑
+        if (entity.getUser() != null) {
+            this.writer = entity.getUser().getNickname();
+        }
     }
+
 
     @Data
     @NoArgsConstructor

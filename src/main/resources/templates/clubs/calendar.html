@@ -380,13 +380,6 @@
     <main class="content">
         <div class="detail-card" th:object="${club}">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
-
-            <div class="club-header" style="margin-top: 16px;">
-                <h1 th:text="*{name}">모임 이름</h1>
-                <div class="chips club-chips">
-                    <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
-                </div>
-            </div>
         </div>
 
         <div class="detail-card" style="background: #0f231e; padding: 20px; border-radius: 14px; border: 1px solid #4a635d; margin-top: 20px;">
@@ -406,6 +399,7 @@
         <div style="font-size: 0.9em; color: #ccc; margin-bottom: 10px;">
             <p style="margin: 3px 0;"><span style="color:#888; margin-right:5px;">일시</span> <span id="modal-date" style="color: #fff;"></span></p>
             <p style="margin: 3px 0;"><span style="color:#888; margin-right:5px;">비용</span> <span id="modal-fee" style="color: #fff;"></span></p>
+            <p style="margin: 3px 0;"><span style="color:#888; margin-right:5px;">제안자</span> <span id="modal-writer" style="color: #fff; font-weight: bold;"></span></p>
         </div>
 
         <p style="color: #ddd;"><strong>상세내역:</strong></p>
@@ -624,6 +618,7 @@
             document.getElementById('modal-date').textContent = `${dto.start} ~ ${dto.end}`;
             document.getElementById('modal-fee').textContent = dto.fee || '-';
             document.getElementById('modal-details').textContent = dto.details || '(내용 없음)';
+            document.getElementById('modal-writer').textContent = dto.writer || '알 수 없음';
 
             const list = document.getElementById('modal-participant-list');
             list.innerHTML = '';
