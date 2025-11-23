@@ -472,8 +472,15 @@ public class ClubController {
         }
 
         try {
-            clubService.joinClub(clubId, currentUserId);
-            ra.addFlashAttribute("msg", "가입 신청이 완료되었습니다. 모임장의 승인을 기다려주세요.");
+            ClubMemberStatus status = clubService.joinClub(clubId, currentUserId);
+
+            // 상태에 따라 알림 메시지 분기
+            if (status == ClubMemberStatus.ACTIVE) {
+                ra.addFlashAttribute("msg", "모임에 가입되었습니다! 환영합니다.");
+            } else {
+                ra.addFlashAttribute("msg", "가입 신청이 완료되었습니다. 모임장의 승인을 기다려주세요.");
+            }
+
 
         } catch (IllegalStateException | IllegalArgumentException e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -728,7 +735,7 @@ public class ClubController {
 
         // 매니저가 아니면 접근 불가
         if (dto == null || !dto.isManager()) {
-            ra.addFlashAttribute("error", "모임 관리자만 접근할 수 있습니다.");
+            ra.addFlashAttribute("error", "모임장만 접근할 수 있습니다.");
             return "redirect:/clubs/" + clubId;
         }
 
@@ -743,7 +750,7 @@ public class ClubController {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
         if (optDto.isEmpty() || !optDto.get().isManager()) {
-            ra.addFlashAttribute("error", "관리자 권한이 없습니다.");
+            ra.addFlashAttribute("error", "모임장 권한이 없습니다.");
             return "redirect:/clubs/" + clubId;
         }
 
@@ -883,7 +890,7 @@ public class ClubController {
 
         Optional<ClubDetailDto> optDto = clubService.getClubDetail(clubId, currentUserId);
         if (optDto.isEmpty() || !optDto.get().isManager()) {
-            ra.addFlashAttribute("error", "관리자 권한이 없습니다.");
+            ra.addFlashAttribute("error", "모임장 권한이 없습니다.");
             return "redirect:/clubs/" + clubId;
         }
         model.addAttribute("club", optDto.get());

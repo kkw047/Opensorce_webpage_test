@@ -20,12 +20,13 @@ public record ClubDetailDto(
         List<ClubMemberDto> members,
 
         ClubJoinPolicy joinPolicy,
-        Long ownerId
+        Long ownerId,
+        String myStatus
 ) {
     /**
      * Club 엔티티와 부가 정보로부터 DTO를 생성하는 정적 팩토리 메소드
      */
-    public static ClubDetailDto fromEntity(Club club, boolean isOwner, boolean isManager, boolean isAlreadyMember) {
+    public static ClubDetailDto fromEntity(Club club, boolean isOwner, boolean isManager, boolean isAlreadyMember, String myStatus) {
         return new ClubDetailDto(
                 club.getId(),
                 club.getName(),
@@ -41,7 +42,8 @@ public record ClubDetailDto(
                         .map(ClubMemberDto::fromEntity) // 내부 DTO로 변환
                         .collect(Collectors.toList()),
                 club.getJoinPolicy(),
-                club.getOwner().getId()
+                club.getOwner().getId(),
+                myStatus
         );
     }
 }

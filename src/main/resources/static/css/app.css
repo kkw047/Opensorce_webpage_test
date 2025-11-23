@@ -1140,3 +1140,28 @@ input, textarea, select, button {
     margin-left: 4px;
     vertical-align: middle;
 }
+
+.policy-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+/* 자동 가입: 초록색 */
+.policy-auto {
+    background-color: rgba(29, 185, 84, 0.15);
+    color: #1db954;
+    border: 1px solid #1db954;
+}
+
+/* 승인제: 주황색 or 노란색 */
+.policy-approval {
+    background-color: rgba(255, 165, 0, 0.15);
+    color: #ffa500;
+    border: 1px solid #ffa500;
+}

@@ -66,11 +66,12 @@
                         <img th:if="${member.user.imageUrl != null}" th:src="${member.user.imageUrl}" class="profile-thumb" alt="프로필">
                         <div th:unless="${member.user.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
 
-                        <div class="author-info">
-                            <span class="author-name" th:text="${member.user.nickname}">닉네임</span>
+                        <div class="author-info" style="display: flex; flex-direction: column; justify-content: center; gap: 2px;">
+                            <span class="author-name" th:text="${member.user.nickname}" style="font-weight: bold;">닉네임</span>
+
                             <span class="post-date" th:if="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
-                                  style="color: #1db954; font-weight: bold;">모임장</span>
-                            <span class="post-date" th:unless="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}">일반 멤버</span>
+                                  style="color: #1db954; font-weight: bold; font-size: 12px;">[모임장]</span>
+                            <span class="post-date" th:unless="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}" style="font-size: 12px;">일반 멤버</span>
                         </div>
                     </div>
 

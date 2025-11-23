@@ -74,18 +74,20 @@ public class ClubService {
             club.getCategories().add(nc);
         }
 
+        Club savedClub = clubRepository.save(club);
+
+        ClubMember ownerMembership = new ClubMember();
+
         // 모임 생성자를 "ADMIN" 역할로 멤버 목록에 추가
-        if (owner != null) {
-            ClubMember ownerMembership = new ClubMember();
-            ownerMembership.setId(new ClubMemberId(null, owner.getId()));
-            ownerMembership.setClub(club);
-            ownerMembership.setUser(owner);
-            ownerMembership.setRole(ClubRole.MANAGER);
+        ownerMembership.setId(new ClubMemberId(savedClub.getId(), owner.getId()));
+        ownerMembership.setClub(savedClub);
+        ownerMembership.setUser(owner);
+        ownerMembership.setRole(ClubRole.MANAGER);
+        ownerMembership.setStatus(ClubMemberStatus.ACTIVE);
 
-            club.getMembers().add(ownerMembership);
-        }
+        clubMemberRepository.save(ownerMembership);
 
-        return clubRepository.save(club);
+        return savedClub;
     }
 
     @Transactional
@@ -99,16 +101,22 @@ public class ClubService {
     }
 
     @Transactional
-    public void joinClub(Long clubId, Long userId) {
+    public ClubMemberStatus joinClub(Long clubId, Long userId) {
         ClubMemberId memberId = new ClubMemberId(clubId, userId);
-        if (clubMemberRepository.existsById(memberId)) {
-            ClubMember existingMember = clubMemberRepository.findById(memberId).get();
 
-            if (existingMember.getStatus() == ClubMemberStatus.BANNED) {
+        Optional<ClubMember> existingMember = clubMemberRepository.findById(memberId);
+        if (existingMember.isPresent()) {
+            ClubMemberStatus status = existingMember.get().getStatus();
+
+            if (status == ClubMemberStatus.BANNED) {
                 throw new IllegalStateException("이 모임에서 차단되어 재가입할 수 없습니다.");
             }
-
-            throw new IllegalStateException("이미 가입(또는 신청)한 모임입니다.");
+            // 상태에 따라 에러 메시지 분리
+            if (status == ClubMemberStatus.WAITING) {
+                throw new IllegalStateException("이미 가입 신청이 완료된 모임입니다. 승인을 기다려주세요.");
+            }
+            // ACTIVE인 경우
+            throw new IllegalStateException("이미 가입된 모임입니다.");
         }
 
         // 연관 엔티티 조회
@@ -131,6 +139,8 @@ public class ClubService {
         }
 
         clubMemberRepository.save(newMember);
+
+        return newMember.getStatus();
     }
 
     /* ===== Search/List ===== */
@@ -227,6 +237,7 @@ public class ClubService {
         boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
         boolean isAlreadyMember = false;
         boolean isManager = false;
+        String myStatus = null;
 
         if (currentUserId != null) {
             ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
@@ -234,6 +245,7 @@ public class ClubService {
 
             if (memberOpt.isPresent()) {
                 isAlreadyMember = true;
+                myStatus = memberOpt.get().getStatus().name();
 
                 if (memberOpt.get().getRole() == ClubRole.MANAGER || memberOpt.get().getRole() == ClubRole.ADMIN) {
                     isManager = true;
@@ -256,7 +268,8 @@ public class ClubService {
                 club.getCategories().stream().map(Category::getName).toList(),
                 activeMembers.stream().map(ClubMemberDto::fromEntity).toList(),
                 club.getJoinPolicy(),
-                club.getOwner().getId()
+                club.getOwner().getId(),
+                myStatus
         );
 
         return Optional.of(dto);
@@ -322,6 +335,20 @@ public class ClubService {
                 .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
 
         club.setJoinPolicy(policy);
+
+        if (policy == ClubJoinPolicy.AUTOMATIC) {
+
+            List<ClubMember> waitingMembers = clubMemberRepository.findByClubIdAndStatusWithUser(clubId, ClubMemberStatus.WAITING);
+
+            for (ClubMember member : waitingMembers) {
+                member.setStatus(ClubMemberStatus.ACTIVE);
+            }
+
+            // 로그 찍기
+            if (!waitingMembers.isEmpty()) {
+                System.out.println(clubId + "번 모임이 자동 승인으로 변경되어, 대기자 " + waitingMembers.size() + "명이 일괄 승인되었습니다.");
+            }
+        }
     }
 
     @Transactional

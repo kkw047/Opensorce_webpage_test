@@ -29,16 +29,18 @@
                     <h1 th:text="*{title}"></h1>
 
                     <div class="post-meta">
-                        <div class="author-display">
+                        <div class="author-display" style="display: flex; align-items: center; gap: 10px;">
                             <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
                             <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
 
-                            <span th:text="*{author.nickname}">작성자명</span>
+                            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                <span th:text="*{author.nickname}" style="font-weight: bold; font-size: 16px;">작성자명</span>
 
-                            <span class="badge-owner"
-                                  th:if="${post.author.id == club.ownerId}">
-                                [모임장]
-                            </span>
+                                <span class="badge-owner"
+                                      th:if="${post.author.id == club.ownerId}"
+                                      style="margin-left: 0; margin-top: 2px; font-size: 12px;">[모임장]
+                                </span>
+                            </div>
                         </div>
 
                         <span class="meta-divider">|</span>
@@ -115,16 +117,17 @@
                         <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
                         <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
 
-                        <strong th:text="*{author.nickname}">닉네임</strong>
+                        <div style="display: flex; flex-direction: column; margin-left: 8px;">
+                            <strong th:text="*{author.nickname}">닉네임</strong>
 
-                        <span class="badge-owner"
-                              th:if="${comment.author.id == club.ownerId}">
-                            [모임장]
-                        </span>
+                            <span class="badge-owner"
+                                  th:if="${comment.author.id == club.ownerId}"
+                                  style="margin-left: 0; font-size: 11px; margin-bottom: 2px;">[모임장]
+                            </span>
 
-                        <span style="font-size: 0.8em; color: #555;">•</span>
-                        <span style="font-size: 0.8em; color: #9ec8b8;"
-                              th:text="*{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : ''}">날짜</span>
+                            <span style="font-size: 0.8em; color: #9ec8b8;"
+                                  th:text="*{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : ''}">날짜</span>
+                        </div>
                     </div>
 
                     <div class="comment-content" th:text="*{content}">내용</div>
