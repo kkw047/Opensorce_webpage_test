@@ -14,7 +14,7 @@ public record ClubMemberDto(
         return new ClubMemberDto(
                 member.getUser().getId(),
                 member.getUser().getNickname(),
-                member.getRole()
+                member.getRole() != null ? member.getRole().name() : null
         );
     }
 }

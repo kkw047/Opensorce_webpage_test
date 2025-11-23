@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>댓글 수정</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="bg-deep">
+
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+<div class="wrap">
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+
+    <main class="content">
+        <div class="detail-card">
+            <h1 style="font-size: 1.5rem; margin-bottom: 16px;">댓글 수정</h1>
+
+            <form th:action="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${clubId}, postId=${postId}, commentId=${commentId})}"
+                  th:object="${commentForm}" method="post">
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="content" style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">내용</label>
+
+                    <textarea id="content"
+                              th:field="*{content}"
+                              rows="3"
+                              maxlength="300"
+                              class="form-control"
+                              style="resize: none; width: 100%;"
+                              placeholder="댓글을 수정하세요 (최대 300자)"></textarea>
+
+                    <div class="error-message"
+                         th:if="${#fields.hasErrors('content')}"
+                         th:errors="*{content}"
+                         style="color: #ff6b6b; font-size: 0.9em; margin-top: 4px;">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <a th:href="@{/clubs/{clubId}/board/{postId}(clubId=${clubId}, postId=${postId})}"
+                       class="btn">
+                        취소
+                    </a>
+                    <button type="submit" class="btn primary">수정 완료</button>
+                </div>
+
+            </form>
+        </div>
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+</body>
+</html>

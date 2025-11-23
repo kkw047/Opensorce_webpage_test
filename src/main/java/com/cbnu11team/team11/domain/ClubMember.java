@@ -25,9 +25,14 @@ public class ClubMember {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role")
-    private String role;//일단은 문자열로
+    private ClubRole role;
 
     @Column(name = "joined_at", insertable = false, updatable = false)
     private LocalDateTime joinedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private ClubMemberStatus status;
 }
