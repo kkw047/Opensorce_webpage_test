@@ -243,7 +243,7 @@
             </div>
 
             <div>
-                <h4>멤버 관리 (강퇴 시 영구 밴)</h4>
+                <h4>멤버 관리</h4>
                 <div class="member-list" id="modalManageMemberList"></div>
             </div>
 
@@ -617,7 +617,7 @@
 
         // 강퇴 처리
         async function handleKick(clubId, roomId, userId) {
-            if(await openConfirm('이 멤버를 강퇴하시겠습니까?\n(강퇴 시 영구 밴 처리되어 재가입이 불가능합니다.)')) {
+            if(await openConfirm('이 멤버를 강퇴하시겠습니까?\n(강퇴 시 밴 처리되어 재가입이 불가능합니다.)')) {
                 try {
                     const fd = new FormData(); fd.append('memberId', userId);
                     const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/kick`, { method: 'POST', body: fd });
