@@ -1,26 +1,22 @@
 package com.cbnu11team.team11.service;
 
-import com.cbnu11team.team11.domain.Category;
-import com.cbnu11team.team11.domain.Club;
-import com.cbnu11team.team11.domain.User;
-import com.cbnu11team.team11.domain.ClubMember;
-import com.cbnu11team.team11.domain.ClubMemberId;
-import com.cbnu11team.team11.repository.CategoryRepository;
-import com.cbnu11team.team11.repository.ClubRepository;
-import com.cbnu11team.team11.repository.RegionKorRepository;
-import com.cbnu11team.team11.repository.UserRepository;
-import com.cbnu11team.team11.repository.ClubMemberRepository;
+import com.cbnu11team.team11.domain.*;
+import com.cbnu11team.team11.repository.*;
+import com.cbnu11team.team11.web.dto.ClubActivityStatDto; // [추가]
 import com.cbnu11team.team11.web.dto.ClubDetailDto;
 import com.cbnu11team.team11.web.dto.ClubForm;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +28,7 @@ public class ClubService {
     private final FileStorageService fileStorageService;
     private final UserRepository userRepository;
     private final ClubMemberRepository clubMemberRepository;
+    private final CalendarRepository calendarRepository; // [추가]
 
     /* ===== Region ===== */
     public List<String> getAllDos() { return regionKorRepository.findDistinctDos(); }
@@ -49,8 +46,7 @@ public class ClubService {
 
     /* ===== Create Club ===== */
     @Transactional
-    public Club createClub(Long ownerId, ClubForm form) { // 파라미터를 DTO로 받음
-
+    public Club createClub(Long ownerId, ClubForm form) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid user ID: " + ownerId));
 
@@ -76,7 +72,6 @@ public class ClubService {
             club.getCategories().add(nc);
         }
 
-        // 모임 생성자를 "ADMIN" 역할로 멤버 목록에 추가
         if (owner != null) {
             ClubMember ownerMembership = new ClubMember();
             ownerMembership.setId(new ClubMemberId(null, owner.getId()));
@@ -98,13 +93,11 @@ public class ClubService {
             throw new IllegalStateException("이미 가입한 모임입니다.");
         }
 
-        // 연관 엔티티 조회
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다. ID: " + clubId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다. ID: " + userId));
 
-        // 새 멤버 생성
         ClubMember newMember = new ClubMember();
         newMember.setId(memberId);
         newMember.setClub(club);
@@ -115,12 +108,7 @@ public class ClubService {
     }
 
     /* ===== Search/List ===== */
-    public Page<Club> search(String q,
-                             String regionDo,
-                             String regionSi,
-                             List<Long> categoryIds, // 다중 체크박스
-                             Pageable pageable) {
-
+    public Page<Club> search(String q, String regionDo, String regionSi, List<Long> categoryIds, Pageable pageable) {
         Specification<Club> spec = (root, query, cb) -> cb.conjunction();
 
         if (q != null && !q.isBlank()) {
@@ -137,22 +125,13 @@ public class ClubService {
             spec = spec.and((root, query, cb) -> {
                 query.distinct(true);
                 Join<Club, Category> cats = root.join("categories", JoinType.INNER);
-                return cats.get("id").in(categoryIds); // ANY-OF
+                return cats.get("id").in(categoryIds);
             });
         }
-
         return clubRepository.findAll(spec, pageable);
     }
 
-    // 내 모임 목록 조회 서비스 메소드 추가
-    public Page<Club> searchMyClubs(Long userId,
-                                    String q,
-                                    String regionDo,
-                                    String regionSi,
-                                    List<Long> categoryIds,
-                                    Pageable pageable) {
-
-        // 기본 검색 스펙 (search 메소드와 동일)
+    public Page<Club> searchMyClubs(Long userId, String q, String regionDo, String regionSi, List<Long> categoryIds, Pageable pageable) {
         Specification<Club> spec = (root, query, cb) -> cb.conjunction();
 
         if (q != null && !q.isBlank()) {
@@ -188,33 +167,49 @@ public class ClubService {
         return clubRepository.findById(clubId);
     }
 
-    /* ===== Detail DTO 로직 ===== */
-    /**
-     * 모임 상세 정보와 현재 사용자 관련 정보를 DTO로 조회
-     * @param clubId 모임 ID
-     * @param currentUserId 현재 로그인한 사용자 ID (null일 수 있음)
-     * @return 뷰에 전달할 ClubDetailDto
-     */
     @Transactional(readOnly = true)
     public Optional<ClubDetailDto> getClubDetail(Long clubId, Long currentUserId) {
-        // @EntityGraph가 적용된 findById 호출 (members, categories 등 모두 EAGER 조회)
         Optional<Club> optClub = clubRepository.findById(clubId);
         if (optClub.isEmpty()) {
             return Optional.empty();
         }
-
         Club club = optClub.get();
-
         boolean isOwner = club.getOwner() != null && club.getOwner().getId().equals(currentUserId);
-
         boolean isAlreadyMember = false;
         if (currentUserId != null) {
             ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
             isAlreadyMember = clubMemberRepository.existsById(memberId);
         }
+        return Optional.of(ClubDetailDto.fromEntity(club, isOwner, isAlreadyMember));
+    }
 
-        // 엔티티 -> DTO 변환
-        ClubDetailDto dto = ClubDetailDto.fromEntity(club, isOwner, isAlreadyMember);
-        return Optional.of(dto);
+    /**
+     * [추가] 모임 활동 지표 (최근 일정 3개의 출석률)
+     */
+    @Transactional(readOnly = true)
+    public List<ClubActivityStatDto> getRecentActivityStats(Long clubId) {
+        // 1. 해당 모임의 모든 일정을 가져와서 -> 날짜 내림차순(최신순) 정렬 -> 상위 3개만 가져옴
+        return calendarRepository.findAllByClubId(clubId).stream()
+                .sorted((c1, c2) -> c2.getStartDate().compareTo(c1.getStartDate())) // 최신순 정렬
+                .limit(3) // 3개만
+                .map(cal -> {
+                    // 승인된 참가자 수 (PENDING, REJECTED 제외)
+                    long total = cal.getParticipants().stream()
+                            .filter(p -> p.getStatus() == ParticipantStatus.ACCEPTED)
+                            .count();
+
+                    // 출석한 참가자 수
+                    long attended = cal.getParticipants().stream()
+                            .filter(p -> p.getStatus() == ParticipantStatus.ACCEPTED && p.isAttended())
+                            .count();
+
+                    return new ClubActivityStatDto(
+                            cal.getTitle(),
+                            cal.getStartDate().toLocalDate().toString(),
+                            (int) total,
+                            (int) attended
+                    );
+                })
+                .collect(Collectors.toList());
     }
 }

@@ -24,6 +24,7 @@ public class CalendarService {
     // [헬퍼] DTO 변환
     private ScheduleDto convertToDtoWithStatus(Calendar cal, Long userId) {
         ScheduleDto dto = new ScheduleDto(cal);
+
         if (cal.getClub() == null) {
             dto.setDone(cal.isDone());
         } else {
@@ -35,9 +36,22 @@ public class CalendarService {
         return dto;
     }
 
+    /**
+     * [조회] 나의 캘린더 (필터링 적용: 미승인 일정 제외)
+     */
     @Transactional(readOnly = true)
     public List<ScheduleDto> getMyPersonalEvents(Long userId) {
         return calendarRepository.findAllRelatedToUser(userId).stream()
+                .filter(cal -> {
+                    // 1. 개인 일정은 무조건 표시
+                    if (cal.getClub() == null) return true;
+
+                    // 2. 모임 일정은 '승인(ACCEPTED)'된 경우만 표시
+                    // (참고: 일정 생성자는 생성 시 자동으로 ACCEPTED가 되므로 여기서 걸러지지 않음)
+                    return participantRepository.findByCalendarIdAndUserId(cal.getId(), userId)
+                            .map(p -> p.getStatus() == ParticipantStatus.ACCEPTED)
+                            .orElse(false);
+                })
                 .map(cal -> convertToDtoWithStatus(cal, userId))
                 .collect(Collectors.toList());
     }
@@ -117,7 +131,6 @@ public class CalendarService {
         calendarRepository.delete(cal);
     }
 
-    // [수정됨] 출석/완료 토글
     @Transactional
     public boolean toggleDone(Long scheduleId, Long userId) {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
@@ -127,7 +140,6 @@ public class CalendarService {
             cal.toggleDone();
             return cal.isDone();
         } else {
-            // [핵심] 활성화 상태가 아니면 무조건 예외 발생 -> "시작되지 않았습니다"
             if (!cal.isAttendanceActive()) {
                 throw new IllegalStateException("아직 출석 체크가 시작되지 않았습니다.");
             }
@@ -137,7 +149,6 @@ public class CalendarService {
         }
     }
 
-    // [수정됨] 관리자 출석 활성화 토글 (단순 True/False 스위치)
     @Transactional
     public boolean toggleAttendanceActive(Long scheduleId, Long userId) {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
@@ -145,7 +156,7 @@ public class CalendarService {
         boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(userId));
         if (!isWriter && !isClubOwner) throw new IllegalStateException("권한이 없습니다.");
 
-        cal.toggleAttendanceActive(); // DB의 is_attendance_active 값을 반전
+        cal.toggleAttendanceActive();
         return cal.isAttendanceActive();
     }
 
@@ -153,8 +164,21 @@ public class CalendarService {
     public void joinSchedule(Long scheduleId, Long userId) {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
         User user = userRepository.findById(userId).orElseThrow();
-        if (participantRepository.findByCalendarIdAndUserId(scheduleId, userId).isPresent()) throw new IllegalStateException("이미 신청했습니다.");
-        participantRepository.save(CalendarParticipant.builder().calendar(cal).user(user).status(ParticipantStatus.PENDING).isConfirmed(false).build());
+
+        // 재신청 로직: 거절된 상태면 다시 PENDING으로, 아니면 신규 생성
+        participantRepository.findByCalendarIdAndUserId(scheduleId, userId).ifPresentOrElse(
+                p -> {
+                    if (p.getStatus() == ParticipantStatus.REJECTED) {
+                        p.setStatus(ParticipantStatus.PENDING);
+                    } else {
+                        throw new IllegalStateException("이미 신청한 일정입니다.");
+                    }
+                },
+                () -> {
+                    participantRepository.save(CalendarParticipant.builder()
+                            .calendar(cal).user(user).status(ParticipantStatus.PENDING).isConfirmed(false).build());
+                }
+        );
     }
 
     @Transactional

@@ -401,14 +401,8 @@
             msgEl.textContent = message;
             modal.classList.remove('hidden');
 
-            const handleOk = () => {
-                modal.classList.add('hidden');
-                resolve(true);
-            };
-            const handleCancel = () => {
-                modal.classList.add('hidden');
-                resolve(false);
-            };
+            const handleOk = () => { modal.classList.add('hidden'); resolve(true); };
+            const handleCancel = () => { modal.classList.add('hidden'); resolve(false); };
 
             btnOk.onclick = handleOk;
             btnCancel.onclick = handleCancel;
@@ -417,15 +411,11 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         detailModal = document.getElementById('scheduleDetailModal');
-
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', locale: 'ko', dayMaxEvents: true, aspectRatio: 2,
+            initialView: 'dayGridMonth', locale: 'ko', dayMaxEvents: true,
             headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-
             events: '/api/calendar/events',
-
-            // [출석 완료 시 색상 변경]
             eventDidMount: function(info) {
                 const isDone = info.event.extendedProps.isDone;
                 if (isDone) {
@@ -442,20 +432,18 @@
                 }
                 info.el.style.fontWeight = '700';
             },
-
             eventClick: function(info) { showScheduleDetailModal(info); }
         });
         calendar.render();
 
         document.addEventListener('click', function(e) {
-            if (!detailModal.classList.contains('hidden') &&
-                !detailModal.querySelector('.modal-content').contains(e.target) &&
-                !e.target.closest('.fc-event')) {
+            if (!detailModal.classList.contains('hidden') && !detailModal.querySelector('.modal-content').contains(e.target) && !e.target.closest('.fc-event')) {
                 hideDetailModal();
             }
         });
     });
 
+    // --- 상세 팝업 ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
         const eventEl = info.el;
@@ -477,52 +465,58 @@
             document.getElementById('modal-writer').textContent = dto.writer || '알 수 없음';
             document.getElementById('modal-date').textContent = `${dto.start} ~ ${dto.end}`;
             document.getElementById('modal-fee').textContent = dto.fee || '-';
-            document.getElementById('modal-details').textContent = dto.details ? dto.details : '(내용 없음)';
+            document.getElementById('modal-details').textContent = dto.details || '(내용 없음)';
 
-            // 1. 모임 일정 UI 처리 (출석부)
+            // [1] 참가자 목록 UI
             const clubArea = document.getElementById('club-event-area');
             const list = document.getElementById('modal-participant-list');
             const titleP = document.getElementById('attend-status-title');
 
+            // 권한 확인
+            const canViewList = dto.isManager || (dto.isParticipating && dto.myStatus === 'ACCEPTED');
+
             if (clubId) {
-                clubArea.classList.remove('hidden');
+                if (canViewList) {
+                    clubArea.classList.remove('hidden');
+                    list.innerHTML = '';
+                    const participants = dto.participants || [];
 
-                list.innerHTML = '';
-                const participants = dto.participants || [];
+                    let visibleList = participants;
+                    if (dto.isAttendanceActive) {
+                        visibleList = participants.filter(p => p.status === 'ACCEPTED');
+                        titleP.innerHTML = `출석 현황 (<span id="modal-participant-count">${visibleList.length}</span>명)`;
+                    } else {
+                        visibleList = participants;
+                        titleP.innerHTML = `참여 현황 (<span id="modal-participant-count">${visibleList.length}</span>명)`;
+                    }
 
-                // 타이틀 변경
-                titleP.innerHTML = dto.isAttendanceActive
-                    ? `출석 현황 (<span id="modal-participant-count">${participants.length}</span>명)`
-                    : `참여 현황 (<span id="modal-participant-count">${participants.length}</span>명)`;
-
-                if (participants.length > 0) {
-                    participants.forEach(p => {
-                        const div = document.createElement('div');
-                        div.className = 'participant-item';
-
-                        let statusText = '';
-                        if (dto.isAttendanceActive) {
-                            // [출석 모드] (이모티콘 제거)
-                            if (p.isAttended) statusText = '<span style="color:#4caf50; font-weight:bold;">출석 완료</span>';
-                            else statusText = '<span style="color:#666;">미출석</span>';
-                        } else {
-                            // [일반 모드]
-                            if(p.status === 'ACCEPTED') statusText = '<span class="status-ACCEPTED">승인됨</span>';
-                            else if(p.status === 'PENDING') statusText = '<span class="status-PENDING">대기중</span>';
-                            else statusText = '<span class="status-REJECTED">거절됨</span>';
-                        }
-                        div.innerHTML = `<span>${p.nickname}</span> ${statusText}`;
-                        list.appendChild(div);
-                    });
+                    if (visibleList.length > 0) {
+                        visibleList.forEach(p => {
+                            const div = document.createElement('div');
+                            div.className = 'participant-item';
+                            let statusHtml = '';
+                            if (dto.isAttendanceActive) {
+                                if (p.isAttended) statusHtml = '<span style="color:#4caf50; font-weight:bold;">출석 완료</span>';
+                                else statusHtml = '<span style="color:#666;">미출석</span>';
+                            } else {
+                                if(p.status === 'ACCEPTED') statusHtml = '<span class="status-ACCEPTED">승인됨</span>';
+                                else if(p.status === 'PENDING') statusHtml = '<span class="status-PENDING">대기중</span>';
+                                else statusHtml = '<span class="status-REJECTED">거절됨</span>';
+                            }
+                            div.innerHTML = `<span>${p.nickname}</span> ${statusHtml}`;
+                            list.appendChild(div);
+                        });
+                    } else {
+                        list.innerHTML = '<div style="color:#666; font-size:0.9em; padding:5px;">인원이 없습니다.</div>';
+                    }
                 } else {
-                    list.innerHTML = '<div style="color:#666; padding:5px;">인원 없음</div>';
+                    clubArea.classList.add('hidden');
                 }
             } else {
                 clubArea.classList.add('hidden');
-                linkBtn.classList.add('hidden');
             }
 
-            // 2. 참가자용 버튼 (출석/취소)
+            // [2] 참가자용 버튼
             const joinBtn = document.getElementById('modal-join-btn');
             const newJoinBtn = joinBtn.cloneNode(true);
             joinBtn.parentNode.replaceChild(newJoinBtn, joinBtn);
@@ -531,7 +525,6 @@
                 newJoinBtn.classList.remove('hidden');
                 if (dto.isParticipating && dto.myStatus === 'ACCEPTED') {
                     if (dto.isAttendanceActive) {
-                        // [출석 모드]
                         if (dto.isDone) {
                             newJoinBtn.textContent = '출석 완료 (취소)';
                             newJoinBtn.className = 'btn-secondary';
@@ -540,12 +533,11 @@
                             newJoinBtn.className = 'btn-primary';
                             newJoinBtn.style.backgroundColor = '#4caf50';
                         }
-                        newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn);
+                        newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn, info);
                     } else {
-                        // [대기 중]
                         newJoinBtn.textContent = '출석 대기중';
                         newJoinBtn.className = 'btn-secondary';
-                        newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn);
+                        newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn, info);
                     }
                 } else if (dto.myStatus === 'PENDING') {
                     newJoinBtn.textContent = '승인 대기중';
@@ -560,54 +552,53 @@
                 newJoinBtn.classList.add('hidden');
             }
 
-            // 3. 관리자용 버튼 (출석 시작/마감)
+            // [3] 관리자용 버튼
             const adminGroup = document.getElementById('modal-admin-group');
             const oldActBtn = document.getElementById('btn-attendance-active');
             if(oldActBtn) oldActBtn.remove();
 
-            if (dto.isManager) {
+            if (dto.isManager && clubId) {
                 adminGroup.classList.remove('hidden');
 
-                // 개인 일정은 관리자 버튼 필요 없음 (삭제만)
-                if (clubId) {
-                    const activeBtn = document.createElement('button');
-                    activeBtn.id = 'btn-attendance-active';
-                    activeBtn.style.marginRight = 'auto';
-                    activeBtn.style.padding = '8px 16px';
-                    activeBtn.style.borderRadius = '6px';
-                    activeBtn.style.fontWeight = 'bold';
-                    activeBtn.style.cursor = 'pointer';
-                    activeBtn.style.border = 'none';
-                    activeBtn.style.fontSize = '0.9em';
+                const activeBtn = document.createElement('button');
+                activeBtn.id = 'btn-attendance-active';
+                activeBtn.style.marginRight = 'auto';
+                activeBtn.style.padding = '8px 16px';
+                activeBtn.style.borderRadius = '6px';
+                activeBtn.style.fontWeight = 'bold';
+                activeBtn.style.cursor = 'pointer';
+                activeBtn.style.border = 'none';
+                activeBtn.style.fontSize = '0.9em';
 
-                    if (dto.isAttendanceActive) {
-                        activeBtn.textContent = '출석 마감';
-                        activeBtn.style.backgroundColor = '#e53935';
-                        activeBtn.style.color = 'white';
-                    } else {
-                        activeBtn.textContent = '출석 시작';
-                        activeBtn.style.backgroundColor = '#4caf50';
-                        activeBtn.style.color = 'white';
-                    }
-
-                    activeBtn.onclick = () => handleToggleAttendanceActive(scheduleId, clubId, activeBtn, info);
-                    adminGroup.prepend(activeBtn);
+                if (dto.isAttendanceActive) {
+                    activeBtn.textContent = '출석 마감';
+                    activeBtn.style.backgroundColor = '#e53935';
+                    activeBtn.style.color = 'white';
+                } else {
+                    activeBtn.textContent = '출석 시작';
+                    activeBtn.style.backgroundColor = '#4caf50';
+                    activeBtn.style.color = 'white';
                 }
 
-                // 수정 버튼 처리 (개인 일정은 여기서 수정, 모임 일정은 이동)
+                activeBtn.onclick = () => handleToggleAttendanceActive(scheduleId, clubId, activeBtn, info);
+                adminGroup.prepend(activeBtn);
+
                 const editBtn = document.getElementById('modal-edit-btn');
                 if(clubId) {
                     editBtn.classList.add('hidden');
                 } else {
                     editBtn.classList.remove('hidden');
-                    editBtn.onclick = () => safeShowToast('개인 일정 수정 기능은 준비 중입니다.', 'success'); // 혹은 showEditModal(dto)
+                    editBtn.onclick = () => safeShowToast('개인 일정 수정 기능은 준비 중입니다.', 'success');
                 }
                 document.getElementById('modal-delete-btn').onclick = () => handleDelete(scheduleId, clubId);
+            } else if(dto.isManager) {
+                adminGroup.classList.remove('hidden');
+                document.getElementById('modal-edit-btn').classList.remove('hidden');
+                document.getElementById('modal-delete-btn').onclick = () => handleDelete(scheduleId, null);
             } else {
                 adminGroup.classList.add('hidden');
             }
 
-            // 팝업 위치 계산
             detailModal.classList.remove('hidden');
             const modalContent = detailModal.querySelector('.modal-content');
             const modalWidth = modalContent.offsetWidth;
@@ -615,29 +606,20 @@
             const mouseX = jsEvent.clientX;
             const mouseY = jsEvent.clientY;
 
-            let left = mouseX + 20;
-            let top = mouseY + 10;
-
+            let left = mouseX + 20, top = mouseY + 10;
             if (left + modalWidth > window.innerWidth) left = mouseX - modalWidth - 20;
             if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
-            if (top < 10) top = 10;
-            if (left < 10) left = 10;
-
+            if (top < 10) top = 10; if (left < 10) left = 10;
             detailModal.style.top = `${top}px`;
             detailModal.style.left = `${left}px`;
 
-        } catch (err) {
-            console.error(err);
-            safeShowToast('오류: ' + err.message, 'error');
-        }
+        } catch (err) { console.error(err); safeShowToast('오류: ' + err.message, 'error'); }
     }
 
     function hideDetailModal() { detailModal.classList.add('hidden'); }
 
-    // [관리자] 출석 활성화 토글
     async function handleToggleAttendanceActive(scheduleId, clubId, btn, info) {
         if(!await openConfirm(btn.textContent + ' 하시겠습니까?')) return;
-
         try {
             const res = await fetch(`/api/club/${clubId}/schedule/${scheduleId}/attendance-active`, {
                 method: 'POST', headers: {'Content-Type':'application/json'}, credentials: 'include'
@@ -650,34 +632,24 @@
         } catch(e) { safeShowToast('오류가 발생했습니다.', 'error'); }
     }
 
-    // [참가자] 출석 체크 (이모티콘 제거)
-    async function handleToggleDone(scheduleId, btn) {
+    async function handleToggleDone(scheduleId, btn, info) {
         let url = `/api/calendar/events/${scheduleId}/done`;
-
         try {
             const res = await fetch(url, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include'
             });
-
             if (res.ok) {
                 const isDone = await res.json();
-                if (isDone) {
-                    btn.textContent = '출석 완료 (취소)';
-                    btn.className = 'btn-secondary';
-                    btn.style.backgroundColor = '';
-                    safeShowToast('출석 체크가 완료되었습니다.', 'success');
-                } else {
-                    btn.textContent = '출석 체크하기';
-                    btn.className = 'btn-primary';
-                    btn.style.backgroundColor = '#4caf50';
-                    safeShowToast('출석이 취소되었습니다.', 'success');
-                }
+                if (isDone) safeShowToast('출석 체크가 완료되었습니다.', 'success');
+                else safeShowToast('출석이 취소되었습니다.', 'success');
+
                 calendar.refetchEvents();
+                if(info) showScheduleDetailModal(info);
             } else {
                 const msg = await res.text();
                 safeShowToast(msg, 'error');
             }
-        } catch (e) { safeShowToast('서버 통신 중 오류가 발생했습니다.', 'error'); }
+        } catch (e) { safeShowToast('통신 오류가 발생했습니다.', 'error'); }
     }
 
     async function handleDelete(id, clubId) {
