@@ -444,6 +444,8 @@
     });
 
     // --- 상세 팝업 ---
+    // --- 상세 팝업 (마우스 옆 위치) ---
+    // --- 상세 팝업 (마우스 옆 위치) ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
         const eventEl = info.el;
@@ -451,13 +453,14 @@
 
         try {
             const clubId = info.event.extendedProps.clubId;
+
             let url;
             if (clubId) url = `/api/club/${clubId}/schedule/${scheduleId}`;
             else url = `/api/calendar/events/${scheduleId}`;
 
             const response = await fetch(url, { credentials: 'include' });
-            if (response.status === 401) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
-            if (!response.ok) throw new Error('일정 정보 로딩 실패');
+            if (response.status === 401) { safeShowToast('로그인 필요', 'error'); openLoginModal(); return; }
+            if (!response.ok) throw new Error('일정 로딩 실패');
 
             const dto = await response.json();
 
@@ -467,12 +470,12 @@
             document.getElementById('modal-fee').textContent = dto.fee || '-';
             document.getElementById('modal-details').textContent = dto.details || '(내용 없음)';
 
-            // [1] 참가자 목록 UI
+            // [1] 참가자 목록 UI (항상 출석부 모드로 고정)
             const clubArea = document.getElementById('club-event-area');
             const list = document.getElementById('modal-participant-list');
             const titleP = document.getElementById('attend-status-title');
 
-            // 권한 확인
+            // 권한 확인: 관리자이거나, 참가 확정된 상태(ACCEPTED)인 경우만 명단 조회 가능
             const canViewList = dto.isManager || (dto.isParticipating && dto.myStatus === 'ACCEPTED');
 
             if (clubId) {
@@ -481,38 +484,37 @@
                     list.innerHTML = '';
                     const participants = dto.participants || [];
 
-                    let visibleList = participants;
-                    if (dto.isAttendanceActive) {
-                        visibleList = participants.filter(p => p.status === 'ACCEPTED');
-                        titleP.innerHTML = `출석 현황 (<span id="modal-participant-count">${visibleList.length}</span>명)`;
-                    } else {
-                        visibleList = participants;
-                        titleP.innerHTML = `참여 현황 (<span id="modal-participant-count">${visibleList.length}</span>명)`;
-                    }
+                    // [수정] 항상 '승인된(ACCEPTED)' 사람만 필터링 (출석 대상자)
+                    const visibleList = participants.filter(p => p.status === 'ACCEPTED');
+
+                    // [수정] 타이틀을 항상 '출석 현황'으로 고정
+                    titleP.innerHTML = `출석 현황 (<span id="modal-participant-count">${visibleList.length}</span>명)`;
 
                     if (visibleList.length > 0) {
                         visibleList.forEach(p => {
                             const div = document.createElement('div');
                             div.className = 'participant-item';
+
+                            // [수정] 상태 표시: 출석 여부만 표시
                             let statusHtml = '';
-                            if (dto.isAttendanceActive) {
-                                if (p.isAttended) statusHtml = '<span style="color:#4caf50; font-weight:bold;">출석 완료</span>';
-                                else statusHtml = '<span style="color:#666;">미출석</span>';
+                            if (p.isAttended) {
+                                statusHtml = '<span style="color:#4caf50; font-weight:bold;">출석 완료</span>';
                             } else {
-                                if(p.status === 'ACCEPTED') statusHtml = '<span class="status-ACCEPTED">승인됨</span>';
-                                else if(p.status === 'PENDING') statusHtml = '<span class="status-PENDING">대기중</span>';
-                                else statusHtml = '<span class="status-REJECTED">거절됨</span>';
+                                statusHtml = '<span style="color:#666;">미출석</span>';
                             }
+
                             div.innerHTML = `<span>${p.nickname}</span> ${statusHtml}`;
                             list.appendChild(div);
                         });
                     } else {
-                        list.innerHTML = '<div style="color:#666; font-size:0.9em; padding:5px;">인원이 없습니다.</div>';
+                        list.innerHTML = '<div style="color:#666; padding:5px;">출석 대상(승인된 인원)이 없습니다.</div>';
                     }
                 } else {
+                    // 권한 없음 -> 명단 숨김
                     clubArea.classList.add('hidden');
                 }
             } else {
+                // 개인 일정
                 clubArea.classList.add('hidden');
             }
 
@@ -524,7 +526,9 @@
             if (clubId) {
                 newJoinBtn.classList.remove('hidden');
                 if (dto.isParticipating && dto.myStatus === 'ACCEPTED') {
+                    // 참가 확정자
                     if (dto.isAttendanceActive) {
+                        // 출석 진행 중 -> 출석 체크 버튼
                         if (dto.isDone) {
                             newJoinBtn.textContent = '출석 완료 (취소)';
                             newJoinBtn.className = 'btn-secondary';
@@ -535,6 +539,7 @@
                         }
                         newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn, info);
                     } else {
+                        // 대기 중 (시작 전) -> 버튼 누르면 "아직 시작 안 함" 에러
                         newJoinBtn.textContent = '출석 대기중';
                         newJoinBtn.className = 'btn-secondary';
                         newJoinBtn.onclick = () => handleToggleDone(scheduleId, newJoinBtn, info);
@@ -606,16 +611,20 @@
             const mouseX = jsEvent.clientX;
             const mouseY = jsEvent.clientY;
 
-            let left = mouseX + 20, top = mouseY + 10;
+            let left = mouseX + 20;
+            let top = mouseY + 10;
             if (left + modalWidth > window.innerWidth) left = mouseX - modalWidth - 20;
             if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
             if (top < 10) top = 10; if (left < 10) left = 10;
+
             detailModal.style.top = `${top}px`;
             detailModal.style.left = `${left}px`;
 
-        } catch (err) { console.error(err); safeShowToast('오류: ' + err.message, 'error'); }
+        } catch (err) {
+            console.error(err);
+            safeShowToast('오류: ' + err.message, 'error');
+        }
     }
-
     function hideDetailModal() { detailModal.classList.add('hidden'); }
 
     async function handleToggleAttendanceActive(scheduleId, clubId, btn, info) {
