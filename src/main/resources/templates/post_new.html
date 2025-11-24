@@ -62,6 +62,18 @@
                                 return;
                             }
 
+                            const maxSize = 10 * 1024 * 1024;
+
+                            for (let i = 0; i < input.files.length; i++) {
+                                 if (input.files[i].size > maxSize) {
+                                    showToast("파일 용량이 너무 큽니다. (최대 10MB)", true);
+
+                                      input.value = ""; // 초기화
+                                      display.textContent = "선택된 파일 없음";
+                                         return; // 함수 종료
+                                 }
+                            }
+
                             // 파일 이름들을 가져와서 쉼표로 연결
                             let names = [];
                             for (let i = 0; i < input.files.length; i++) {
