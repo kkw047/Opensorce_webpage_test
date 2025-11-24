@@ -768,10 +768,22 @@
             fee: document.getElementById('create-fee').value,
             details: document.getElementById('create-details').value
         };
+
+        // 1. 필수값 체크
         if(!data.title) return safeShowToast('제목을 입력해 주세요.', 'error');
         if(!data.start || !data.end) return safeShowToast('날짜를 선택해 주세요.', 'error');
+
+        // 2. 날짜 논리 체크 (종료일 < 시작일)
         if(data.start > data.end) return safeShowToast('종료일이 시작일보다 빠를 수 없습니다.', 'error');
 
+        // [추가] 3. 과거 날짜 체크 (시작일 < 오늘)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // 시간을 00:00:00으로 맞춰서 날짜만 비교
+        const startDate = new Date(data.start);
+
+        if (startDate < today) {
+            return safeShowToast('이미 지난 날짜에는 일정을 만들 수 없습니다.', 'error');
+        }
         sendRequest(`/api/club/${clubId}/schedule`, 'POST', data, () => {
             safeShowToast('일정이 등록되었습니다.', 'success');
             hideCreateModal();
