@@ -1,5 +1,6 @@
 package com.cbnu11team.team11.service;
 
+import java.time.LocalDateTime;
 import com.cbnu11team.team11.domain.*;
 import com.cbnu11team.team11.repository.*;
 import com.cbnu11team.team11.web.dto.ClubActivityStatDto; // [추가됨]
@@ -323,24 +324,29 @@ public class ClubService {
      */
     @Transactional(readOnly = true)
     public List<ClubActivityStatDto> getRecentActivityStats(Long clubId) {
-        // 1. 해당 모임의 모든 일정을 가져와서 -> 날짜 내림차순(최신순) 정렬 -> 상위 3개만 가져옴
+        LocalDateTime now = LocalDateTime.now(); // 현재 시간
+
         return calendarRepository.findAllByClubId(clubId).stream()
-                .sorted((c1, c2) -> c2.getStartDate().compareTo(c1.getStartDate())) // 최신순 정렬
-                .limit(3) // 3개만
+                // 1. 종료 날짜가 현재보다 이전인 것만 필터링 (완료된 일정)
+                .filter(cal -> cal.getEndDate().isBefore(now))
+                // 2. 종료 날짜 기준 내림차순 정렬 (최신순)
+                .sorted((c1, c2) -> c2.getEndDate().compareTo(c1.getEndDate()))
+                // 3. 2개만 가져오기
+                .limit(2)
                 .map(cal -> {
-                    // 승인된 참가자 수 (PENDING, REJECTED 제외)
+                    // 승인된 참가자 수 (분모)
                     long total = cal.getParticipants().stream()
                             .filter(p -> p.getStatus() == ParticipantStatus.ACCEPTED)
                             .count();
 
-                    // 출석한 참가자 수
+                    // 출석한 참가자 수 (분자)
                     long attended = cal.getParticipants().stream()
                             .filter(p -> p.getStatus() == ParticipantStatus.ACCEPTED && p.isAttended())
                             .count();
 
                     return new ClubActivityStatDto(
                             cal.getTitle(),
-                            cal.getStartDate().toLocalDate().toString(),
+                            cal.getStartDate().toLocalDate().toString(), // 표시는 시작 날짜로 유지 (혹은 getEndDate()로 변경 가능)
                             (int) total,
                             (int) attended
                     );
