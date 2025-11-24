@@ -756,9 +756,7 @@ public class ClubController {
 
         // 대기 중인 멤버 (수락/거절용)
         List<ClubMember> waitingList = clubService.getMembersByStatus(clubId, ClubMemberStatus.WAITING);
-        model.addAttribute("waitingList", waitingList);
 
-        // 활동 중인 멤버
         List<ClubMember> activeList = clubService.getMembersByStatus(clubId, ClubMemberStatus.ACTIVE);
 
         List<ClubMember> sortedActiveList = activeList.stream()
@@ -775,6 +773,13 @@ public class ClubController {
                     return m1.getUser().getNickname().compareTo(m2.getUser().getNickname());
                 })
                 .toList(); // 리스트로 변환
+
+        model.addAttribute("categories", clubService.getAllCategories());
+        model.addAttribute("searchActionUrl", "/clubs");
+        model.addAttribute("selectedCategoryIds", new ArrayList<>());
+        model.addAttribute("q", "");
+        model.addAttribute("selectedDo", "");
+        model.addAttribute("selectedSi", "");
 
         model.addAttribute("club", optDto.get());
         model.addAttribute("waitingList", waitingList);
@@ -858,6 +863,14 @@ public class ClubController {
                 null                // imageFile (파일은 비워둠)
         );
 
+        model.addAttribute("categories", clubService.getAllCategories());
+        model.addAttribute("searchActionUrl", "/clubs");
+
+        model.addAttribute("selectedCategoryIds", new ArrayList<>()); // 빈 리스트
+        model.addAttribute("q", "");
+        model.addAttribute("selectedDo", "");
+        model.addAttribute("selectedSi", "");
+
         model.addAttribute("club", club);
         model.addAttribute("clubForm", form);
         model.addAttribute("activeTab", "manager");
@@ -893,6 +906,14 @@ public class ClubController {
             ra.addFlashAttribute("error", "모임장 권한이 없습니다.");
             return "redirect:/clubs/" + clubId;
         }
+
+        model.addAttribute("categories", clubService.getAllCategories());
+        model.addAttribute("searchActionUrl", "/clubs");
+        model.addAttribute("selectedCategoryIds", new ArrayList<>());
+        model.addAttribute("q", "");
+        model.addAttribute("selectedDo", "");
+        model.addAttribute("selectedSi", "");
+
         model.addAttribute("club", optDto.get());
         model.addAttribute("activeTab", "manager");
 
