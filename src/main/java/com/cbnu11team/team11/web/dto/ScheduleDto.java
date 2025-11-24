@@ -11,6 +11,7 @@ import java.util.List;
 public class ScheduleDto {
 
     private Long id;
+    private Long clubId; // [추가됨] 모임 ID (개인 일정일 경우 null)
     private String title;
     private String start;
     private String end;
@@ -31,7 +32,7 @@ public class ScheduleDto {
     private boolean isDone;           // 완료(출석) 여부 (개인: 완료, 모임: 출석)
 
     @JsonProperty("isAttendanceActive")
-    private boolean isAttendanceActive; // [추가] 관리자가 출석 체크를 활성화했는지
+    private boolean isAttendanceActive; // 관리자가 출석 체크를 활성화했는지
 
     private String myStatus;          // 나의 참가 상태 (ACCEPTED, PENDING...)
     private List<ParticipantDto> participants;
@@ -45,9 +46,14 @@ public class ScheduleDto {
         this.fee = entity.getFee();
         this.details = entity.getDescription();
 
+        // [추가됨] Club ID 매핑
+        if (entity.getClub() != null) {
+            this.clubId = entity.getClub().getId();
+        }
+
         // 기본값 매핑
-        this.isDone = entity.isDone(); // 개인 일정일 경우 엔티티 값 사용
-        this.isAttendanceActive = entity.isAttendanceActive(); // 출석 활성화 여부
+        this.isDone = entity.isDone();
+        this.isAttendanceActive = entity.isAttendanceActive();
 
         if (entity.getUser() != null) {
             this.writer = entity.getUser().getNickname();
@@ -63,10 +69,10 @@ public class ScheduleDto {
         private String status;
 
         @JsonProperty("isConfirmed")
-        private boolean isConfirmed; // 참가 확정 여부
+        private boolean isConfirmed;
 
         @JsonProperty("isAttended")
-        private boolean isAttended;  // [추가] 개별 출석 여부
+        private boolean isAttended;
 
         public ParticipantDto(com.cbnu11team.team11.domain.CalendarParticipant p) {
             this.participantId = p.getId();
@@ -74,7 +80,7 @@ public class ScheduleDto {
             this.nickname = p.getUser().getNickname();
             this.status = p.getStatus().name();
             this.isConfirmed = p.isConfirmed();
-            this.isAttended = p.isAttended(); // 엔티티에서 가져옴
+            this.isAttended = p.isAttended();
         }
     }
 
