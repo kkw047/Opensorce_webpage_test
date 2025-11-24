@@ -546,12 +546,9 @@
 
         // 관리 탭 새로고침
         async function refreshManagementTab(clubId, roomId) {
-            modalManageMemberList.innerHTML = '<p>로딩 중...</p>';
-            modalBannedMemberList.innerHTML = '<p>로딩 중...</p>';
-            modalInviteList.innerHTML = '<p>로딩 중...</p>';
+            modalManageMemberList.innerHTML = '<p>로딩 중...</p>'; modalBannedMemberList.innerHTML = '<p>로딩 중...</p>'; modalInviteList.innerHTML = '<p>로딩 중...</p>';
             modalInviteForm.action = `/api/clubs/${clubId}/chat/${roomId}/invite`;
 
-            // 1. 멤버 목록 (강퇴)
             try {
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/manage`);
                 const members = await res.json();
@@ -559,21 +556,37 @@
                 if (members.length === 0) modalManageMemberList.innerHTML = '<p style="color:#9ec8b8;">멤버 없음</p>';
                 else {
                     members.forEach(m => {
-                        const div = document.createElement('div');
-                        div.className = 'member-item';
+                        const div = document.createElement('div'); div.className = 'member-item';
+
+                        // 관리자일 경우 버튼 영역 비우고, 이름 옆에 [관리자] 배지 추가
+                        let btnHtml = '';
+                        let badgeHtml = '';
+
+                        if (m.role === 'MANAGER') {
+                            // 관리자: 버튼 없음, 초록색 관리자 텍스트 추가
+                            btnHtml = '';
+                            badgeHtml = ` <span style="color: #2ecc71; font-size: 12px; font-weight: bold; margin-left: 4px;">[관리자]</span>`;
+                        } else {
+                            // 일반 멤버: 강퇴 버튼 생성
+                            btnHtml = `<button class="btn btn-kick" data-id="${m.id}">강퇴</button>`;
+                        }
+
                         div.innerHTML = `
-                            <div><span>${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span></div>
-                            <button class="btn btn-kick" data-id="${m.id}">강퇴</button>
+                            <div>
+                                <span>${m.nickname}</span>
+                                <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span>${badgeHtml}
+                            </div>
+                            ${btnHtml}
                         `;
                         modalManageMemberList.appendChild(div);
                     });
+                    // 버튼 이벤트 리스너 연결 (btn-kick이 존재하는 경우만)
                     modalManageMemberList.querySelectorAll('.btn-kick').forEach(btn => {
                         btn.onclick = () => handleKick(clubId, roomId, btn.dataset.id);
                     });
                 }
             } catch (e) { modalManageMemberList.innerHTML = '오류'; }
 
-            // 2. 밴 목록
             try {
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/banned-members`);
                 const banned = await res.json();
@@ -581,21 +594,14 @@
                 if (banned.length === 0) modalBannedMemberList.innerHTML = '<p style="color:#9ec8b8;">밴 된 멤버 없음</p>';
                 else {
                     banned.forEach(m => {
-                        const div = document.createElement('div');
-                        div.className = 'member-item';
-                        div.innerHTML = `
-                             <div><span style="color:#ff7777">${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span></div>
-                             <button class="btn btn-unban" data-id="${m.id}">해제</button>
-                        `;
+                        const div = document.createElement('div'); div.className = 'member-item';
+                        div.innerHTML = `<div><span style="color:#ff7777">${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span></div><button class="btn btn-unban" data-id="${m.id}">해제</button>`;
                         modalBannedMemberList.appendChild(div);
                     });
-                    modalBannedMemberList.querySelectorAll('.btn-unban').forEach(btn => {
-                        btn.onclick = () => handleUnban(clubId, roomId, btn.dataset.id);
-                    });
+                    modalBannedMemberList.querySelectorAll('.btn-unban').forEach(btn => { btn.onclick = () => handleUnban(clubId, roomId, btn.dataset.id); });
                 }
             } catch(e) { modalBannedMemberList.innerHTML = '오류'; }
 
-            // 3. 초대 목록
             try {
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/invitable-members`);
                 const members = await res.json();
@@ -603,15 +609,12 @@
                 if(members.length === 0) modalInviteList.innerHTML = '<p style="color:#9ec8b8;">초대 가능 멤버 없음</p>';
                 else {
                     members.forEach(m => {
-                        const label = document.createElement('label');
-                        label.className = 'checkrow';
-                        label.innerHTML = `<input type="checkbox" name="memberIds" value="${m.id}">
-                                           <span>${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span>`;
+                        const label = document.createElement('label'); label.className = 'checkrow';
+                        label.innerHTML = `<input type="checkbox" name="memberIds" value="${m.id}"><span>${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span>`;
                         modalInviteList.appendChild(label);
                     });
                 }
             } catch(e) { modalInviteList.innerHTML = '오류'; }
-
             modalDeleteRoomForm.action = `/api/clubs/${clubId}/chat/${roomId}/delete`;
         }
 

@@ -94,8 +94,15 @@ public class ChatService {
     }
 
     /**
-     * 채팅방 생성
+     * 특정 유저의 모임 내 역할 조회 (관리자 여부 확인용)
      */
+    @Transactional(readOnly = true)
+    public ClubRole getMemberRole(Long clubId, Long userId) {
+        return clubMemberRepository.findById(new ClubMemberId(clubId, userId))
+                .map(ClubMember::getRole)
+                .orElse(ClubRole.MEMBER); // 기본값
+    }
+
     @Transactional
     public ChatRoom createChatRoom(Long clubId, Long creatorUserId, String roomName, List<Long> memberUserIds) {
         if (memberUserIds == null || memberUserIds.isEmpty()) {
@@ -198,7 +205,11 @@ public class ChatService {
                 .filter(user -> !chatMemberIds.contains(user.getId()))
                 .filter(user -> !chatRoomBanRepository.existsByChatRoomIdAndUserId(roomId, user.getId()))
                 .sorted(Comparator.comparing(User::getNickname))
-                .map(user -> new ChatApiController.ManageableMemberDto(user.getId(), user.getNickname(), user.getEmail()))
+                .map(user -> new ChatApiController.ManageableMemberDto(
+                        user.getId(),
+                        user.getNickname(),
+                        user.getEmail(),
+                        "MEMBER")) // 초대 가능한 멤버는 일단 일반 멤버로 간주 (DTO 시그니처 변경 대응)
                 .collect(Collectors.toList());
     }
 
@@ -267,6 +278,14 @@ public class ChatService {
             throw new IllegalArgumentException("방장은 스스로를 강퇴할 수 없습니다.");
         }
 
+        // 강퇴 대상이 모임 관리자(MANAGER)인지 확인
+        ClubMember targetClubMember = clubMemberRepository.findById(new ClubMemberId(room.getClub().getId(), memberToKickId))
+                .orElseThrow(() -> new IllegalArgumentException("해당 멤버의 모임 정보를 찾을 수 없습니다."));
+
+        if (targetClubMember.getRole() == ClubRole.MANAGER) {
+            throw new IllegalStateException("모임장(관리자)은 강퇴할 수 없습니다.");
+        }
+
         User targetUser = userRepository.findById(memberToKickId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
@@ -318,7 +337,8 @@ public class ChatService {
                 .map(ban -> new ChatApiController.ManageableMemberDto(
                         ban.getUser().getId(),
                         ban.getUser().getNickname(),
-                        ban.getUser().getEmail()))
+                        ban.getUser().getEmail(),
+                        "BANNED")) // 밴 목록에서는 role이 중요하지 않으므로 더미값
                 .sorted(Comparator.comparing(ChatApiController.ManageableMemberDto::nickname))
                 .collect(Collectors.toList());
     }

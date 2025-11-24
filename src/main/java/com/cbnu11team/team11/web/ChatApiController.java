@@ -1,6 +1,7 @@
 package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.ChatRoom;
+import com.cbnu11team.team11.domain.ClubRole;
 import com.cbnu11team.team11.domain.User;
 import com.cbnu11team.team11.service.ChatService;
 import com.cbnu11team.team11.web.dto.ChatMessageDto;
@@ -22,11 +23,10 @@ public class ChatApiController {
 
     private final ChatService chatService;
 
-    public record ManageableMemberDto(Long id, String nickname, String email) {}
-
+    public record ManageableMemberDto(Long id, String nickname, String email, String role) {}
 
     /**
-     * 채팅방 상세 정보 (JSON) - 메시지 제외
+     * 채팅방 상세 정보
      */
     @GetMapping("/{clubId}/chat/{roomId}")
     public ResponseEntity<?> getChatRoomApi(
@@ -90,7 +90,8 @@ public class ChatApiController {
     }
 
     /**
-     * 채팅방 관리 정보 (강퇴할 멤버 목록) (JSON)
+     * 채팅방 관리 정보 (강퇴할 멤버 목록)
+     * 각 멤버의 역할을 조회하여 DTO에 포함시킴
      */
     @GetMapping("/{clubId}/chat/{roomId}/manage")
     public ResponseEntity<?> getManageInfo(
@@ -116,7 +117,16 @@ public class ChatApiController {
             List<ManageableMemberDto> membersToManage = room.getMembers().stream()
                     .filter(m -> !m.getId().equals(currentUserId))
                     .sorted(Comparator.comparing(User::getNickname))
-                    .map(user -> new ManageableMemberDto(user.getId(), user.getNickname(), user.getEmail()))
+                    .map(user -> {
+                        // 멤버의 역할 조회
+                        ClubRole role = chatService.getMemberRole(clubId, user.getId());
+                        return new ManageableMemberDto(
+                                user.getId(),
+                                user.getNickname(),
+                                user.getEmail(),
+                                role.name() // "MANAGER" or "MEMBER"
+                        );
+                    })
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(membersToManage);
@@ -254,7 +264,6 @@ public class ChatApiController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
 
     /**
      * 채팅방 나가기 (스스로) (JSON)
