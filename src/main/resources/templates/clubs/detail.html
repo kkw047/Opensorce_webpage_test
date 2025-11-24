@@ -105,11 +105,16 @@
         <div class="detail-card" th:object="${club}">
 
             <div class="club-header">
-            <h1 th:text="*{name}">모임 이름</h1>
-            <div class="chips club-chips">
-                <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
+                <h1 th:text="*{name}">모임 이름</h1>
+
+                <div class="chips club-chips" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+
+                    <span th:if="${club.joinPolicy.name() == 'AUTOMATIC'}" class="policy-badge policy-auto">자동 가입</span>
+                    <span th:if="${club.joinPolicy.name() == 'APPROVAL'}" class="policy-badge policy-approval">승인제</span>
+
+                    <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
+                </div>
             </div>
-        </div>
 
             <hr class="detail-divider"> <div>
             <img th:if="*{imageUrl != null}" th:src="*{imageUrl}" alt="모임 사진" class="club-image">
@@ -157,11 +162,20 @@
             <hr class="detail-divider"> <div>
             <h2 class="section-title" th:text="'모임 멤버 (' + ${memberCount} + ')'">모임 멤버 (0)</h2>
             <div class="member-list">
-                <div class="member-item" th:each="memberInfo : *{members}">
+                <div class="member-item" th:each="memberInfo : *{members}" style="align-items: center;">
                     <div class="member-avatar"></div>
-                    <span th:text="${memberInfo.nickname}">멤버 닉네임</span>
-                    <span class="member-role" th:if="${memberInfo.role == 'ADMIN'}">[관리자]</span>
+
+                    <div style="display: flex; align-items: center;">
+                        <span th:text="${memberInfo.nickname}">멤버 닉네임</span>
+
+                        <span class="member-role"
+                              th:if="${memberInfo.role == 'ADMIN' or memberInfo.role == 'MANAGER'}"
+                              style="font-size: 12px; color: #1db954; margin-left: 6px; font-weight: bold;">
+                            [관리자]
+                        </span>
+                    </div>
                 </div>
+
                 <div th:if="${memberCount == 0}">
                     <p style="color: #9ec8b8; font-size: 14px; margin-top: 10px; margin-bottom: 0;">
                         아직 모임에 가입한 멤버가 없습니다.
@@ -177,17 +191,45 @@
             <button th:if="${isOwner}" class="btn block" disabled>
                 당신은 이 모임의 관리자입니다
             </button>
-            <button th:if="${!isOwner && isAlreadyMember}" class="btn block" disabled>
+            <button th:if="${club.myStatus == 'ACTIVE' and !isOwner}" class="btn block" disabled
+                    style="background: #1a332c; color: #9ec8b8; cursor: not-allowed;">
                 이미 가입한 모임입니다
+            </button>
+
+            <button th:if="${club.myStatus == 'WAITING'}" class="btn block" disabled
+                    style="background: #2b1d00; color: #ffb700; border: 1px solid #ffb700; cursor: not-allowed;">
+                가입 승인 대기 중입니다
+            </button>
+
+            <button th:if="${club.myStatus == 'BANNED'}" class="btn btn-danger block" disabled>
+                가입이 차단된 모임입니다
             </button>
 
             <form th:if="${session.LOGIN_USER_ID != null && !isOwner && !isAlreadyMember}"
                   th:action="@{/clubs/{id}/join(id=${club.id})}" method="post" style="margin: 0;">
+
                 <button type="submit" class="btn primary block">
-                    가입하기
+                    <span th:if="${club.joinPolicy.name() == 'AUTOMATIC'}">가입하기</span>
+                    <span th:if="${club.joinPolicy.name() == 'APPROVAL'}">가입 신청하기</span>
                 </button>
+
+                <p th:if="${club.joinPolicy.name() == 'APPROVAL'}"
+                   style="text-align: center; color: #ffa500; font-size: 12px; margin-top: 8px; margin-bottom: 0;">
+                    관리자의 승인 후 활동할 수 있습니다.
+                </p>
             </form>
         </div>
+
+            <div th:if="${isAlreadyMember and !isOwner}"
+                 style="margin-top: 20px; border-top: 1px solid #1a332c; padding-top: 15px; display: flex; justify-content: flex-end;">
+
+                <button type="button"
+                        class="btn"
+                        onclick="openLeaveModal()"
+                        style="font-size: 13px; color: #9ec8b8; background: transparent; border: 1px solid #29433b; cursor: pointer;">
+                    모임 탈퇴하기
+                </button>
+            </div>
 
         </div> </main>
 </div>
@@ -200,6 +242,39 @@
 </div>
 
 <div th:replace="~{fragments/common :: scripts}"></div>
+
+<div id="leaveModal" class="modal" style="display: none;">
+    <div class="modal-card" style="text-align: center; width: 360px;">
+        <h3 style="margin-top: 0; color: #e7f3ee;">모임 탈퇴</h3>
+        <p style="color: #b0c4de; margin: 20px 0;">
+            정말로 이 모임에서 나가시겠습니까?<br>
+            작성한 게시글과 댓글은 삭제되지 않습니다.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button type="button" class="btn" onclick="closeLeaveModal()">취소</button>
+
+            <form th:action="@{/clubs/{id}/leave(id=${club.id})}" method="post">
+                <button type="submit" class="btn btn-danger">네, 탈퇴합니다</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openLeaveModal() {
+        document.getElementById('leaveModal').style.display = 'flex';
+    }
+    function closeLeaveModal() {
+        document.getElementById('leaveModal').style.display = 'none';
+    }
+
+    // 모달 바깥 클릭 시 닫기
+    window.addEventListener('click', function(event) {
+        if (event.target == document.getElementById('leaveModal')) {
+            closeLeaveModal();
+        }
+    });
+</script>
 
 </body>
 </html>

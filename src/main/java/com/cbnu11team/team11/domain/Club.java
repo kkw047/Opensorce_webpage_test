@@ -64,4 +64,9 @@ public class Club {
     @Builder.Default
     @ToString.Exclude
     private List<ClubMember> members = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "join_policy")
+    @Builder.Default
+    private ClubJoinPolicy joinPolicy = ClubJoinPolicy.AUTOMATIC;
 }

@@ -28,6 +28,23 @@
         <a class="menu-item" th:href="@{/clubs/myclubs}" th:classappend="${activeSidebarMenu == 'myclubs' ? 'active' : ''}">내모임</a>
     </nav>
 
+    <div th:if="${!#lists.isEmpty(myClubs)}" style="margin-top: 20px; margin-bottom: 10px;">
+        <div style="font-size: 12px; font-weight: bold; color: #9ec8b8; padding: 0 12px; margin-bottom: 8px;">
+            내 모임 바로가기
+        </div>
+        <nav class="menu-vert">
+            <a th:each="c : ${myClubs}"
+               class="menu-item"
+               th:href="@{/clubs/{id}(id=${c.id})}"
+               th:text="${c.name}"
+               th:classappend="${club != null and club.id == c.id} ? 'active' : ''"
+               style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                모임 이름
+            </a>
+        </nav>
+        <hr style="border: 0; border-top: 1px solid #29433b; margin: 12px 0;">
+    </div>
+
     <section class="card soft">
         <h4 class="card-title">카테고리</h4>
         <form id="categoryFilterForm" method="get" th:action="${searchActionUrl}">
@@ -86,16 +103,32 @@
 <form class="toolbar" th:fragment="searchbar" method="get" th:action="${searchActionUrl}">
 </form>
 
-<div class="tab-menu-container" th:fragment="club-tabs" th:object="${club}">
+<div class="tab-menu-container" th:fragment="club-tabs" th:object="${club}"
+     style="display: flex; justify-content: space-between; align-items: center;">
     <nav class="tab-menu">
-        <a class="btn" th:classappend="${activeTab == 'home' ? 'primary' : ''}" th:href="@{/clubs/{id}(id=${club.id})}">홈</a>
-        <a class="btn" th:classappend="${activeTab == 'board' ? 'primary' : ''}" th:href="@{/clubs/{id}/board(id=${club.id})}">게시판</a>
-        <a class="btn" th:classappend="${activeTab == 'chat' ? 'primary' : ''}" th:href="@{/clubs/{id}/chat(id=${club.id})}">채팅</a>
-        <a class="btn" th:classappend="${activeTab == 'calendar' ? 'primary' : ''}" th:href="@{/clubs/{id}/calendar(id=${club.id})}">캘린더</a>
+        <a class="btn"
+           th:classappend="${activeTab == 'home' ? 'primary' : ''}"
+           th:href="@{/clubs/{id}(id=${club.id})}">홈</a>
+
+        <a class="btn"
+           th:classappend="${activeTab == 'board' ? 'primary' : ''}"
+           th:href="@{/clubs/{id}/board(id=${club.id})}">게시판</a>
+
+        <a class="btn"
+           th:classappend="${activeTab == 'chat' ? 'primary' : ''}"
+           th:href="@{/clubs/{id}/chat(id=${club.id})}">채팅</a>
+
+        <a class="btn"
+           th:classappend="${activeTab == 'calendar' ? 'primary' : ''}"
+           th:href="@{/clubs/{id}/calendar(id=${club.id})}">캘린더</a>
     </nav>
-    <a th:if="${isOwner}" th:href="@{/clubs/{id}/manage(id=${club.id})}" class="btn">
-        관리
-    </a>
+
+    <div th:if="${club.isManager}">
+        <a class="btn"
+           th:classappend="${activeTab == 'manager' ? 'primary' : ''}"
+           th:href="@{/clubs/{id}/manager(id=${club.id})}">관리</a>
+    </div>
+
 </div>
 
 <div th:fragment="modals">
@@ -112,6 +145,9 @@
                 <button class="btn" type="button" data-close="#loginModal">닫기</button>
                 </div>
             </form>
+        </div>
+        <div id="toast-container">
+            <div id="toast-message">알림 내용</div>
         </div>
     </div>
 
@@ -238,6 +274,42 @@
 <div th:fragment="scripts">
     <script defer th:src="@{/js/region.js}"></script>
     <script defer th:src="@{/js/main.js}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const body = document.querySelector('body');
+            const msg = body.getAttribute('data-msg');
+            const error = body.getAttribute('data-error');
+
+            if (msg) {
+                showToast(msg, false);
+            }
+            if (error) {
+                showToast(error, true);
+            }
+        });
+
+        function showToast(message, isError) {
+            const container = document.getElementById('toast-container');
+            const msgBox = document.getElementById('toast-message');
+
+            if (!container || !msgBox) return;
+
+            msgBox.textContent = message;
+
+            if (isError) {
+                container.classList.add('error');
+            } else {
+                container.classList.remove('error');
+            }
+
+            container.classList.add('show');
+
+            setTimeout(function() {
+                container.classList.remove('show');
+            }, 3000);
+        }
+    </script>
 </div>
 
 </body>

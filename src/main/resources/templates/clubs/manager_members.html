@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>멤버 관리</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="bg-deep"
+      th:data-msg="${msg}"
+      th:data-error="${error}">
+
+<header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="wrap">
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+
+    <main class="content">
+
+        <div class="detail-card">
+            <div th:replace="~{fragments/common :: club-tabs}"></div>
+        </div>
+
+        <div style="margin: 20px 0;">
+            <a th:href="@{/clubs/{id}/manager(id=${club.id})}" class="btn">관리 홈으로</a>
+        </div>
+
+        <div class="detail-card" th:if="${!#lists.isEmpty(waitingList)}">
+            <h3 style="margin-top: 0;">가입 대기 인원</h3>
+            <p class="muted" style="margin-bottom: 15px;">새로운 멤버가 가입을 기다리고 있습니다.</p>
+
+            <div class="post-grid-container">
+                <div class="post-card" th:each="member : ${waitingList}" style="cursor: default;">
+                    <div class="card-header">
+                        <img th:if="${member.user.imageUrl != null}" th:src="${member.user.imageUrl}" class="profile-thumb" alt="프로필">
+                        <div th:unless="${member.user.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
+
+                        <div class="author-info" style="display: flex; flex-direction: column; justify-content: center; gap: 2px;">
+                            <span class="author-name" th:text="${member.user.nickname}">닉네임</span>
+                            <span class="post-date" th:text="|신청일: ${#temporals.format(member.joinedAt, 'yyyy-MM-dd')}|">날짜</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <form th:action="@{/clubs/{cid}/manager/members/{uid}/approve(cid=${club.id}, uid=${member.user.id})}" method="post">
+                            <button class="btn primary">수락</button>
+                        </form>
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                th:data-id="${member.user.id}"
+                                th:data-nickname="${member.user.nickname}"
+                                onclick="openRejectModal(this.getAttribute('data-id'), this.getAttribute('data-nickname'))">
+                            거절
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            <h3 style="margin-top: 0;">👥 활동 중인 멤버 (<span th:text="${#lists.size(activeList)}">0</span>명)</h3>
+
+            <div class="post-grid-container">
+                <div class="post-card" th:each="member : ${activeList}" style="cursor: default;">
+                    <div class="card-header">
+                        <img th:if="${member.user.imageUrl != null}" th:src="${member.user.imageUrl}" class="profile-thumb" alt="프로필">
+                        <div th:unless="${member.user.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
+
+                        <div class="author-info" style="display: flex; flex-direction: row; align-items: center;">
+                            <span class="author-name" th:text="${member.user.nickname}" style="font-weight: bold;">닉네임</span>
+
+                            <span th:if="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
+                                  class="badge-owner">[관리자]</span>
+
+                            <span th:unless="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
+                                  style="font-size: 12px; color: #9ec8b8; margin-left: 6px;">일반 멤버</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;"
+                         th:if="${member.role.name() != 'MANAGER' and member.role.name() != 'ADMIN'}">
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                style="padding: 6px 12px; font-size: 13px;"
+                                th:data-id="${member.user.id}"
+                                th:data-nickname="${member.user.nickname}"
+                                onclick="openKickModal(this.getAttribute('data-id'), this.getAttribute('data-nickname'))">
+                            추방
+                        </button>
+
+                        <button type="button"
+                                class="btn btn-danger"
+                                style="padding: 6px 12px; font-size: 13px;"
+                                th:data-id="${member.user.id}"
+                                th:data-nickname="${member.user.nickname}"
+                                onclick="openBanModal(this.getAttribute('data-id'), this.getAttribute('data-nickname'))">
+                            차단
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="kickModal" class="modal" style="display: none;">
+            <div class="modal-card" style="text-align: center; width: 360px;">
+                <h3 style="margin-top: 0; color: #e7f3ee;">멤버 추방</h3>
+                <p style="color: #b0c4de; margin: 20px 0;">
+                    <strong id="kickTargetName" style="color: #ff8a8a;">사용자</strong> 님을<br>
+                    정말로 추방하시겠습니까?
+                </p>
+                <div style="display: flex; justify-content: center; gap: 10px;">
+                    <button type="button" class="btn" onclick="closeKickModal()">취소</button>
+                    <form id="kickForm" method="post">
+                        <button type="submit" class="btn btn-danger">추방하기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="rejectModal" class="modal" style="display: none;">
+            <div class="modal-card" style="text-align: center; width: 400px;">
+                <h3 style="margin-top: 0; color: #ff8a8a;">가입 요청 거절</h3>
+                <p style="color: #b0c4de; margin: 10px 0 20px;">
+                    <strong id="rejectTargetName" style="color: #e7f3ee;">사용자</strong> 님의<br>
+                    가입 요청을 거절하시겠습니까?
+                </p>
+
+                <form id="rejectForm" method="post">
+                    <div style="margin-bottom: 20px;">
+                        <textarea name="reason"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="거절 사유를 입력해주세요 (선택사항)"
+                                  style="resize: none; font-size: 0.9rem;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: center; gap: 10px;">
+                        <button type="button" class="btn" onclick="closeRejectModal()">취소</button>
+                        <button type="submit" class="btn btn-danger">거절하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="banModal" class="modal" style="display: none;">
+            <div class="modal-card" style="text-align: center; width: 400px; border: 1px solid #5c2b2b; background: #1a0f0f;">
+                <h3 style="margin-top: 0; color: #ff8a8a;">멤버 영구 차단</h3>
+                <p style="color: #d18e8e; margin: 20px 0; font-size: 0.95rem; line-height: 1.5;">
+                    <strong id="banTargetName" style="color: #fff;">사용자</strong> 님을 차단하시겠습니까?<br><br>
+                    차단된 멤버는 <strong>재가입이 불가능</strong>합니다.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 10px;">
+                    <button type="button" class="btn" onclick="closeBanModal()">취소</button>
+
+                    <form id="banForm" method="post">
+                        <button type="submit" class="btn btn-danger" style="background: #8b0000; border-color: #5c2b2b;">네, 차단합니다</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            const clubId = [[${club.id}]];
+
+            /* --- 추방 모달 --- */
+            function openKickModal(userId, nickname) {
+                document.getElementById('kickTargetName').textContent = nickname;
+                const form = document.getElementById('kickForm');
+                form.action = `/clubs/${clubId}/manager/members/${userId}/kick`;
+                document.getElementById('kickModal').style.display = 'flex';
+            }
+            function closeKickModal() {
+                document.getElementById('kickModal').style.display = 'none';
+            }
+
+            /* --- 거절 모달 --- */
+            function openRejectModal(userId, nickname) {
+                document.getElementById('rejectTargetName').textContent = nickname;
+                const form = document.getElementById('rejectForm');
+                form.action = `/clubs/${clubId}/manager/members/${userId}/reject`;
+                form.querySelector('textarea').value = ''; // 내용 초기화
+                document.getElementById('rejectModal').style.display = 'flex';
+            }
+            function closeRejectModal() {
+                document.getElementById('rejectModal').style.display = 'none';
+            }
+
+            /* --- 차단 모달 --- */
+            function openBanModal(userId, nickname) {
+                document.getElementById('banTargetName').textContent = nickname;
+                const form = document.getElementById('banForm');
+                form.action = `/clubs/${clubId}/manager/members/${userId}/ban`;
+                document.getElementById('banModal').style.display = 'flex';
+            }
+            function closeBanModal() {
+                document.getElementById('banModal').style.display = 'none';
+            }
+
+            /* --- 바깥 클릭 닫기 --- */
+            window.onclick = function(event) {
+                const kickModal = document.getElementById('kickModal');
+                const rejectModal = document.getElementById('rejectModal');
+                const banModal = document.getElementById('banModal');
+
+                if (event.target == kickModal) closeKickModal();
+                if (event.target == rejectModal) closeRejectModal();
+                if (event.target == banModal) closeBanModal();
+            }
+        </script>
+
+    </main>
+</div>
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+</body>
+</html>

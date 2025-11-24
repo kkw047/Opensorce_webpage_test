@@ -2,14 +2,16 @@ package com.cbnu11team.team11.service;
 
 import com.cbnu11team.team11.domain.*;
 import com.cbnu11team.team11.repository.*;
+import com.cbnu11team.team11.web.ChatApiController;
+import com.cbnu11team.team11.web.dto.ChatMessageDto;
 import com.cbnu11team.team11.web.dto.ChatRoomDetailDto;
 import com.cbnu11team.team11.web.dto.ChatRoomListDto;
-import com.cbnu11team.team11.web.ChatApiController;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator; // [추가]
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -25,6 +27,7 @@ public class ChatService {
     private final ClubRepository clubRepository;
     private final UserRepository userRepository;
     private final ClubMemberRepository clubMemberRepository;
+    private final ChatRoomBanRepository chatRoomBanRepository;
 
     /**
      * 모임의 모든 채팅방 목록 조회 (방장 닉네임 포함)
@@ -81,8 +84,25 @@ public class ChatService {
     }
 
     /**
-     * 채팅방 생성
+     * 메시지 목록 별도 조회
      */
+    @Transactional(readOnly = true)
+    public List<ChatMessageDto> getChatMessages(Long roomId) {
+        return chatMessageRepository.findByChatRoomIdWithSender(roomId).stream()
+                .map(ChatMessageDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 특정 유저의 모임 내 역할 조회 (관리자 여부 확인용)
+     */
+    @Transactional(readOnly = true)
+    public ClubRole getMemberRole(Long clubId, Long userId) {
+        return clubMemberRepository.findById(new ClubMemberId(clubId, userId))
+                .map(ClubMember::getRole)
+                .orElse(ClubRole.MEMBER); // 기본값
+    }
+
     @Transactional
     public ChatRoom createChatRoom(Long clubId, Long creatorUserId, String roomName, List<Long> memberUserIds) {
         if (memberUserIds == null || memberUserIds.isEmpty()) {
@@ -95,21 +115,26 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
         User creator = userRepository.findById(creatorUserId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         Set<Long> allMemberIds = memberUserIds.stream().collect(Collectors.toSet());
         allMemberIds.add(creatorUserId);
+
         for (Long userId : allMemberIds) {
             ClubMemberId memberId = new ClubMemberId(clubId, userId);
             if (!clubMemberRepository.existsById(memberId)) {
                 throw new IllegalStateException("모임 멤버가 아닌 사용자를 초대할 수 없습니다.");
             }
         }
+
         ChatRoom chatRoom = new ChatRoom();
         chatRoom.setClub(club);
         chatRoom.setOwner(creator);
         chatRoom.setName(roomName.trim());
         chatRoom.setLastActivityAt(LocalDateTime.now());
+
         List<User> members = userRepository.findAllById(allMemberIds);
         chatRoom.getMembers().addAll(members);
+
         return chatRoomRepository.save(chatRoom);
     }
 
@@ -123,6 +148,11 @@ public class ChatService {
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // 밴 여부 확인
+        if (chatRoomBanRepository.existsByChatRoomIdAndUserId(roomId, currentUserId)) {
+            throw new IllegalStateException("강퇴당한 채팅방에는 다시 가입할 수 없습니다.");
+        }
+
         ClubMemberId clubMemberId = new ClubMemberId(room.getClub().getId(), currentUserId);
         if (!clubMemberRepository.existsById(clubMemberId)) {
             throw new IllegalStateException("모임 멤버만 채팅방에 가입할 수 있습니다.");
@@ -133,6 +163,25 @@ public class ChatService {
             throw new IllegalStateException("이미 가입한 채팅방입니다.");
         }
         room.getMembers().add(user);
+    }
+
+    /**
+     * 채팅방 나가기
+     */
+    @Transactional
+    public void leaveChatRoom(Long roomId, Long currentUserId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        // 방장은 나갈 수 없음
+        if (room.getOwner() != null && room.getOwner().getId().equals(currentUserId)) {
+            throw new IllegalStateException("방장은 채팅방을 나갈 수 없습니다.");
+        }
+
+        boolean removed = room.getMembers().removeIf(user -> user.getId().equals(currentUserId));
+        if (!removed) {
+            throw new IllegalArgumentException("가입된 채팅방이 아닙니다.");
+        }
     }
 
     /**
@@ -154,14 +203,18 @@ public class ChatService {
         return club.getMembers().stream()
                 .map(ClubMember::getUser)
                 .filter(user -> !chatMemberIds.contains(user.getId()))
+                .filter(user -> !chatRoomBanRepository.existsByChatRoomIdAndUserId(roomId, user.getId()))
                 .sorted(Comparator.comparing(User::getNickname))
-                .map(user -> new ChatApiController.ManageableMemberDto(user.getId(), user.getNickname(), user.getEmail()))
+                .map(user -> new ChatApiController.ManageableMemberDto(
+                        user.getId(),
+                        user.getNickname(),
+                        user.getEmail(),
+                        "MEMBER")) // 초대 가능한 멤버는 일단 일반 멤버로 간주 (DTO 시그니처 변경 대응)
                 .collect(Collectors.toList());
     }
 
     /**
-     * 멤버들을 채팅방에 초대 (방장 권한)
-     * @return 실제로 새로 추가된 멤버 수
+     * 멤버들을 채팅방에 초대
      */
     @Transactional
     public int inviteMembers(Long roomId, Long ownerUserId, List<Long> memberIdsToInvite) {
@@ -197,6 +250,9 @@ public class ChatService {
             if (!clubMemberRepository.existsById(memberId)) {
                 throw new IllegalStateException("모임 멤버가 아닌 사용자를 초대할 수 없습니다.");
             }
+            if (chatRoomBanRepository.existsByChatRoomIdAndUserId(roomId, userId)) {
+                throw new IllegalStateException("밴 처리된 사용자가 포함되어 있어 초대할 수 없습니다. (ID: " + userId + ")");
+            }
         }
 
         // User 엔티티 조회 및 추가
@@ -221,12 +277,71 @@ public class ChatService {
         if (ownerUserId.equals(memberToKickId)) {
             throw new IllegalArgumentException("방장은 스스로를 강퇴할 수 없습니다.");
         }
+
+        // 강퇴 대상이 모임 관리자(MANAGER)인지 확인
+        ClubMember targetClubMember = clubMemberRepository.findById(new ClubMemberId(room.getClub().getId(), memberToKickId))
+                .orElseThrow(() -> new IllegalArgumentException("해당 멤버의 모임 정보를 찾을 수 없습니다."));
+
+        if (targetClubMember.getRole() == ClubRole.MANAGER) {
+            throw new IllegalStateException("모임장(관리자)은 강퇴할 수 없습니다.");
+        }
+
+        User targetUser = userRepository.findById(memberToKickId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
         boolean removed = room.getMembers().removeIf(user -> user.getId().equals(memberToKickId));
         if (!removed) {
             throw new IllegalArgumentException("해당 멤버가 채팅방에 없거나 찾을 수 없습니다.");
         }
+
+        if (!chatRoomBanRepository.existsByChatRoomIdAndUserId(roomId, memberToKickId)) {
+            ChatRoomBan ban = ChatRoomBan.builder()
+                    .chatRoom(room)
+                    .user(targetUser)
+                    .build();
+            chatRoomBanRepository.save(ban);
+        }
     }
 
+    /**
+     * 밴 해제
+     */
+    @Transactional
+    public void unbanMember(Long roomId, Long ownerUserId, Long memberToUnbanId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        if (room.getOwner() == null || !room.getOwner().getId().equals(ownerUserId)) {
+            throw new IllegalStateException("방장만 밴을 해제할 수 있습니다.");
+        }
+
+        ChatRoomBan ban = chatRoomBanRepository.findByChatRoomIdAndUserId(roomId, memberToUnbanId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 사용자는 밴 목록에 없습니다."));
+
+        chatRoomBanRepository.delete(ban);
+    }
+
+    /**
+     * 밴 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ChatApiController.ManageableMemberDto> getBannedMembers(Long roomId, Long ownerUserId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("채팅방을 찾을 수 없습니다."));
+
+        if (room.getOwner() == null || !room.getOwner().getId().equals(ownerUserId)) {
+            throw new IllegalStateException("방장만 밴 목록을 조회할 수 있습니다.");
+        }
+
+        return chatRoomBanRepository.findAllByChatRoomId(roomId).stream()
+                .map(ban -> new ChatApiController.ManageableMemberDto(
+                        ban.getUser().getId(),
+                        ban.getUser().getNickname(),
+                        ban.getUser().getEmail(),
+                        "BANNED")) // 밴 목록에서는 role이 중요하지 않으므로 더미값
+                .sorted(Comparator.comparing(ChatApiController.ManageableMemberDto::nickname))
+                .collect(Collectors.toList());
+    }
 
     /**
      * 메시지 전송
