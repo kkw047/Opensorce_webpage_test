@@ -137,13 +137,17 @@
             <h2 class="section-title" th:text="'모임 멤버 (' + ${memberCount} + ')'">모임 멤버 (0)</h2>
             <div class="member-list">
                 <div class="member-item" th:each="memberInfo : *{members}" style="align-items: center;">
-                    <div class="member-avatar"></div> <div style="display: flex; flex-direction: column; line-height: 1.2;">
-                    <span th:text="${memberInfo.nickname}" style="font-weight: bold;">멤버 닉네임</span>
+                    <div class="member-avatar"></div>
 
-                    <span class="member-role"
-                          th:if="${memberInfo.role == 'ADMIN' or memberInfo.role == 'MANAGER'}"
-                          style="font-size: 11px; color: #1db954;">[모임장]</span>
-                </div>
+                    <div style="display: flex; align-items: center;">
+                        <span th:text="${memberInfo.nickname}">멤버 닉네임</span>
+
+                        <span class="member-role"
+                              th:if="${memberInfo.role == 'ADMIN' or memberInfo.role == 'MANAGER'}"
+                              style="font-size: 12px; color: #1db954; margin-left: 6px; font-weight: bold;">
+                            [관리자]
+                        </span>
+                    </div>
                 </div>
 
                 <div th:if="${memberCount == 0}">
@@ -159,7 +163,7 @@
                 로그인 후 가입하기
             </button>
             <button th:if="${isOwner}" class="btn block" disabled>
-                당신은 이 모임의 모임장입니다
+                당신은 이 모임의 관리자입니다
             </button>
             <button th:if="${club.myStatus == 'ACTIVE' and !isOwner}" class="btn block" disabled
                     style="background: #1a332c; color: #9ec8b8; cursor: not-allowed;">
@@ -185,7 +189,7 @@
 
                 <p th:if="${club.joinPolicy.name() == 'APPROVAL'}"
                    style="text-align: center; color: #ffa500; font-size: 12px; margin-top: 8px; margin-bottom: 0;">
-                    모임장의 승인 후 활동할 수 있습니다.
+                    관리자의 승인 후 활동할 수 있습니다.
                 </p>
             </form>
         </div>

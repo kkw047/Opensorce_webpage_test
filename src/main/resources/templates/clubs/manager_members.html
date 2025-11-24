@@ -34,7 +34,7 @@
                         <img th:if="${member.user.imageUrl != null}" th:src="${member.user.imageUrl}" class="profile-thumb" alt="프로필">
                         <div th:unless="${member.user.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
 
-                        <div class="author-info">
+                        <div class="author-info" style="display: flex; flex-direction: column; justify-content: center; gap: 2px;">
                             <span class="author-name" th:text="${member.user.nickname}">닉네임</span>
                             <span class="post-date" th:text="|신청일: ${#temporals.format(member.joinedAt, 'yyyy-MM-dd')}|">날짜</span>
                         </div>
@@ -66,12 +66,14 @@
                         <img th:if="${member.user.imageUrl != null}" th:src="${member.user.imageUrl}" class="profile-thumb" alt="프로필">
                         <div th:unless="${member.user.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
 
-                        <div class="author-info" style="display: flex; flex-direction: column; justify-content: center; gap: 2px;">
+                        <div class="author-info" style="display: flex; flex-direction: row; align-items: center;">
                             <span class="author-name" th:text="${member.user.nickname}" style="font-weight: bold;">닉네임</span>
 
-                            <span class="post-date" th:if="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
-                                  style="color: #1db954; font-weight: bold; font-size: 12px;">[모임장]</span>
-                            <span class="post-date" th:unless="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}" style="font-size: 12px;">일반 멤버</span>
+                            <span th:if="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
+                                  class="badge-owner">[관리자]</span>
+
+                            <span th:unless="${member.role.name() == 'MANAGER' or member.role.name() == 'ADMIN'}"
+                                  style="font-size: 12px; color: #9ec8b8; margin-left: 6px;">일반 멤버</span>
                         </div>
                     </div>
 
