@@ -32,6 +32,9 @@ public class User {
     @Column(length = 50, nullable = false)
     private String nickname;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "region_do", length = 50)
     private String regionDo;
 
