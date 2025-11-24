@@ -11,13 +11,9 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
 
     <style>
-        /* [0] 레이아웃 관련 CSS 제거 (공통 CSS 사용) */
-        /* .wrap, .content 제거됨 -> 메인과 동일한 간격 유지 */
-
         /* [1] 캘린더 레이아웃 & 폰트 */
         #calendar {
-            height: auto;
-            min-height: 800px;
+            width: 100%;
             font-family: 'Pretendard', sans-serif;
         }
 
@@ -128,7 +124,7 @@
         .modal-close-btn:hover { color: #ff5252; }
         .hidden { display: none !important; }
 
-        /* 폼 요소 (모달 안에서만) */
+        /* 폼 요소 (등록/수정 모달용 - 유지 필수) */
         .modal-backdrop label {
             display: block;
             margin: 10px 0 5px;
@@ -149,7 +145,7 @@
         textarea { resize: none; }
         ::placeholder { color: #888; opacity: 1; }
 
-        /* Flatpickr */
+        /* Flatpickr (날짜 선택기 - 유지 필수) */
         .flatpickr-calendar {
             background: #1a2623 !important;
             border: 1px solid #4a635d !important;
@@ -188,7 +184,7 @@
             fill: #fff !important;
         }
 
-        /* 버튼 그룹 (양쪽 정렬) */
+        /* 버튼 그룹 */
         .modal-actions {
             display: flex;
             justify-content: space-between;
@@ -226,6 +222,7 @@
             font-size: 0.9em;
         }
 
+        /* 관리자 승인/거절 버튼 (JS에서 생성됨 - 유지 필수) */
         .manage-btn-group {
             display: inline-block;
             margin-left: 10px;
@@ -286,18 +283,18 @@
         /* [11] 상세내역 박스 */
         .detail-box {
             width: 100%;
-            min-height: 80px;
-            max-height: 200px;
+            min-height: 200px;
+            max-height: 500px;
             overflow-y: auto;
             overflow-x: hidden;
             background-color: #1a2623;
-            padding: 12px;
+            padding: 18px;
             border-radius: 8px;
             border: 1px solid #4a635d;
-            color: #bbb;
-            margin-top: 5px;
-            font-size: 0.9em;
-            line-height: 1.5;
+            color: #ddd;
+            margin-top: 10px;
+            font-size: 1em;
+            line-height: 1.6;
             white-space: pre-wrap;
             word-break: break-all;
             box-sizing: border-box;
@@ -317,33 +314,22 @@
 
         #scheduleDetailModal .modal-content {
             pointer-events: auto;
-            width: 350px;
-            max-height: 600px;
+            width: 500px;
+            max-height: 85vh;
             background: #0f231e;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 30px;
+            border-radius: 16px;
             border: 1px solid #4a635d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.9);
             position: relative;
+            display: flex;
+            flex-direction: column;
             animation: popIn 0.2s ease-out;
         }
 
         @keyframes popIn {
             from { opacity: 0; transform: translateY(5px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        /* 커스텀 확인 모달 (중앙 정렬) */
-        .modal-content-center {
-            min-width: 350px;
-            max-width: 400px;
-            background: #0f231e;
-            padding: 25px;
-            border-radius: 16px;
-            border: 1px solid #4a635d;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            position: relative;
-            text-align: center;
         }
 
         /* [14] 더보기 링크 & 팝업 */
@@ -381,13 +367,6 @@
     <main class="content">
         <div class="detail-card" th:object="${club}">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
-
-            <div class="club-header" style="margin-top: 16px;">
-                <h1 th:text="*{name}">모임 이름</h1>
-                <div class="chips club-chips">
-                    <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
-                </div>
-            </div>
         </div>
 
         <div class="detail-card" style="background: #0f231e; padding: 20px; border-radius: 14px; border: 1px solid #4a635d; margin-top: 20px;">
@@ -404,9 +383,19 @@
 
         <h3 id="modal-title" style="margin: 0 0 15px 0; color: #fff; padding-right: 20px; font-size: 1.2em;">일정 제목</h3>
         <hr style="border-color: #4a635d; margin: 15px 0;">
-        <div style="font-size: 0.9em; color: #ccc; margin-bottom: 10px;">
-            <p style="margin: 3px 0;"><span style="color:#888; margin-right:5px;">일시</span> <span id="modal-date" style="color: #fff;"></span></p>
-            <p style="margin: 3px 0;"><span style="color:#888; margin-right:5px;">비용</span> <span id="modal-fee" style="color: #fff;"></span></p>
+        <div style="font-size: 0.95em; color: #ccc; margin-bottom: 15px;">
+            <p style="display: flex; margin: 5px 0;">
+                <span style="color:#888; width: 60px; flex-shrink: 0;">일시</span>
+                <span id="modal-date" style="color: #fff;"></span>
+            </p>
+            <p style="display: flex; margin: 5px 0;">
+                <span style="color:#888; width: 60px; flex-shrink: 0;">비용</span>
+                <span id="modal-fee" style="color: #fff;"></span>
+            </p>
+            <p style="display: flex; margin: 5px 0;">
+                <span style="color:#888; width: 60px; flex-shrink: 0;">제안자</span>
+                <span id="modal-writer" style="color: #fff; font-weight: bold;"></span>
+            </p>
         </div>
 
         <p style="color: #ddd;"><strong>상세내역:</strong></p>
@@ -485,6 +474,8 @@
 
 <div th:replace="~{fragments/common :: scripts}"></div>
 
+<div th:replace="~{fragments/common :: scripts}"></div>
+
 <script th:inline="javascript">
     /*<![CDATA[*/
     const clubId = /*[[${club.id}]]*/ 1;
@@ -504,9 +495,7 @@
     const eventColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'];
     function getColorForEvent(id) {
         let hash = 0; const str = String(id);
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
+        for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
         return eventColors[Math.abs(hash) % eventColors.length];
     }
 
@@ -520,6 +509,7 @@
         else location.href = '/login';
     }
 
+    // [커스텀 Confirm]
     function openConfirm(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('customConfirmModal');
@@ -551,19 +541,16 @@
         createForm = document.getElementById('createScheduleForm');
         editForm = document.getElementById('editScheduleForm');
 
-        flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark" });
+        flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark", static: false, allowInput: true });
 
         const topLoginBtn = document.getElementById('openLoginBtn');
-        if (topLoginBtn) {
+        if(topLoginBtn) {
             topLoginBtn.onclick = (e) => { e.preventDefault(); openLoginModal(); };
         }
 
         const calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'ko',
-            height: 'auto',
-            dayMaxEvents: true,
+            initialView: 'dayGridMonth', locale: 'ko', dayMaxEvents: true, aspectRatio: 2,
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'addEventButton' },
             events: `/api/club/${clubId}/schedules`,
 
@@ -597,12 +584,8 @@
         });
         calendar.render();
 
-        if (createForm) createForm.addEventListener('submit', function(e) {
-            e.preventDefault(); handleCreateSchedule();
-        });
-        if (editForm) editForm.addEventListener('submit', function(e) {
-            e.preventDefault(); handleUpdateSchedule();
-        });
+        if(createForm) createForm.addEventListener('submit', function(e) { e.preventDefault(); handleCreateSchedule(); });
+        if(editForm) editForm.addEventListener('submit', function(e) { e.preventDefault(); handleUpdateSchedule(); });
 
         document.addEventListener('click', function(e) {
             if (!detailModal.classList.contains('hidden') &&
@@ -613,28 +596,31 @@
         });
     });
 
+    // --- 상세 팝업 (참가 신청 전용) ---
     async function showScheduleDetailModal(info) {
         const scheduleId = info.event.id;
+        const eventEl = info.el;
         const jsEvent = info.jsEvent;
 
         try {
             const response = await fetch(`/api/club/${clubId}/schedule/${scheduleId}`, { credentials: 'include' });
-            if (response.status === 401) {
-                safeShowToast('로그인이 필요합니다.', 'error');
-                openLoginModal();
-                return;
-            }
-            if (!response.ok) throw new Error('일정 정보 로딩 실패');
+            if (response.status === 401) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
+            if (!response.ok) throw new Error('일정 정보를 불러올 수 없습니다.');
+
             const dto = await response.json();
 
             document.getElementById('modal-title').textContent = dto.title;
+            document.getElementById('modal-writer').textContent = dto.writer || '알 수 없음';
             document.getElementById('modal-date').textContent = `${dto.start} ~ ${dto.end}`;
             document.getElementById('modal-fee').textContent = dto.fee || '-';
-            document.getElementById('modal-details').textContent = dto.details || '(내용 없음)';
+            document.getElementById('modal-details').textContent = dto.details ? dto.details : '(내용 없음)';
 
+            // [수정] 참여 현황 (출석 여부 X, 순수 신청자 명단)
             const list = document.getElementById('modal-participant-list');
             list.innerHTML = '';
             const participants = dto.participants || [];
+
+            // 타이틀 고정: "참여 현황"
             document.getElementById('modal-participant-count').textContent = participants.length;
 
             if (participants.length > 0) {
@@ -642,9 +628,10 @@
                 participants.forEach(p => {
                     const div = document.createElement('div');
                     div.className = 'participant-item';
+
                     let statusBadge = '';
-                    if (p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
-                    else if (p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
+                    if(p.status === 'ACCEPTED') statusBadge = '<span class="status-ACCEPTED">승인</span>';
+                    else if(p.status === 'PENDING') statusBadge = '<span class="status-PENDING">대기</span>';
                     else statusBadge = '<span class="status-REJECTED">거절</span>';
 
                     let html = `<span>${p.nickname}</span> ${statusBadge}`;
@@ -659,21 +646,62 @@
                     list.appendChild(div);
                 });
             } else {
-                list.innerHTML = '<div style="color:#666; font-size:0.9em;">신청자 없음</div>';
+                list.innerHTML = '<div style="color:#666; font-size:0.9em;">신청자가 없습니다.</div>';
             }
 
+            // 버튼 (참가/취소)
             const joinBtn = document.getElementById('modal-join-btn');
+            const newJoinBtn = joinBtn.cloneNode(true);
+            joinBtn.parentNode.replaceChild(newJoinBtn, joinBtn);
+
             if (dto.isParticipating) {
-                joinBtn.textContent = (dto.myStatus === 'ACCEPTED') ? '신청 취소' : '대기중 (취소)';
-                joinBtn.className = 'btn-danger';
-                joinBtn.onclick = () => handleLeave(scheduleId);
+                if (dto.myStatus === 'ACCEPTED') {
+                    newJoinBtn.textContent = '신청 취소';
+                    newJoinBtn.className = 'btn-danger';
+                    newJoinBtn.onclick = () => handleLeave(scheduleId);
+                } else if (dto.myStatus === 'PENDING') {
+                    newJoinBtn.textContent = '승인 대기중 (취소)';
+                    newJoinBtn.className = 'btn-secondary';
+                    newJoinBtn.onclick = () => handleLeave(scheduleId);
+                } else {
+                    newJoinBtn.textContent = '거절됨 (재신청)';
+                    newJoinBtn.className = 'btn-primary'; // 버튼 활성화 색상
+                    newJoinBtn.disabled = false;          // 클릭 가능하게 풀기
+
+                    // 재신청 로직: handleJoin을 호출하여 다시 PENDING 상태로 만듦
+                    // (백엔드에서 이미 존재하는 데이터가 있으면 에러가 날 수 있으므로,
+                    //  백엔드 joinSchedule 메서드에서 '이미 존재하면 상태 업데이트' 로직이 필요할 수도 있음.
+                    //  일단 가장 쉬운 방법은 '취소 후 재가입' 처럼 동작하게 하거나,
+                    //  handleJoin이 기존 거절 데이터를 덮어쓰도록 유도하는 것임)
+
+                    newJoinBtn.onclick = async () => {
+                        // 안전하게 먼저 탈퇴(삭제) 후 재가입 시도 (가장 확실한 방법)
+                        if(await openConfirm('거절된 일정입니다. 다시 신청하시겠습니까?')) {
+                            // 1. 기존 거절 내역 삭제 (Leave)
+                            try {
+                                await fetch(`/api/club/${clubId}/schedule/${scheduleId}/join`, {
+                                    method: 'DELETE', headers: {'Content-Type':'application/json'}, credentials: 'include'
+                                });
+                                // 2. 다시 가입 신청 (Join)
+                                await handleJoin(scheduleId);
+                            } catch(e) {
+                                safeShowToast('재신청 중 오류가 발생했습니다.', 'error');
+                            }
+                        }
+                    };
+                }
             } else {
-                joinBtn.textContent = '참가 신청';
-                joinBtn.className = 'btn-primary';
-                joinBtn.onclick = () => handleJoin(scheduleId);
+                newJoinBtn.textContent = '참가 신청';
+                newJoinBtn.className = 'btn-primary';
+                newJoinBtn.disabled = false;
+                newJoinBtn.onclick = () => handleJoin(scheduleId);
             }
 
+            // 관리자 버튼 (수정/삭제만, 출석 관련 X)
             const adminGroup = document.getElementById('modal-admin-group');
+            const oldActBtn = document.getElementById('btn-attendance-active');
+            if(oldActBtn) oldActBtn.remove();
+
             if (dto.isManager) {
                 adminGroup.classList.remove('hidden');
                 document.getElementById('modal-edit-btn').onclick = () => showEditModal(dto);
@@ -682,9 +710,10 @@
                 adminGroup.classList.add('hidden');
             }
 
+            // 팝업 위치 계산
             detailModal.classList.remove('hidden');
             const modalContent = detailModal.querySelector('.modal-content');
-            const modalWidth = 350;
+            const modalWidth = modalContent.offsetWidth;
             const modalHeight = modalContent.offsetHeight;
             const mouseX = jsEvent.clientX;
             const mouseY = jsEvent.clientY;
@@ -692,13 +721,10 @@
             let left = mouseX + 20;
             let top = mouseY + 10;
 
-            if (left + modalWidth > window.innerWidth) {
-                left = mouseX - modalWidth - 20;
-            }
-            if (top + modalHeight > window.innerHeight) {
-                top = window.innerHeight - modalHeight - 20;
-            }
+            if (left + modalWidth > window.innerWidth) left = mouseX - modalWidth - 20;
+            if (top + modalHeight > window.innerHeight) top = window.innerHeight - modalHeight - 20;
             if (top < 10) top = 10;
+            if (left < 10) left = 10;
 
             detailModal.style.top = `${top}px`;
             detailModal.style.left = `${left}px`;
@@ -726,10 +752,9 @@
     }
 
     async function changeStatus(scheduleId, participantId, status) {
-        const msg = status === 'ACCEPTED' ? '승인하시겠습니까?' : '거절하시겠습니까?';
-        if (!(await openConfirm(msg))) return;
-        const url = `/api/club/${clubId}/schedule/${scheduleId}/participant/${participantId}?status=${status}`;
-        sendRequest(url, 'PUT', null, () => {
+        const msg = status === 'ACCEPTED' ? '이 멤버를 승인하시겠습니까?' : '이 멤버를 거절하시겠습니까?';
+        if(!(await openConfirm(msg))) return;
+        sendRequest(`/api/club/${clubId}/schedule/${scheduleId}/participant/${participantId}?status=${status}`, 'PUT', null, () => {
             hideDetailModal();
             safeShowToast('처리되었습니다.', 'success');
         });
@@ -743,9 +768,9 @@
             fee: document.getElementById('create-fee').value,
             details: document.getElementById('create-details').value
         };
-        if (!data.title) return safeShowToast('제목을 입력해주세요.', 'error');
-        if (!data.start || !data.end) return safeShowToast('날짜를 선택해주세요.', 'error');
-        if (data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
+        if(!data.title) return safeShowToast('제목을 입력해 주세요.', 'error');
+        if(!data.start || !data.end) return safeShowToast('날짜를 선택해 주세요.', 'error');
+        if(data.start > data.end) return safeShowToast('종료일이 시작일보다 빠를 수 없습니다.', 'error');
 
         sendRequest(`/api/club/${clubId}/schedule`, 'POST', data, () => {
             safeShowToast('일정이 등록되었습니다.', 'success');
@@ -763,7 +788,7 @@
             fee: document.getElementById('edit-fee').value,
             details: document.getElementById('edit-details').value
         };
-        if (data.start > data.end) return safeShowToast('날짜 설정이 올바르지 않습니다.', 'error');
+        if(data.start > data.end) return safeShowToast('종료일이 시작일보다 빠를 수 없습니다.', 'error');
 
         sendRequest(`/api/club/${clubId}/schedule/${id}`, 'PUT', data, () => {
             safeShowToast('일정이 수정되었습니다.', 'success');
@@ -773,7 +798,7 @@
     }
 
     async function handleDelete(id) {
-        if (await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
+        if(await openConfirm('정말로 이 일정을 삭제하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}`, 'DELETE', null, () => {
                 safeShowToast('일정이 삭제되었습니다.', 'success');
                 hideDetailModal();
@@ -783,21 +808,18 @@
     }
 
     async function handleJoin(id) {
-        if (!isLoggedIn) {
-            safeShowToast('로그인 필요', 'error');
-            openLoginModal();
-            return;
-        }
-        if (await openConfirm('참가 신청하시겠습니까?')) {
+        if (!isLoggedIn) { safeShowToast('로그인이 필요한 서비스입니다.', 'error'); openLoginModal(); return; }
+        if (!isMember) { safeShowToast('모임 멤버만 참가 가능합니다.', 'error'); return; }
+        if(await openConfirm('참가 신청하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'POST', null, () => {
-                safeShowToast('참가 신청이 완료되었습니다', 'success');
+                safeShowToast('참가 신청이 완료되었습니다.', 'success');
                 hideDetailModal();
             });
         }
     }
 
     async function handleLeave(id) {
-        if (await openConfirm('참가를 취소하시겠습니까?')) {
+        if(await openConfirm('참가를 취소하시겠습니까?')) {
             sendRequest(`/api/club/${clubId}/schedule/${id}/join`, 'DELETE', null, () => {
                 safeShowToast('참가가 취소되었습니다.', 'success');
                 hideDetailModal();
@@ -807,16 +829,12 @@
 
     async function sendRequest(url, method, body, onSuccess) {
         try {
-            const opt = {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            };
-            if (body) opt.body = JSON.stringify(body);
+            const opt = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
+            if(body) opt.body = JSON.stringify(body);
             const res = await fetch(url, opt);
-            if (!res.ok) {
+            if(!res.ok) {
                 const txt = await res.text();
-                if (txt.includes('<!DOCTYPE html>') || res.status === 401 || res.status === 403) {
+                if(txt.includes('<!DOCTYPE html>') || res.status===401) {
                     safeShowToast('로그인이 필요한 서비스입니다.', 'error');
                     openLoginModal();
                     return;
@@ -824,9 +842,7 @@
                 throw new Error(txt);
             }
             onSuccess();
-        } catch (e) {
-            safeShowToast(e.message, 'error');
-        }
+        } catch(e) { safeShowToast(e.message, 'error'); }
     }
 </script>
 </body>

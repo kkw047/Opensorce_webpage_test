@@ -51,4 +51,17 @@ public class Calendar {
         this.endDate = end;
         this.fee = fee;
     }
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean isDone; // [추가]
+
+    public void toggleDone() { this.isDone = !this.isDone; }
+    public boolean isDone() { return isDone; }
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean isAttendanceActive; // [추가] 출석 활성화 여부
+
+    public void toggleAttendanceActive() {
+        this.isAttendanceActive = !this.isAttendanceActive;
+    }
 }
