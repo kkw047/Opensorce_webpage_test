@@ -54,6 +54,7 @@ public class ChatApiController {
 
     /**
      * 채팅방 메시지 목록 (JSON)
+     * ChatService의 getChatMessages를 사용하여 안전하게 조회
      */
     @GetMapping("/{clubId}/chat/{roomId}/messages")
     public ResponseEntity<?> getChatMessagesApi(
@@ -67,6 +68,7 @@ public class ChatApiController {
         }
 
         try {
+            // 권한 체크 (방 멤버인지 확인)
             ChatRoom room = chatService.getChatRoomDetails(roomId);
             if (!room.getClub().getId().equals(clubId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("모임 정보가 일치하지 않습니다.");
@@ -76,15 +78,14 @@ public class ChatApiController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("채팅방 멤버만 조회할 수 있습니다.");
             }
 
-            List<ChatMessageDto> messageDtos = room.getMessages().stream()
-                    .map(ChatMessageDto::fromEntity)
-                    .sorted(Comparator.comparing(ChatMessageDto::id))
-                    .collect(Collectors.toList());
+            // Service에서 메시지 DTO 리스트를 직접 받아옴
+            List<ChatMessageDto> messageDtos = chatService.getChatMessages(roomId);
 
             return ResponseEntity.ok(messageDtos);
 
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("메시지 로딩 중 오류: " + e.getMessage());
         }
     }
 
@@ -210,6 +211,65 @@ public class ChatApiController {
             chatService.kickMember(roomId, currentUserId, memberToKickId);
             return ResponseEntity.ok().body("멤버를 강퇴했습니다.");
 
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * 밴 목록 조회 (JSON)
+     */
+    @GetMapping("/{clubId}/chat/{roomId}/banned-members")
+    public ResponseEntity<?> getBannedMembersApi(
+            @PathVariable Long clubId,
+            @PathVariable Long roomId,
+            HttpSession session) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 필요");
+
+        try {
+            List<ManageableMemberDto> banned = chatService.getBannedMembers(roomId, currentUserId);
+            return ResponseEntity.ok(banned);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /**
+     * 밴 해제 (JSON)
+     */
+    @PostMapping("/{clubId}/chat/{roomId}/unban")
+    public ResponseEntity<?> unbanMemberApi(
+            @PathVariable Long clubId,
+            @PathVariable Long roomId,
+            @RequestParam("memberId") Long memberToUnbanId,
+            HttpSession session) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 필요");
+
+        try {
+            chatService.unbanMember(roomId, currentUserId, memberToUnbanId);
+            return ResponseEntity.ok("밴을 해제했습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    /**
+     * 채팅방 나가기 (스스로) (JSON)
+     */
+    @PostMapping("/{clubId}/chat/{roomId}/leave")
+    public ResponseEntity<?> leaveChatRoomApi(
+            @PathVariable Long clubId,
+            @PathVariable Long roomId,
+            HttpSession session) {
+        Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 필요");
+
+        try {
+            chatService.leaveChatRoom(roomId, currentUserId);
+            return ResponseEntity.ok("채팅방을 나갔습니다.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
