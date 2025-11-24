@@ -28,6 +28,23 @@
         <a class="menu-item" th:href="@{/clubs/myclubs}" th:classappend="${activeSidebarMenu == 'myclubs' ? 'active' : ''}">내모임</a>
     </nav>
 
+    <div th:if="${!#lists.isEmpty(myClubs)}" style="margin-top: 20px; margin-bottom: 10px;">
+        <div style="font-size: 12px; font-weight: bold; color: #9ec8b8; padding: 0 12px; margin-bottom: 8px;">
+            내 모임 바로가기
+        </div>
+        <nav class="menu-vert">
+            <a th:each="c : ${myClubs}"
+               class="menu-item"
+               th:href="@{/clubs/{id}(id=${c.id})}"
+               th:text="${c.name}"
+               th:classappend="${club != null and club.id == c.id} ? 'active' : ''"
+               style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                모임 이름
+            </a>
+        </nav>
+        <hr style="border: 0; border-top: 1px solid #29433b; margin: 12px 0;">
+    </div>
+
     <section class="card soft">
         <h4 class="card-title">카테고리</h4>
         <form id="categoryFilterForm" method="get" th:action="${searchActionUrl}">
