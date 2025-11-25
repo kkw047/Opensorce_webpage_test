@@ -130,7 +130,33 @@
 
             <hr class="detail-divider"> <div>
             <h2 class="section-title">활동 지표</h2>
-            <div>(참여율 / 모임 활성도 - 구현 필요)</div>
+            <div class="info-group" style="margin-top: 30px;">
+                <h3 style="font-size: 1.1em; font-weight: bold; margin-bottom: 15px; color: #fff;">최근 일정 출석률</h3>
+
+                <div th:if="${not #lists.isEmpty(activityStats)}" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div th:each="stat : ${activityStats}" style="background: #1a2623; padding: 15px; border-radius: 10px; border: 1px solid #2a3b37;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em;">
+                        <span style="font-weight: bold; color: #ddd;">
+                            <span th:text="${stat.date}" style="color: #888; margin-right: 8px;">2025-11-04</span>
+                            <span th:text="${stat.title}">일정 제목</span>
+                        </span>
+                            <span style="color: #4caf50; font-weight: bold;">
+                            <span th:text="${stat.rate} + '%'">80%</span>
+                            <span style="color: #666; font-weight: normal; font-size: 0.9em;"
+                                  th:text="' (' + ${stat.attendedMember} + '/' + ${stat.totalMember} + '명)'"></span>
+                        </span>
+                        </div>
+
+                        <div style="width: 100%; background: #0f231e; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div th:style="'width: ' + ${stat.rate} + '%; background: #4caf50; height: 100%; border-radius: 4px; transition: width 0.5s;'"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(activityStats)}" style="text-align: center; padding: 20px; color: #666; background: #1a2623; border-radius: 10px;">
+                    아직 진행된 일정이 없습니다.
+                </div>
+            </div>
         </div>
 
             <hr class="detail-divider"> <div>
