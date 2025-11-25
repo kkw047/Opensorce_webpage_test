@@ -77,7 +77,7 @@
                         </div>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end;"
+                    <div style="display: flex; justify-content: flex-end; gap: 12px;"
                          th:if="${member.role.name() != 'MANAGER' and member.role.name() != 'ADMIN'}">
 
                         <button type="button"
@@ -96,6 +96,35 @@
                                 th:data-nickname="${member.user.nickname}"
                                 onclick="openBanModal(this.getAttribute('data-id'), this.getAttribute('data-nickname'))">
                             차단
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card" th:if="${!#lists.isEmpty(bannedList)}" style="margin-top: 20px; border: 1px solid #5c2b2b; background: #1a0f0f;">
+            <h3 style="margin-top: 0; color: #ff8a8a;">차단된 멤버 (<span th:text="${#lists.size(bannedList)}">0</span>명)</h3>
+            <p class="muted" style="margin-bottom: 15px; color: #d18e8e;">차단을 해제하면 다시 가입 신청을 할 수 있습니다.</p>
+
+            <div class="post-grid-container">
+                <div class="post-card" th:each="member : ${bannedList}" style="cursor: default; border-color: #5c2b2b;">
+                    <div class="card-header">
+                        <img th:if="${member.user.imageUrl != null}" th:src="${member.user.imageUrl}" class="profile-thumb" alt="프로필">
+                        <div th:unless="${member.user.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
+
+                        <div class="author-info" style="display: flex; flex-direction: column; justify-content: center; gap: 2px;">
+                            <span class="author-name" th:text="${member.user.nickname}" style="color: #b0c4de;">닉네임</span>
+                            <span class="post-date" th:text="|차단일: ${#temporals.format(member.joinedAt, 'yyyy-MM-dd')}|">날짜</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="button"
+                                class="btn"
+                                style="border: 1px solid #9ec8b8; color: #9ec8b8;"
+                                th:data-id="${member.user.id}"
+                                th:data-nickname="${member.user.nickname}"
+                                onclick="openUnbanModal(this.getAttribute('data-id'), this.getAttribute('data-nickname'))">차단 해제
                         </button>
                     </div>
                 </div>
@@ -160,6 +189,22 @@
             </div>
         </div>
 
+        <div id="unbanModal" class="modal" style="display: none;">
+            <div class="modal-card" style="text-align: center; width: 400px;">
+                <h3 style="margin-top: 0; color: #9ec8b8;">차단 해제</h3>
+                <p style="color: #b0c4de; margin: 20px 0;">
+                    <strong id="unbanTargetName" style="color: #e7f3ee;">사용자</strong> 님의<br>
+                    차단을 해제하시겠습니까?
+                </p>
+                <div style="display: flex; justify-content: center; gap: 10px;">
+                    <button type="button" class="btn" onclick="closeUnbanModal()">취소</button>
+                    <form id="unbanForm" method="post">
+                        <button type="submit" class="btn primary">해제하기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <script th:inline="javascript">
             const clubId = [[${club.id}]];
 
@@ -197,15 +242,28 @@
                 document.getElementById('banModal').style.display = 'none';
             }
 
+            /* --- 차단 해제 모달 --- */
+            function openUnbanModal(userId, nickname) {
+                document.getElementById('unbanTargetName').textContent = nickname;
+                const form = document.getElementById('unbanForm');
+                form.action = `/clubs/${clubId}/manager/members/${userId}/unban`;
+                document.getElementById('unbanModal').style.display = 'flex';
+            }
+            function closeUnbanModal() {
+                document.getElementById('unbanModal').style.display = 'none';
+            }
+
             /* --- 바깥 클릭 닫기 --- */
             window.onclick = function(event) {
                 const kickModal = document.getElementById('kickModal');
                 const rejectModal = document.getElementById('rejectModal');
                 const banModal = document.getElementById('banModal');
+                const unbanModal = document.getElementById('unbanModal');
 
                 if (event.target == kickModal) closeKickModal();
                 if (event.target == rejectModal) closeRejectModal();
                 if (event.target == banModal) closeBanModal();
+                if (event.target == unbanModal) closeUnbanModal();
             }
         </script>
 

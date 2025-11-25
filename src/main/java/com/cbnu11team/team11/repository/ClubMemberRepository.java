@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemberId> {
     @Query("""
@@ -19,6 +20,8 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, ClubMemb
            group by cm.club.id
            """)
     List<ClubMemberCount> countMembersByClubIds(@Param("ids") List<Long> clubIds);
+
+    Optional<ClubMember> findByClubIdAndUserId(Long clubId, Long userId);
 
     interface ClubMemberCount{
         Long getClubId();

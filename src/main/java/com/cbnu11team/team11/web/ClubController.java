@@ -111,6 +111,14 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
         model.addAttribute("activeTab", "home");
         return "clubs/detail";
     }
@@ -125,6 +133,13 @@ public class ClubController {
                                HttpSession session) {
 
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
             return "redirect:/clubs";
         }
 
@@ -164,6 +179,13 @@ public class ClubController {
         }
 
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
+            return "redirect:/clubs";
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
             return "redirect:/clubs";
         }
 
@@ -230,6 +252,13 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
         Optional<Post> optPost = postService.findPostById(postId);
         if (optPost.isEmpty() || !optPost.get().getClub().getId().equals(clubId)) {
             ra.addFlashAttribute("error", "게시글을 찾을 수 없습니다.");
@@ -255,6 +284,13 @@ public class ClubController {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         if (currentUserId == null) {
             return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
         }
 
         Optional<Post> optPost = postService.findPostById(postId);
@@ -313,11 +349,19 @@ public class ClubController {
     public String deletePost(@PathVariable Long clubId,
                              @PathVariable Long postId,
                              HttpSession session,
+                             Model model,
                              RedirectAttributes ra) {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         if (currentUserId == null) {
             ra.addFlashAttribute("error", "로그인이 필요합니다.");
             return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
         }
 
         try {
@@ -342,6 +386,13 @@ public class ClubController {
         if (currentUserId == null) {
             ra.addFlashAttribute("error", "로그인이 필요합니다.");
             return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
         }
 
         if (bindingResult.hasErrors()) {
@@ -376,6 +427,13 @@ public class ClubController {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         if (currentUserId == null) {
             return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
         }
 
         try {
@@ -436,11 +494,19 @@ public class ClubController {
                                 @PathVariable Long postId,
                                 @PathVariable Long commentId,
                                 HttpSession session,
+                                Model model,
                                 RedirectAttributes ra) {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
         if (currentUserId == null) {
             ra.addFlashAttribute("error", "로그인이 필요합니다.");
             return "redirect:/clubs/" + clubId + "/board/" + postId;
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
         }
 
         try {
@@ -457,18 +523,33 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
         model.addAttribute("activeTab", "calendar");
         return "clubs/calendar";
     }
 
     @PostMapping("/{clubId}/join")
-    public String joinClub(@PathVariable Long clubId, HttpSession session, RedirectAttributes ra) {
+    public String joinClub(@PathVariable Long clubId, HttpSession session, RedirectAttributes ra, Model model) {
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
 
         if (currentUserId == null) {
             ra.addFlashAttribute("error", "로그인 후 가입할 수 있습니다.");
             ra.addFlashAttribute("openLogin", true); // 로그인 모달 바로 열기
             return "redirect:/clubs/" + clubId; // 현재 상세 페이지로 리다이렉트
+        }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
         }
 
         try {
@@ -581,6 +662,13 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
         ClubDetailDto clubDto = (ClubDetailDto) model.getAttribute("club");
 
         if (clubDto == null || !clubDto.isAlreadyMember()) {
@@ -601,6 +689,7 @@ public class ClubController {
     public String joinChatRoom(@PathVariable Long clubId,
                                @PathVariable Long roomId,
                                HttpSession session,
+                               Model model,
                                RedirectAttributes ra) {
 
         Long currentUserId = (Long) session.getAttribute("LOGIN_USER_ID");
@@ -608,6 +697,14 @@ public class ClubController {
             ra.addFlashAttribute("error", "로그인이 필요합니다.");
             return "redirect:/clubs/" + clubId + "/chat";
         }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
 
         try {
             chatService.joinChatRoom(roomId, currentUserId);
@@ -630,6 +727,14 @@ public class ClubController {
         if (!addClubDetailAttributes(clubId, model, session, ra)) {
             return "redirect:/clubs";
         }
+
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
 
         ClubDetailDto clubDto = (ClubDetailDto) model.getAttribute("club");
         if (clubDto == null || !clubDto.isAlreadyMember()) {
@@ -683,6 +788,14 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
+
         try {
             ChatRoom room = chatService.getChatRoomDetails(roomId);
 
@@ -730,6 +843,13 @@ public class ClubController {
             return "redirect:/clubs";
         }
 
+        ClubDetailDto club = (ClubDetailDto) model.getAttribute("club");
+
+        if (club != null && "BANNED".equals(club.myStatus())) {
+            ra.addFlashAttribute("error", "이 모임에서 차단되어 접근할 수 없습니다.");
+            return "redirect:/clubs";
+        }
+
         // 권한 체크: DTO에 있는 isManager 값을 확인
         ClubDetailDto dto = (ClubDetailDto) model.getAttribute("club");
 
@@ -759,6 +879,8 @@ public class ClubController {
 
         List<ClubMember> activeList = clubService.getMembersByStatus(clubId, ClubMemberStatus.ACTIVE);
 
+        List<ClubMember> bannedList = clubService.getMembersByStatus(clubId, ClubMemberStatus.BANNED);
+
         List<ClubMember> sortedActiveList = activeList.stream()
                 .sorted((m1, m2) -> {
                     // 우선순위 1: 역할 (MANAGER > MEMBER)
@@ -784,6 +906,7 @@ public class ClubController {
         model.addAttribute("club", optDto.get());
         model.addAttribute("waitingList", waitingList);
         model.addAttribute("activeList", sortedActiveList);
+        model.addAttribute("bannedList", bannedList);
         model.addAttribute("activeTab", "manager");
         return "clubs/manager_members";
     }
@@ -815,6 +938,16 @@ public class ClubController {
         // 거절 전용 메시지
         ra.addFlashAttribute("msg", "가입 요청을 거절했습니다.");
 
+        return "redirect:/clubs/" + clubId + "/manager/members";
+    }
+
+    // 차단 해제 요청
+    @PostMapping("/{clubId}/manager/members/{memberId}/unban")
+    public String unbanMember(@PathVariable Long clubId,
+                              @PathVariable Long memberId,
+                              RedirectAttributes ra) {
+        clubService.unbanMember(clubId, memberId);
+        ra.addFlashAttribute("msg", "차단이 해제되었습니다.");
         return "redirect:/clubs/" + clubId + "/manager/members";
     }
 
