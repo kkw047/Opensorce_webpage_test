@@ -5,10 +5,7 @@ import com.cbnu11team.team11.repository.ClubMemberRepository;
 import com.cbnu11team.team11.service.ClubService;
 import com.cbnu11team.team11.service.CommentService;
 import com.cbnu11team.team11.service.PostService;
-import com.cbnu11team.team11.web.dto.ClubDetailDto;
-import com.cbnu11team.team11.web.dto.ClubForm;
-import com.cbnu11team.team11.web.dto.CommentForm;
-import com.cbnu11team.team11.web.dto.PostForm;
+import com.cbnu11team.team11.web.dto.*;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,10 +20,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.cbnu11team.team11.domain.ChatRoom;
-import com.cbnu11team.team11.domain.User;
 import com.cbnu11team.team11.service.ChatService;
-import com.cbnu11team.team11.web.dto.ChatMessageDto;
-import com.cbnu11team.team11.web.dto.CreateChatRoomRequest;
+
 import java.util.Comparator;
 
 
