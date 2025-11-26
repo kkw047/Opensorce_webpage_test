@@ -12,6 +12,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -267,6 +268,12 @@ public class ClubService {
     @Transactional
     public void rejectMember(Long clubId, Long userId, String reason) {
         ClubMemberId id = new ClubMemberId(clubId, userId);
+
+        System.out.println("========== 가입 거절 ==========");
+        System.out.println("Club ID: " + clubId + ", User ID: " + userId);
+        System.out.println("거절 사유: " + reason);
+        System.out.println("=============================");
+
         clubMemberRepository.deleteById(id);
     }
 
@@ -307,6 +314,13 @@ public class ClubService {
         Club club = clubRepository.findById(clubId)
                 .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
 
+        ClubMember member = clubMemberRepository.findByClubIdAndUserId(clubId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("가입된 멤버가 아닙니다."));
+
+        if (member.getStatus() == ClubMemberStatus.BANNED) {
+            throw new IllegalStateException("차단된 상태에서는 탈퇴할 수 없습니다. 관리자에게 문의하세요.");
+        }
+
         if (club.getOwner().getId().equals(userId)) {
             throw new IllegalStateException("모임장은 탈퇴할 수 없습니다. 모임을 삭제하거나 권한을 양도하세요.");
         }
@@ -316,6 +330,11 @@ public class ClubService {
     @Transactional(readOnly = true)
     public List<Category> getAllCategories() {
         return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    }
+
+    @Transactional
+    public void unbanMember(Long clubId, Long userId) {
+        clubMemberRepository.deleteByClubIdAndUserId(clubId, userId);
     }
 
     /**
