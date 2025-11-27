@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <body>
-
 <header class="topbar" th:fragment="topbar">
-    <div class="logo">TEAM11</div>
+    <a th:href="@{/clubs}" class="logo"><img th:src="@{/image/Yeoul.png}" alt="Yeoul"></a>
     <div class="actions">
           <span th:if="${session.LOGIN_USER_NICKNAME != null}" style="color: var(--text-main); font-weight: 600; margin-right: 10px;">
-            안녕하세요, <b th:text="${session.LOGIN_USER_NICKNAME}" style="color: var(--primary);">닉</b>님!
+            안녕하세요,   <a th:href="@{/profile}" class="topbar-nickname" title="프로필 설정으로 이동"> <span class="topbar-nickname-text" th:text="${session.LOGIN_USER_NICKNAME}">닉</span></a> 님!
           </span>
         <button class="btn" id="openLoginBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">로그인</button>
         <button class="btn primary" id="openRegisterBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">회원가입</button>
@@ -19,7 +18,12 @@
 <aside class="sidebar" th:fragment="sidebar">
     <nav class="menu-vert">
         <a class="menu-item" th:classappend="${activeSidebarMenu == 'main' ? 'active' : ''}" th:href="@{/clubs}">메인</a>
-        <a class="menu-item" title="준비중">추천</a>
+        <a class="menu-item"
+           th:href="@{/recommend}"
+           th:classappend="${activeSidebarMenu == 'recommend' ? 'active' : ''}">
+            추천
+        </a>
+
         <a th:href="@{/my-calendar}"
            th:classappend="${activeSidebarMenu == 'calendar'} ? 'active'"
            class="menu-item">
