@@ -56,7 +56,7 @@
 
 ## 접속 링크
 
-- [TEAM11 서비스 바로가기](http://61.81.96.151:8080/) 
+- [TEAM11 서비스 바로가기](https://namsanghyun.duckdns.org) 
 
 
 도메인 추가 예정
