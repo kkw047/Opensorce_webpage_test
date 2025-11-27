@@ -17,30 +17,38 @@
             font-family: 'Pretendard', sans-serif;
         }
 
-        /* [긴급 수정] 요일 헤더 배경색 */
-        .fc-theme-standard th { background-color: #1a2623 !important; border-color: #4a635d !important; }
-        .fc-scrollgrid-section-header th { background-color: #1a2623 !important; }
+        /* 요일 헤더 배경색 - 밝은 회색/민트 톤 */
+        .fc-theme-standard th {
+            background-color: #f4fbf7 !important; /* 연한 민트 */
+            border-color: var(--border) !important;
+        }
+        .fc-scrollgrid-section-header th { background-color: #f4fbf7 !important; }
 
-        /* [2] 캘린더 색상 */
-        .fc-col-header-cell-cushion, .fc-daygrid-day-number { color: #ffffff; text-decoration: none; }
+        /* [2] 캘린더 색상 - 텍스트 다크 그레이 */
+        .fc-col-header-cell-cushion, .fc-daygrid-day-number {
+            color: var(--text-main) !important;
+            text-decoration: none;
+        }
         .fc-col-header-cell-cushion { font-size: 1.1em; font-weight: 800; padding: 10px 0; }
         .fc-daygrid-day-number { font-weight: 700; padding: 8px; opacity: 0.9; }
 
+        /* 주말 색상 유지 */
         .fc-day-sat .fc-col-header-cell-cushion, .fc-day-sat .fc-daygrid-day-number { color: #4fc3f7 !important; }
         .fc-day-sun .fc-col-header-cell-cushion, .fc-day-sun .fc-daygrid-day-number { color: #ff5252 !important; }
 
+        /* 그리드 라인 색상 */
         .fc-theme-standard .fc-scrollgrid, .fc-theme-standard td, .fc-theme-standard th,
         .fc-col-header-cell, .fc-daygrid-day, .fc-daygrid-day-frame, .fc-scrollgrid-sync-table {
-            border-color: #4a635d !important;
+            border-color: var(--border) !important;
         }
 
-        /* 오늘 날짜 강조 */
+        /* 오늘 날짜 강조 - 파스텔 그린 테두리 및 연한 배경 */
         .fc-day-today {
-            background-color: rgba(255, 255, 255, 0.08) !important;
-            border: 2px solid #26a69a !important;
+            background-color: rgba(111, 207, 151, 0.1) !important; /* var(--primary) with opacity */
+            border: 2px solid var(--primary) !important;
         }
         .fc-daygrid-day:hover {
-            background-color: rgba(255, 255, 255, 0.03);
+            background-color: var(--bg-hover);
             transition: background-color 0.2s;
         }
 
@@ -54,59 +62,68 @@
             justify-content: center;
         }
         .fc-toolbar-title {
-            color: #fff;
-            font-size: 2em !important;
-            font-weight: 900 !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            color: var(--text-main) !important;
+            font-size: 1.8em !important;
+            font-weight: 800 !important;
         }
 
         /* [4] 버튼 & 이벤트 */
         .fc-button {
-            background-color: #2a3b37 !important;
-            border: 1px solid #4a635d !important;
-            color: #fff !important;
+            background-color: #ffffff !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-main) !important;
             font-weight: bold;
             border-radius: 8px !important;
             padding: 8px 16px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .fc-button:hover {
-            background-color: #3e524d !important;
-            border-color: #fff !important;
+            background-color: var(--bg-hover) !important;
+            border-color: var(--primary) !important;
+            color: var(--primary) !important;
+        }
+        .fc-button-primary:not(:disabled).fc-button-active,
+        .fc-button-primary:not(:disabled):active {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: white !important;
         }
 
         /* [10] 일정 막대 슬림하게 */
         .fc-event {
             border: none;
-            border-radius: 3px;
-            padding: 1px 3px !important;
-            margin-bottom: 1px !important;
+            border-radius: 4px;
+            padding: 2px 4px !important;
+            margin-bottom: 2px !important;
             font-size: 0.85em !important;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            line-height: 1.2 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.3 !important;
         }
 
-        /* [5] 모달 스타일 */
+        /* [5] 모달 스타일 - 화이트 테마 적용 */
         .modal-backdrop {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1100;
+            /* app.css에서 처리 */
         }
         .modal-backdrop .modal-content {
             min-width: 400px;
             max-width: 500px;
-            background: #0f231e;
+            background: #ffffff; /* 화이트 배경 */
             padding: 25px;
             border-radius: 16px;
-            border: 1px solid #4a635d;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             position: relative;
+            color: var(--text-main);
         }
 
         .modal-close-btn {
@@ -115,185 +132,185 @@
             background: none;
             border: none;
             font-size: 24px;
-            color: #888;
+            color: var(--text-muted);
             cursor: pointer;
             transition: color 0.2s;
             line-height: 1;
             z-index: 10;
         }
-        .modal-close-btn:hover { color: #ff5252; }
+        .modal-close-btn:hover { color: var(--danger); }
         .hidden { display: none !important; }
 
-        /* 폼 요소 (등록/수정 모달용 - 유지 필수) */
+        /* 폼 요소 (등록/수정 모달용) */
         .modal-backdrop label {
             display: block;
-            margin: 10px 0 5px;
-            font-weight: bold;
-            color: #ddd;
+            margin: 12px 0 6px;
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 0.95em;
         }
         input[type=text], input[type=date], textarea {
             width: 100%;
             box-sizing: border-box;
-            background: #1a2623;
-            color: #fff;
-            border: 1px solid #4a635d;
-            padding: 10px;
-            border-radius: 6px;
+            background: #ffffff;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 10px;
             font-size: 1em;
-            margin-bottom: 10px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+        input:focus, textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(111, 207, 151, 0.1);
+            outline: none;
         }
         textarea { resize: none; }
-        ::placeholder { color: #888; opacity: 1; }
+        ::placeholder { color: #bbb; opacity: 1; }
 
-        /* Flatpickr (날짜 선택기 - 유지 필수) */
+        /* Flatpickr (날짜 선택기) - 라이트 테마 커스텀 */
         .flatpickr-calendar {
-            background: #1a2623 !important;
-            border: 1px solid #4a635d !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.7) !important;
-            z-index: 9999 !important;
+            background: #ffffff !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
         }
         .flatpickr-months .flatpickr-month,
         .flatpickr-current-month .flatpickr-monthDropdown-months {
-            background: #1a2623 !important;
-            color: #fff !important;
-            fill: #fff !important;
+            background: #ffffff !important;
+            color: var(--text-main) !important;
+            fill: var(--text-main) !important;
         }
         .flatpickr-current-month input.cur-year {
-            color: #fff !important;
+            color: var(--text-main) !important;
             font-weight: bold !important;
         }
-        .flatpickr-monthDropdown-months {
-            background-color: #1a2623 !important;
-            color: #fff !important;
-        }
-        .flatpickr-monthDropdown-months option {
-            background-color: #0f231e;
-            color: #fff;
-        }
         .flatpickr-day {
-            color: #eee !important;
-            font-weight: 600 !important;
+            color: var(--text-main) !important;
         }
         .flatpickr-day.selected {
-            background: #26a69a !important;
-            border-color: #26a69a !important;
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
             color: #fff !important;
-        }
-        .flatpickr-months .flatpickr-prev-month svg,
-        .flatpickr-months .flatpickr-next-month svg {
-            fill: #fff !important;
         }
 
         /* 버튼 그룹 */
         .modal-actions {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 24px;
+            gap: 10px;
         }
         .btn-primary {
-            background-color: #26a69a;
+            background-color: var(--primary);
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
+            border: 1px solid var(--primary);
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9em;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: 0.2s;
         }
-        .btn-danger {
-            background-color: #e53935;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-        .btn-secondary {
-            background-color: #757575;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-right: 5px;
-            font-size: 0.9em;
-        }
+        .btn-primary:hover { background-color: var(--primary-dark); border-color: var(--primary-dark); }
 
-        /* 관리자 승인/거절 버튼 (JS에서 생성됨 - 유지 필수) */
+        .btn-danger {
+            background-color: #fff0f0;
+            color: var(--danger);
+            border: 1px solid #ffcdd2;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: 0.2s;
+        }
+        .btn-danger:hover { background-color: #ffebee; }
+
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+        .btn-secondary:hover { background-color: #eee; }
+
+
+        /* 관리자 승인/거절 버튼 */
         .manage-btn-group {
             display: inline-block;
             margin-left: 10px;
         }
         .manage-btn-group button {
-            font-size: 0.7em;
-            padding: 2px 6px;
-            margin-left: 3px;
-            border-radius: 3px;
+            font-size: 0.75em;
+            padding: 4px 8px;
+            margin-left: 4px;
+            border-radius: 6px;
             border:none;
             cursor:pointer;
             color:white;
             font-weight: bold;
         }
-        .btn-approve { background: #2e7d32; }
-        .btn-approve:hover { background: #1b5e20; }
-        .btn-reject { background: #c62828; }
-        .btn-reject:hover { background: #b71c1c; }
+        .btn-approve { background: var(--primary); }
+        .btn-approve:hover { background: var(--primary-dark); }
+        .btn-reject { background: var(--danger); }
+        .btn-reject:hover { background: #d32f2f; }
 
         /* 참가자 목록 스타일 */
         .participant-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 5px 0;
-            border-bottom: 1px solid #4a635d;
-            color: #ddd;
-            font-size: 0.9em;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 0.95em;
         }
-        .status-ACCEPTED { color: #4caf50; font-weight: bold; }
-        .status-PENDING { color: #ffb74d; }
-        .status-REJECTED { color: #e57373; }
+        .status-ACCEPTED { color: var(--primary-dark); font-weight: bold; }
+        .status-PENDING { color: #ffb74d; font-weight: bold; }
+        .status-REJECTED { color: var(--danger); }
 
-        /* [9] 카드 디자인 */
+        /* [9] 카드 디자인
         .detail-card {
-            border: 1px solid #1a332c;
-            border-radius: 14px;
-            background: #0f231e;
-            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--bg-card);
+            padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }*/
 
         /* [10] 스크롤바 커스텀 */
-        textarea::-webkit-scrollbar, .detail-box::-webkit-scrollbar { width: 8px; }
+        textarea::-webkit-scrollbar, .detail-box::-webkit-scrollbar { width: 6px; }
         textarea::-webkit-scrollbar-track, .detail-box::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
+            background: transparent;
         }
         textarea::-webkit-scrollbar-thumb, .detail-box::-webkit-scrollbar-thumb {
-            background-color: #4a635d;
+            background-color: #d1d1d1;
             border-radius: 4px;
         }
         textarea::-webkit-scrollbar-thumb:hover, .detail-box::-webkit-scrollbar-thumb:hover {
-            background-color: #26a69a;
+            background-color: #b0b0b0;
         }
 
         /* [11] 상세내역 박스 */
         .detail-box {
             width: 100%;
-            min-height: 200px;
-            max-height: 500px;
+            min-height: 150px;
+            max-height: 400px;
             overflow-y: auto;
             overflow-x: hidden;
-            background-color: #1a2623;
-            padding: 18px;
-            border-radius: 8px;
-            border: 1px solid #4a635d;
-            color: #ddd;
+            background-color: var(--bg-body);
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            color: var(--text-main);
             margin-top: 10px;
-            font-size: 1em;
+            font-size: 0.95em;
             line-height: 1.6;
             white-space: pre-wrap;
             word-break: break-all;
@@ -316,11 +333,11 @@
             pointer-events: auto;
             width: 500px;
             max-height: 85vh;
-            background: #0f231e;
+            background: #ffffff;
             padding: 30px;
             border-radius: 16px;
-            border: 1px solid #4a635d;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+            border: 1px solid var(--border);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -334,28 +351,30 @@
 
         /* [14] 더보기 링크 & 팝업 */
         .fc-more-link {
-            color: #ddd !important;
-            font-size: 0.8em !important;
+            color: var(--text-muted) !important;
+            font-size: 0.85em !important;
             font-weight: bold;
             text-decoration: none;
         }
         .fc-more-link:hover {
-            color: #fff !important;
-            background-color: rgba(255,255,255,0.1);
+            color: var(--primary) !important;
+            background-color: var(--bg-hover);
             border-radius: 4px;
         }
         .fc-popover {
-            background-color: #1a2623 !important;
-            border: 1px solid #4a635d !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+            background-color: #ffffff !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
             z-index: 9999 !important;
+            border-radius: 8px;
         }
         .fc-popover-header {
-            background-color: #0f231e !important;
-            color: #fff !important;
+            background-color: #f9fcfb !important;
+            color: var(--text-main) !important;
             font-weight: bold;
+            border-bottom: 1px solid var(--border);
         }
-        .fc-popover-body { background-color: #1a2623 !important; }
+        .fc-popover-body { background-color: #ffffff !important; }
     </style>
 </head>
 <body class="bg-deep">
@@ -364,12 +383,13 @@
 
 <div class="wrap">
     <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+
     <main class="content">
-        <div class="detail-card" th:object="${club}">
+        <div class="detail-card">
             <div th:replace="~{fragments/common :: club-tabs}"></div>
         </div>
 
-        <div class="detail-card" style="background: #0f231e; padding: 20px; border-radius: 14px; border: 1px solid #4a635d; margin-top: 20px;">
+        <div class="detail-card" style="margin-top: 16px;">
             <div id='calendar'></div>
         </div>
     </main>
@@ -381,29 +401,29 @@
     <div class="modal-content">
         <button onclick="hideDetailModal()" class="modal-close-btn" type="button">&times;</button>
 
-        <h3 id="modal-title" style="margin: 0 0 15px 0; color: #fff; padding-right: 20px; font-size: 1.2em;">일정 제목</h3>
-        <hr style="border-color: #4a635d; margin: 15px 0;">
-        <div style="font-size: 0.95em; color: #ccc; margin-bottom: 15px;">
-            <p style="display: flex; margin: 5px 0;">
-                <span style="color:#888; width: 60px; flex-shrink: 0;">일시</span>
-                <span id="modal-date" style="color: #fff;"></span>
+        <h3 id="modal-title" style="margin: 0 0 15px 0; color: var(--text-main); padding-right: 20px; font-size: 1.3em; font-weight: 700;">일정 제목</h3>
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 15px 0;">
+        <div style="font-size: 0.95em; color: var(--text-main); margin-bottom: 20px;">
+            <p style="display: flex; margin: 6px 0;">
+                <span style="color: var(--text-muted); width: 60px; flex-shrink: 0;">일시</span>
+                <span id="modal-date" style="font-weight: 500;"></span>
             </p>
-            <p style="display: flex; margin: 5px 0;">
-                <span style="color:#888; width: 60px; flex-shrink: 0;">비용</span>
-                <span id="modal-fee" style="color: #fff;"></span>
+            <p style="display: flex; margin: 6px 0;">
+                <span style="color: var(--text-muted); width: 60px; flex-shrink: 0;">비용</span>
+                <span id="modal-fee" style="font-weight: 500;"></span>
             </p>
-            <p style="display: flex; margin: 5px 0;">
-                <span style="color:#888; width: 60px; flex-shrink: 0;">제안자</span>
-                <span id="modal-writer" style="color: #fff; font-weight: bold;"></span>
+            <p style="display: flex; margin: 6px 0;">
+                <span style="color: var(--text-muted); width: 60px; flex-shrink: 0;">제안자</span>
+                <span id="modal-writer" style="color: var(--primary-dark); font-weight: bold;"></span>
             </p>
         </div>
 
-        <p style="color: #ddd;"><strong>상세내역:</strong></p>
+        <p style="color: var(--text-main); font-weight: 600; margin-bottom: 8px;">상세내역</p>
         <div id="modal-details" class="detail-box"></div>
 
-        <div id="club-event-area" class="hidden" style="margin-top: 15px;">
-            <p style="color: #81c784; font-weight: bold; font-size: 0.9em; margin-bottom: 5px;"> 참여 현황 (<span id="modal-participant-count">0</span>명)</p>
-            <div id="modal-participant-list" style="max-height: 120px; overflow-y: auto; padding: 5px; background: #13201d; border-radius: 6px;"></div>
+        <div id="club-event-area" class="hidden" style="margin-top: 20px;">
+            <p style="color: var(--primary-dark); font-weight: bold; font-size: 0.95em; margin-bottom: 8px;"> 참여 현황 (<span id="modal-participant-count">0</span>명)</p>
+            <div id="modal-participant-list" style="max-height: 120px; overflow-y: auto; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 8px;"></div>
         </div>
 
         <div class="modal-actions">
@@ -419,8 +439,8 @@
 <div id="scheduleCreateModal" class="modal-backdrop hidden">
     <div class="modal-content">
         <button onclick="hideCreateModal()" class="modal-close-btn" type="button">&times;</button>
-        <h2 style="color: #fff;">새 일정 제안</h2>
-        <form id="createScheduleForm" style="margin-top: 15px;">
+        <h2 style="color: var(--text-main); margin-top: 0;">새 일정 제안</h2>
+        <form id="createScheduleForm" style="margin-top: 20px;">
             <label>예정 내역 (제목)</label>
             <input type="text" id="create-title" placeholder="예) 11월 정기 모임" required>
             <label>시작일</label>
@@ -441,8 +461,8 @@
 <div id="scheduleEditModal" class="modal-backdrop hidden">
     <div class="modal-content">
         <button onclick="hideEditModal()" class="modal-close-btn" type="button">&times;</button>
-        <h2 style="color: #fff;">일정 수정하기</h2>
-        <form id="editScheduleForm" style="margin-top: 15px;">
+        <h2 style="color: var(--text-main); margin-top: 0;">일정 수정하기</h2>
+        <form id="editScheduleForm" style="margin-top: 20px;">
             <input type="hidden" id="edit-id">
             <label>예정 내역 (제목)</label>
             <input type="text" id="edit-title" placeholder="예) 11월 정기 모임" required>
@@ -463,8 +483,8 @@
 
 <div id="customConfirmModal" class="modal-backdrop hidden" style="z-index: 10000;">
     <div class="modal-content" style="max-width: 350px; text-align: center;">
-        <h3 style="color: #fff; margin-bottom: 15px;">알림</h3>
-        <p id="confirmMessage" style="color: #ddd; margin-bottom: 20px; line-height: 1.5;"></p>
+        <h3 style="color: var(--text-main); margin-bottom: 15px; margin-top: 0;">알림</h3>
+        <p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; font-size: 0.95rem;"></p>
         <div style="display: flex; justify-content: center; gap: 10px;">
             <button id="btnConfirmCancel" class="btn-secondary" style="width: 80px;">취소</button>
             <button id="btnConfirmOk" class="btn-primary" style="width: 80px;">확인</button>
@@ -541,7 +561,15 @@
         createForm = document.getElementById('createScheduleForm');
         editForm = document.getElementById('editScheduleForm');
 
-        flatpickr(".datepicker", { locale: "ko", dateFormat: "Y-m-d", theme: "dark", static: false, allowInput: true });
+        // [최적화] Flatpickr 애니메이션 끄기 및 모바일 모드 방지 (렉 방지)
+        flatpickr(".datepicker", {
+            locale: "ko",
+            dateFormat: "Y-m-d",
+            static: false,
+            allowInput: true,
+            animate: false, // 중요: 애니메이션 끔 (블러 배경에서의 렉 방지)
+            disableMobile: "true"
+        });
 
         const topLoginBtn = document.getElementById('openLoginBtn');
         if(topLoginBtn) {
@@ -646,7 +674,7 @@
                     list.appendChild(div);
                 });
             } else {
-                list.innerHTML = '<div style="color:#666; font-size:0.9em;">신청자가 없습니다.</div>';
+                list.innerHTML = '<div style="color:var(--text-muted); font-size:0.9em;">신청자가 없습니다.</div>';
             }
 
             // 버튼 (참가/취소)

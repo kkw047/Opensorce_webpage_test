@@ -1,104 +1,106 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>모임 기능 수정</title>
-  <link rel="stylesheet" th:href="@{/css/app.css}">
-  <style>
-    .radio-card {
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        padding: 20px;
-        border: 1px solid #29433b;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background-color: #0f231e;
+    <meta charset="UTF-8">
+    <title>모임 기능 수정</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .radio-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: var(--bg-body); /* 밝은 배경 */
+            color: var(--text-main);
 
-        max-width: 500px;
-    }
+            max-width: 500px;
+        }
 
-    .radio-card:hover {
-        background-color: #1a332c;
-        border-color: #1db954;
-        transform: translateY(-2px);
-    }
+        .radio-card:hover {
+            background-color: #ffffff;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
 
-    .radio-card:has(input:checked) {
-        border-color: #1db954;
-        background-color: #142a24;
-        box-shadow: 0 4px 12px rgba(29, 185, 84, 0.15);
-    }
+        .radio-card:has(input:checked) {
+            border-color: var(--primary);
+            background-color: #e3fcef; /* primary-light */
+            box-shadow: 0 4px 12px rgba(111, 207, 151, 0.15);
+        }
 
-    input[type="radio"] {
-        width: 20px;
-        height: 20px;
-        margin-top: 2px;
-        accent-color: #1db954; /* 초록색 강조 */
-    }
-  </style>
+        input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            accent-color: var(--primary);
+        }
+    </style>
 </head>
 <body class="bg-deep">
 
 <header class="topbar" th:replace="~{fragments/common :: topbar}"></header>
 
 <div class="wrap">
-  <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
+    <aside class="sidebar" th:replace="~{fragments/common :: sidebar}"></aside>
 
-  <main class="content">
-    <div class="detail-card">
-      <div th:replace="~{fragments/common :: club-tabs}"></div>
-    </div>
+    <main class="content">
+        <div class="detail-card">
+            <div th:replace="~{fragments/common :: club-tabs}"></div>
+        </div>
 
-    <div class="detail-card" style="margin-top: 16px;">
-      <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: bold;">모임 기능 수정</h2>
+        <div class="detail-card" style="margin-top: 16px;">
+            <h2 style="margin-bottom: 20px; font-size: 24px; font-weight: bold; color: var(--text-main);">모임 기능 수정</h2>
 
-      <form th:action="@{/clubs/{id}/manager/features(id=${club.id})}" method="post">
+            <form th:action="@{/clubs/{id}/manager/features(id=${club.id})}" method="post">
 
-        <div class="form-group" style="margin-bottom: 30px;">
-          <label style="display: block; margin-bottom: 12px; font-weight: bold; color: #e7f3ee; font-size: 1.1rem;">
-            가입 방식 설정
-          </label>
-          <p class="muted" style="margin-bottom: 20px; font-size: 0.9rem; color: #9ec8b8;">
-            멤버가 모임에 들어올 때의 절차를 선택해주세요.
-          </p>
+                <div class="form-group" style="margin-bottom: 30px;">
+                    <label style="display: block; margin-bottom: 12px; font-weight: bold; color: var(--text-main); font-size: 1.1rem;">
+                        가입 방식 설정
+                    </label>
+                    <p class="muted" style="margin-bottom: 20px; font-size: 0.9rem; color: var(--text-muted);">
+                        멤버가 모임에 들어올 때의 절차를 선택해주세요.
+                    </p>
 
-          <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
 
-            <label class="radio-card">
-              <input type="radio" name="policy" value="AUTOMATIC"
-                     th:checked="${club.joinPolicy.name() == 'AUTOMATIC'}">
-              <div>
-                <strong style="display: block; color: #e7f3ee; font-size: 1.05rem; margin-bottom: 6px;">자동 가입 (기본)</strong>
-                <span style="font-size: 0.9rem; color: #b0c4de; line-height: 1.5;">
+                        <label class="radio-card">
+                            <input type="radio" name="policy" value="AUTOMATIC"
+                                   th:checked="${club.joinPolicy.name() == 'AUTOMATIC'}">
+                            <div>
+                                <strong style="display: block; font-size: 1.05rem; margin-bottom: 6px;">자동 가입 (기본)</strong>
+                                <span style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
                                     별도의 승인 절차 없이 즉시 가입됩니다.<br>
                                     누구나 자유롭게 참여할 수 있는 모임에 추천합니다.
                                 </span>
-              </div>
-            </label>
+                            </div>
+                        </label>
 
-            <label class="radio-card">
-              <input type="radio" name="policy" value="APPROVAL"
-                     th:checked="${club.joinPolicy.name() == 'APPROVAL'}">
-              <div>
-                <strong style="display: block; color: #e7f3ee; font-size: 1.05rem; margin-bottom: 6px;">관리자 승인 후 가입</strong>
-                <span style="font-size: 0.9rem; color: #b0c4de; line-height: 1.5;">
+                        <label class="radio-card">
+                            <input type="radio" name="policy" value="APPROVAL"
+                                   th:checked="${club.joinPolicy.name() == 'APPROVAL'}">
+                            <div>
+                                <strong style="display: block; font-size: 1.05rem; margin-bottom: 6px;">관리자 승인 후 가입</strong>
+                                <span style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
                                     가입 신청 시 '대기' 상태가 되며, 관리자가 수락해야 합니다.<br>
                                     신중하게 멤버를 받고 싶은 모임에 추천합니다.
                                 </span>
-              </div>
-            </label>
-          </div>
-        </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-        <div style="display: flex; gap: 10px;">
-          <a th:href="@{/clubs/{id}/manager(id=${club.id})}" class="btn" style="padding: 10px 24px;">취소</a>
-          <button type="submit" class="btn primary" style="padding: 10px 24px;">설정 저장</button>
+                <div style="display: flex; gap: 10px;">
+                    <a th:href="@{/clubs/{id}/manager(id=${club.id})}" class="btn" style="padding: 10px 24px;">취소</a>
+                    <button type="submit" class="btn primary" style="padding: 10px 24px;">설정 저장</button>
+                </div>
+            </form>
         </div>
-      </form>
-    </div>
-  </main>
+    </main>
 </div>
 
 <div th:replace="~{fragments/common :: modals}"></div>

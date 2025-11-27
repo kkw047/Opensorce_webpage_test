@@ -4,6 +4,35 @@
     <meta charset="UTF-8">
     <title th:text="${club.name} + ' - 게시판'">게시판</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        /* 게시판 전용 추가 스타일 */
+        .post-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+        .post-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-color: var(--primary);
+            cursor: pointer;
+        }
+        .list-thumbnail {
+            width: 100px; height: 100px; object-fit: cover; border-radius: 8px; background: #f0f0f0;
+        }
+        .card-content-wrapper { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .post-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main); }
+        .post-preview { font-size: 0.9rem; color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .highlight { background-color: rgba(111, 207, 151, 0.3); font-weight: bold; }
+        .profile-thumb { width: 36px; height: 36px; border-radius: 50%; background: #eee; font-size: 18px; margin-right: 10px; }
+        .badge-owner { background: var(--primary-light); color: var(--primary-dark); font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold; }
+    </style>
 </head>
 <body class="bg-deep"
       th:data-msg="${msg}"
@@ -23,7 +52,7 @@
         </div>
 
         <div class="detail-card" style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 16px;">
-            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">게시판 목록</h2>
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: var(--text-main);">게시판 목록</h2>
 
             <a th:if="${isAlreadyMember}"
                th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
@@ -32,7 +61,7 @@
             </a>
         </div>
 
-        <div class="post-grid-container">
+        <div class="post-list-container">
 
             <div class="post-card" th:each="post : ${posts}"
                  th:onclick="|location.href='@{/clubs/{clubId}/board/{postId}(clubId=${club.id}, postId=${post.id})}'|">
@@ -42,69 +71,57 @@
                 </div>
 
                 <div class="card-content-wrapper">
-                    <div class="card-header">
+                    <div class="card-header" style="display:flex; align-items: center; margin-bottom: 8px;">
                         <img th:if="${post.author.imageUrl != null}" th:src="${post.author.imageUrl}" class="profile-thumb" alt="프로필">
                         <div th:unless="${post.author.imageUrl != null}" class="profile-thumb" style="display:flex; align-items:center; justify-content:center;">👤</div>
 
                         <div class="author-info" style="display: flex; flex-direction: column; justify-content: center; line-height: 1.3;">
-
                             <div style="display: flex; align-items: center;">
-                                <span class="author-name" th:text="${post.author.nickname}" style="font-weight: bold;">작성자</span>
-
-                                <span class="badge-owner"
-                                      th:if="${post.author.id == club.ownerId}">
-                                [관리자]
-                            </span>
+                                <span class="author-name" th:text="${post.author.nickname}" style="font-weight: bold; font-size: 0.95rem;">작성자</span>
+                                <span class="badge-owner" th:if="${post.author.id == club.ownerId}">[관리자]</span>
                             </div>
-
-                            <span class="post-date" th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd')}">날짜</span>
+                            <span class="post-date" th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd')}" style="font-size: 0.8rem; color: var(--text-muted);">날짜</span>
                         </div>
                     </div>
 
-                    <div class="post-title" th:text="${post.title}">
-                        제목이 여기에 들어갑니다.
-                    </div>
+                    <div class="post-title" th:text="${post.title}">제목이 여기에 들어갑니다.</div>
 
-                    <p class="post-preview"
-                       th:text="${post.content}"
-                       style="margin: 0; color: #b0c4de;">
-                        게시글 내용 미리보기...
-                    </p>
+                    <p class="post-preview" th:text="${post.content}">게시글 내용 미리보기...</p>
                 </div>
             </div>
 
-            <div th:if="${posts.totalElements == 0}">
+            <div th:if="${posts.totalElements == 0}" class="detail-card" style="text-align: center; padding: 40px 0;">
 
                 <div th:if="${searchKeyword != null and searchKeyword != ''}" class="empty-state">
-                    <h3 class="empty-title">검색 결과가 없습니다.</h3>
-                    <p class="empty-desc">
-                        '<span th:text="${searchKeyword}" style="color: #1db954; font-weight: bold;"></span>'에 대한 검색 결과를 찾지 못했습니다.<br>
+                    <h3 class="empty-title" style="color: var(--text-main);">검색 결과가 없습니다.</h3>
+                    <p class="empty-desc" style="color: var(--text-muted);">
+                        '<span th:text="${searchKeyword}" style="color: var(--primary); font-weight: bold;"></span>'에 대한 검색 결과를 찾지 못했습니다.<br>
                         다른 검색어로 다시 시도해 보세요.
                     </p>
                 </div>
 
                 <div th:if="${searchKeyword == null or searchKeyword == ''}" class="empty-state">
-                    <h3 class="empty-title">아직 작성된 게시글이 없습니다.</h3>
-                    <p class="empty-desc">
+                    <h3 class="empty-title" style="color: var(--text-main);">아직 작성된 게시글이 없습니다.</h3>
+                    <p class="empty-desc" style="color: var(--text-muted); margin-bottom: 20px;">
                         이 모임의 첫 번째 이야기를 시작해보세요!<br>
                         멤버들과 소소한 일상을 공유할 수 있습니다.
                     </p>
 
                     <a th:if="${isAlreadyMember}"
                        th:href="@{/clubs/{clubId}/board/new(clubId=${club.id})}"
-                       class="btn primary mt12">첫 글 작성하기</a>
+                       class="btn primary">첫 글 작성하기</a>
                 </div>
 
             </div>
-        <div class="pagination-wrapper" th:if="${posts.totalPages > 0}">
+        </div>
 
-            <div class="page-info">
+        <div class="pagination-wrapper" th:if="${posts.totalPages > 0}" style="text-align: center; margin-top: 20px;">
+            <div class="page-info" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px;">
                 총 <span th:text="${posts.totalElements}">0</span>개의 글
             </div>
 
-            <div class="pagination-buttons">
-
-                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number - 1}, type=${searchType}, keyword=${searchKeyword})}"
+            <div class="pagination-buttons pager">
+                <a th:href="${posts.first} ? null : @{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number - 1}, type=${searchType}, keyword=${searchKeyword})}"
                    class="page-btn prev-next"
                    th:classappend="${posts.first} ? 'disabled' : ''">
                     &lt; 이전
@@ -118,7 +135,7 @@
                     1
                 </a>
 
-                <a th:href="@{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number + 1}, type=${searchType}, keyword=${searchKeyword})}"
+                <a th:href="${posts.last} ? null : @{/clubs/{clubId}/board(clubId=${club.id}, page=${posts.number + 1}, type=${searchType}, keyword=${searchKeyword})}"
                    class="page-btn prev-next"
                    th:classappend="${posts.last} ? 'disabled' : ''">
                     다음 &gt;
@@ -126,26 +143,26 @@
             </div>
         </div>
 
-            <div class="search-container" style="display: flex; justify-content: center; margin-bottom: 60px;">
-                <form th:action="@{/clubs/{clubId}/board(clubId=${club.id})}" method="get"
-                      style="display: flex; gap: 8px; background: #0f231e; padding: 10px; border-radius: 12px; border: 1px solid #1a332c;">
+        <div class="search-container" style="display: flex; justify-content: center; margin: 40px 0;">
+            <form th:action="@{/clubs/{clubId}/board(clubId=${club.id})}" method="get"
+                  style="display: flex; gap: 8px; background: var(--bg-card); padding: 10px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
 
-                    <select name="type" class="custom-select" style="width: 120px;">
-                        <option value="all" th:selected="${searchType == 'all'}">제목+내용</option>
-                        <option value="title" th:selected="${searchType == 'title'}">제목</option>
-                        <option value="content" th:selected="${searchType == 'content'}">내용</option>
-                    </select>
+                <select name="type" class="custom-select" style="width: 120px; border: 1px solid var(--border); border-radius: 8px; color: var(--text-main);">
+                    <option value="all" th:selected="${searchType == 'all'}">제목+내용</option>
+                    <option value="title" th:selected="${searchType == 'title'}">제목</option>
+                    <option value="content" th:selected="${searchType == 'content'}">내용</option>
+                </select>
 
-                    <input type="text" name="keyword" th:value="${searchKeyword}"
-                           class="form-control" placeholder="검색어를 입력하세요"
-                           style="width: 250px; height: 40px; border: none; background: #1a332c;">
+                <input type="text" name="keyword" th:value="${searchKeyword}"
+                       class="form-control" placeholder="검색어를 입력하세요"
+                       style="width: 250px; height: 40px; border: 1px solid var(--border); background: #fff; border-radius: 8px;">
 
-                    <button type="submit" class="btn primary" style="height: 40px; padding: 0 20px;">검색</button>
-                </form>
-            </div>
-
-        <div style="height: 60px;"></div>
+                <button type="submit" class="btn primary" style="height: 40px; padding: 0 20px;">검색</button>
+            </form>
         </div>
+
+        <div style="height: 40px;"></div>
+
     </main>
 </div>
 
@@ -167,7 +184,7 @@
         document.addEventListener("DOMContentLoaded", () => modal("registerModal", true));
     }
 
-    // 2. 토스트 메시지가 있으면 3초 뒤에 사라지게 함
+    // 2. 토스트 메시지
     const toast = document.getElementById('toast');
     if (toast) {
         setTimeout(() => {
@@ -177,18 +194,16 @@
 </script>
 
 <script th:inline="javascript">
-    // 검색어 하이라이트 기능
+    // 검색어 하이라이트
     document.addEventListener("DOMContentLoaded", function() {
-        const keyword = [[${searchKeyword}]]; // 서버에서 받은 검색어
+        const keyword = [[${searchKeyword}]];
 
         if (keyword && keyword.trim() !== "") {
             const posts = document.querySelectorAll('.post-card');
 
             posts.forEach(card => {
-                // 제목(.post-title)과 내용(.post-preview)에서 검색어 찾기
                 const titleEl = card.querySelector('.post-title');
                 const contentEl = card.querySelector('.post-preview');
-
                 if (titleEl) highlightText(titleEl, keyword);
                 if (contentEl) highlightText(contentEl, keyword);
             });
@@ -197,10 +212,7 @@
 
     function highlightText(element, keyword) {
         const originalText = element.textContent;
-        // 대소문자 구분 없이 검색 (gi)
         const regex = new RegExp(`(${keyword})`, 'gi');
-
-        // 검색된 단어를 span class="highlight" 로 감싸기
         if (originalText.match(regex)) {
             const newHtml = originalText.replace(regex, '<span class="highlight">$1</span>');
             element.innerHTML = newHtml;

@@ -4,86 +4,28 @@
     <meta charset="UTF-8">
     <title th:text="${club.name} + ' - 모임 상세'">모임 상세</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
-
     <style>
-        .detail-card {
-            border: 1px solid #1a332c;
-            border-radius: 14px;
-            background: #0f231e;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
+        .club-header h1 { margin: 0; font-size: 2.5rem; color: var(--text-main); font-weight: 800; letter-spacing: -1px; }
+        .club-chips { margin-top: 12px; }
 
-        .detail-card .club-header h1 {
-            margin: 0;
-            font-size: 50px;
-        }
+        .club-image { width: 100%; border-radius: 12px; background: #f0f0f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        img.club-image { max-height: 70vh; object-fit: contain; display: block; }
+        div.club-image { height: 360px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
 
-        .detail-card .club-chips {
-            margin-top: 12px;
-        }
+        .section-title { font-size: 1.2rem; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: var(--primary-dark); border-left: 4px solid var(--primary); padding-left: 10px; }
+        .detail-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 
+        .member-list { display: flex; flex-direction: column; gap: 10px; }
+        .member-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-body); border-radius: 10px; border: 1px solid var(--border); }
+        .member-avatar { width: 36px; height: 36px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; color: #aaa; }
+        .member-role { font-size: 0.8rem; color: var(--primary); font-weight: 700; margin-left: 6px; background: var(--primary-light); padding: 2px 8px; border-radius: 4px; }
 
-        /* 공통 스타일 (너비, 배경, 테두리) */
-        .club-image {
-            width: 100%;
-            border-radius: 12px;
-            background: #0b1f1a;
-        }
+        .activity-bar-bg { background: #eee; border-radius: 4px; overflow: hidden; width: 100%; height: 8px; margin-top: 6px; }
+        .activity-bar-fill { background: var(--primary); height: 100%; border-radius: 4px; transition: width 0.5s; }
 
-        /* 실제 이미지가 있는 경우 (img 태그) */
-        img.club-image {
-            max-height: 70vh;
-            object-fit: contain;
-            display: block;
-        }
-
-        /* 이미지가 없는 경우 (div 태그) */
-        div.club-image {
-            height: 360px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-top: 0;
-            margin-bottom: 12px;
-        }
-
-        .detail-divider {
-            border: none;
-            border-top: 1px solid #1a332c;
-            margin: 20px 0;
-        }
-
-        .member-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .member-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .member-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #29433b;
-        }
-
-        .member-role {
-            font-size: 12px;
-            color: #1db954;
-            font-weight: 600;
-        }
-
+        .policy-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-right: 6px; vertical-align: middle; }
+        .policy-auto { background-color: #e8f5e9; color: #388e3c; border: 1px solid #388e3c; }
+        .policy-approval { background-color: #fff3e0; color: #f57c00; border: 1px solid #f57c00; }
     </style>
 </head>
 <body class="bg-deep">
@@ -97,9 +39,7 @@
     <main class="content">
 
         <div class="detail-card" th:object="${club}">
-
             <div th:replace="~{fragments/common :: club-tabs}"></div>
-
         </div>
 
         <div class="detail-card" th:object="${club}">
@@ -108,10 +48,8 @@
                 <h1 th:text="*{name}">모임 이름</h1>
 
                 <div class="chips club-chips" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-
                     <span th:if="${club.joinPolicy.name() == 'AUTOMATIC'}" class="policy-badge policy-auto">자동 가입</span>
                     <span th:if="${club.joinPolicy.name() == 'APPROVAL'}" class="policy-badge policy-approval">승인제</span>
-
                     <span class="chip" th:each="k : *{categories}" th:text="${'#' + k}">#카테고리</span>
                 </div>
             </div>
@@ -125,35 +63,35 @@
 
             <hr class="detail-divider"> <div>
             <h2 class="section-title">모임 설명</h2>
-            <p th:text="*{description}" style="min-height: 80px; white-space: pre-wrap; margin-top: 0;">모임 설명...</p>
+            <p th:text="*{description}" style="min-height: 80px; white-space: pre-wrap; margin-top: 0; line-height: 1.6; color: var(--text-main);">모임 설명...</p>
         </div>
 
             <hr class="detail-divider"> <div>
             <h2 class="section-title">활동 지표</h2>
-            <div class="info-group" style="margin-top: 30px;">
-                <h3 style="font-size: 1.1em; font-weight: bold; margin-bottom: 15px; color: #fff;">최근 일정 출석률</h3>
+            <div class="info-group" style="margin-top: 20px;">
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 15px; color: var(--text-main);">최근 일정 출석률</h3>
 
                 <div th:if="${not #lists.isEmpty(activityStats)}" style="display: flex; flex-direction: column; gap: 15px;">
-                    <div th:each="stat : ${activityStats}" style="background: #1a2623; padding: 15px; border-radius: 10px; border: 1px solid #2a3b37;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em;">
-                        <span style="font-weight: bold; color: #ddd;">
-                            <span th:text="${stat.date}" style="color: #888; margin-right: 8px;">2025-11-04</span>
+                    <div th:each="stat : ${activityStats}" style="background: var(--bg-body); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9em;">
+                        <span style="font-weight: bold; color: var(--text-main);">
+                            <span th:text="${stat.date}" style="color: var(--text-muted); margin-right: 8px; font-weight: normal;">2025-11-04</span>
                             <span th:text="${stat.title}">일정 제목</span>
                         </span>
-                            <span style="color: #4caf50; font-weight: bold;">
+                            <span style="color: var(--primary); font-weight: bold;">
                             <span th:text="${stat.rate} + '%'">80%</span>
-                            <span style="color: #666; font-weight: normal; font-size: 0.9em;"
+                            <span style="color: var(--text-muted); font-weight: normal; font-size: 0.85em;"
                                   th:text="' (' + ${stat.attendedMember} + '/' + ${stat.totalMember} + '명)'"></span>
                         </span>
                         </div>
 
-                        <div style="width: 100%; background: #0f231e; height: 8px; border-radius: 4px; overflow: hidden;">
-                            <div th:style="'width: ' + ${stat.rate} + '%; background: #4caf50; height: 100%; border-radius: 4px; transition: width 0.5s;'"></div>
+                        <div class="activity-bar-bg">
+                            <div class="activity-bar-fill" th:style="'width: ' + ${stat.rate} + '%;'"></div>
                         </div>
                     </div>
                 </div>
 
-                <div th:if="${#lists.isEmpty(activityStats)}" style="text-align: center; padding: 20px; color: #666; background: #1a2623; border-radius: 10px;">
+                <div th:if="${#lists.isEmpty(activityStats)}" style="text-align: center; padding: 30px; color: var(--text-muted); background: var(--bg-body); border-radius: 10px; border: 1px dashed var(--border);">
                     아직 진행된 일정이 없습니다.
                 </div>
             </div>
@@ -163,21 +101,20 @@
             <h2 class="section-title" th:text="'모임 멤버 (' + ${memberCount} + ')'">모임 멤버 (0)</h2>
             <div class="member-list">
                 <div class="member-item" th:each="memberInfo : *{members}" style="align-items: center;">
-                    <div class="member-avatar"></div>
+                    <div class="member-avatar">👤</div>
 
                     <div style="display: flex; align-items: center;">
-                        <span th:text="${memberInfo.nickname}">멤버 닉네임</span>
+                        <span th:text="${memberInfo.nickname}" style="font-weight: 500;">멤버 닉네임</span>
 
                         <span class="member-role"
-                              th:if="${memberInfo.role == 'ADMIN' or memberInfo.role == 'MANAGER'}"
-                              style="font-size: 12px; color: #1db954; margin-left: 6px; font-weight: bold;">
+                              th:if="${memberInfo.role == 'ADMIN' or memberInfo.role == 'MANAGER'}">
                             [관리자]
                         </span>
                     </div>
                 </div>
 
                 <div th:if="${memberCount == 0}">
-                    <p style="color: #9ec8b8; font-size: 14px; margin-top: 10px; margin-bottom: 0;">
+                    <p style="color: var(--text-muted); font-size: 14px; margin-top: 10px; margin-bottom: 0;">
                         아직 모임에 가입한 멤버가 없습니다.
                     </p>
                 </div>
@@ -185,19 +122,19 @@
         </div>
 
             <hr class="detail-divider"> <div>
-            <button th:if="${session.LOGIN_USER_ID == null}" class="btn primary block" id="openLoginBtn">
+            <button th:if="${session.LOGIN_USER_ID == null}" class="btn primary block" id="openLoginBtn" style="padding: 12px;">
                 로그인 후 가입하기
             </button>
-            <button th:if="${isOwner}" class="btn block" disabled>
+            <button th:if="${isOwner}" class="btn block" disabled style="background: var(--bg-body); cursor: default;">
                 당신은 이 모임의 관리자입니다
             </button>
             <button th:if="${club.myStatus == 'ACTIVE' and !isOwner}" class="btn block" disabled
-                    style="background: #1a332c; color: #9ec8b8; cursor: not-allowed;">
+                    style="background: var(--bg-body); color: var(--primary); cursor: default; border-color: var(--primary);">
                 이미 가입한 모임입니다
             </button>
 
             <button th:if="${club.myStatus == 'WAITING'}" class="btn block" disabled
-                    style="background: #2b1d00; color: #ffb700; border: 1px solid #ffb700; cursor: not-allowed;">
+                    style="background: #fff8e1; color: #ffa000; border: 1px solid #ffa000; cursor: not-allowed;">
                 가입 승인 대기 중입니다
             </button>
 
@@ -208,25 +145,25 @@
             <form th:if="${session.LOGIN_USER_ID != null && !isOwner && !isAlreadyMember}"
                   th:action="@{/clubs/{id}/join(id=${club.id})}" method="post" style="margin: 0;">
 
-                <button type="submit" class="btn primary block">
+                <button type="submit" class="btn primary block" style="padding: 12px; font-size: 1rem;">
                     <span th:if="${club.joinPolicy.name() == 'AUTOMATIC'}">가입하기</span>
                     <span th:if="${club.joinPolicy.name() == 'APPROVAL'}">가입 신청하기</span>
                 </button>
 
                 <p th:if="${club.joinPolicy.name() == 'APPROVAL'}"
-                   style="text-align: center; color: #ffa500; font-size: 12px; margin-top: 8px; margin-bottom: 0;">
+                   style="text-align: center; color: #ffa000; font-size: 12px; margin-top: 8px; margin-bottom: 0;">
                     관리자의 승인 후 활동할 수 있습니다.
                 </p>
             </form>
         </div>
 
             <div th:if="${isAlreadyMember and !isOwner}"
-                 style="margin-top: 20px; border-top: 1px solid #1a332c; padding-top: 15px; display: flex; justify-content: flex-end;">
+                 style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 15px; display: flex; justify-content: flex-end;">
 
                 <button type="button"
                         class="btn"
                         onclick="openLeaveModal()"
-                        style="font-size: 13px; color: #9ec8b8; background: transparent; border: 1px solid #29433b; cursor: pointer;">
+                        style="font-size: 13px; color: var(--text-muted); background: transparent; border: 1px solid var(--border); cursor: pointer;">
                     모임 탈퇴하기
                 </button>
             </div>
@@ -245,8 +182,8 @@
 
 <div id="leaveModal" class="modal" style="display: none;">
     <div class="modal-card" style="text-align: center; width: 360px;">
-        <h3 style="margin-top: 0; color: #e7f3ee;">모임 탈퇴</h3>
-        <p style="color: #b0c4de; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: var(--text-main);">모임 탈퇴</h3>
+        <p style="color: var(--text-muted); margin: 20px 0;">
             정말로 이 모임에서 나가시겠습니까?<br>
             작성한 게시글과 댓글은 삭제되지 않습니다.
         </p>
@@ -268,7 +205,6 @@
         document.getElementById('leaveModal').style.display = 'none';
     }
 
-    // 모달 바깥 클릭 시 닫기
     window.addEventListener('click', function(event) {
         if (event.target == document.getElementById('leaveModal')) {
             closeLeaveModal();

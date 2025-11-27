@@ -7,33 +7,32 @@
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
-        .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
-        .chat-container { display: flex; flex-direction: column; height: 60vh; }
-        .chat-messages { flex: 1; background: #071b15; border: 1px solid #153328; border-radius: 10px; padding: 12px; overflow-y: auto; margin-bottom: 12px; }
-        .chat-input-form { display: flex; gap: 8px; }
-        .chat-input-form input { flex: 1; }
+        /* 채팅방 전용 스타일 */
+        .detail-card { border: 1px solid var(--border); border-radius: 14px; background: #ffffff; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .chat-container { display: flex; flex-direction: column; height: 65vh; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: #fcfdfd; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; margin-bottom: 0; display: flex; flex-direction: column; gap: 12px; }
+        .chat-input-form { display: flex; gap: 10px; padding: 16px; background: #ffffff; border-top: 1px solid var(--border); }
+        .chat-input-form input { flex: 1; border: 1px solid var(--border); background: #fff; color: var(--text-main); }
 
-        .msg-item { margin-bottom: 10px; }
-        .msg-sender { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-        .msg-content { background: #12352b; padding: 8px 12px; border-radius: 10px; display: inline-block; max-width: 70%; word-wrap: break-word; }
-        .msg-time { font-size: 10px; color: #9ec8b8; margin-left: 8px; }
+        .msg-item { display: flex; flex-direction: column; max-width: 75%; margin-bottom: 5px; }
+        .msg-sender { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); margin-left: 4px; }
+        .msg-content {
+            background: #f0f0f0; padding: 10px 14px; border-radius: 16px; border-top-left-radius: 2px;
+            display: inline-block; word-wrap: break-word; color: #333; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .msg-time { font-size: 0.75rem; color: #aaa; margin-left: 6px; margin-top: 2px; }
 
-        /* 내가 보낸 메시지 */
-        .msg-item.mine { text-align: right; }
-        .msg-item.mine .msg-content { background: #1db954; color: #04120e; }
-        /* .msg-item.mine .msg-sender { color: #1db954; } */ /* 내 닉네임은 숨기므로 주석처리 */
+        .msg-item.mine { align-self: flex-end; align-items: flex-end; text-align: right; }
+        .msg-item.mine .msg-content {
+            background: var(--primary); color: #fff; border-top-left-radius: 16px; border-top-right-radius: 2px;
+        }
+        .msg-item.mine .msg-sender { display: none; } /* 내 닉네임 숨김 */
 
-        /* 삭제/관리 버튼 */
         .btn-danger {
-            background: #a02c2c;
-            border-color: #a02c2c;
-            color: #fff;
+            background: #fff0f0; border-color: #ffcdd2; color: var(--danger);
         }
         .btn-danger:hover {
-            background: #c0392b;
-            border-color: #c0392b;
-            color: #fff;
-            filter: brightness(1.05);
+            background: #ffebee;
         }
     </style>
 </head>
@@ -59,7 +58,7 @@
 
         <div class="detail-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <h2 style="margin: 0;" th:text="${roomName}">채팅방 이름</h2>
+                <h2 style="margin: 0; font-size: 1.4rem; font-weight:700; color: var(--text-main);" th:text="${roomName}">채팅방 이름</h2>
 
                 <div style="display: flex; gap: 8px;">
                     <a th:if="${roomOwnerId != null && roomOwnerId == session.LOGIN_USER_ID}"
@@ -74,7 +73,7 @@
 
             <div class="chat-container">
                 <div class="chat-messages" id="chatMessages">
-                    <p>채팅 내역을 불러오는 중입니다...</p>
+                    <p style="text-align:center; color:var(--text-muted);">채팅 내역을 불러오는 중입니다...</p>
                 </div>
 
                 <form class="chat-input-form" id="chatSendForm" method="post">
@@ -90,7 +89,6 @@
 <div th:replace="~{fragments/common :: scripts}"></div>
 
 <script th:inline="javascript">
-    // th:inline="javascript"로 서버 데이터 가져오기
     const currentNickname = /*[[${session.LOGIN_USER_NICKNAME}]]*/ null;
     const currentUserId = /*[[${session.LOGIN_USER_ID}]]*/ null;
     const clubId = /*[[${club.id}]]*/ null;
@@ -107,7 +105,6 @@
         }
     }
 
-    // (chat.html의 appendMessage와 동일한 기능)
     function appendMessage(msg) {
         const isMine = msg.senderNickname === currentNickname;
         const itemDiv = document.createElement("div");
@@ -135,7 +132,6 @@
         chatMessages.appendChild(itemDiv);
     }
 
-    // 초기 메시지 로드
     async function fetchInitialMessages(clubId, roomId) {
         try {
             const msgResponse = await fetch(`/api/clubs/${clubId}/chat/${roomId}/messages`);
@@ -143,43 +139,37 @@
                 throw new Error("메시지를 불러오는데 실패했습니다.");
             }
             const messages = await msgResponse.json();
-            chatMessages.innerHTML = ''; // '로딩 중' 메시지 제거
+            chatMessages.innerHTML = '';
             messages.forEach(appendMessage);
             scrollToBottom();
             chatSendForm.querySelector('input[name="content"]').focus();
         } catch (err) {
-            chatMessages.innerHTML = `<p style="color: #f88;">${err.message}</p>`;
+            chatMessages.innerHTML = `<p style="color: #ff6b6b; text-align:center;">${err.message}</p>`;
         }
     }
 
-    // WebSocket 연결
     function connectWebSocket(clubId, roomId) {
         const socket = new SockJS('/ws');
         stompClient = Stomp.over(socket);
-        stompClient.debug = null; // 디버그 로그 끄기
+        stompClient.debug = null;
 
         stompClient.connect({},
-            (frame) => { // 연결 성공
+            (frame) => {
                 console.log('Connected: ' + frame);
-
-                // 1. 방 토픽 구독
                 stompClient.subscribe('/topic/chat/' + roomId, (message) => {
                     const newMsgDto = JSON.parse(message.body);
                     appendMessage(newMsgDto);
                     scrollToBottom();
                 });
-
-                // 2. 초기 메시지 로드 (구독 후)
                 fetchInitialMessages(clubId, roomId);
             },
-            (error) => { // 연결 실패
+            (error) => {
                 console.error('STOMP Connection Error: ' + error);
-                chatMessages.innerHTML = `<p style="color: #f88;">채팅 서버에 연결할 수 없습니다. 페이지를 새로고침해주세요.</p>`;
+                chatMessages.innerHTML = `<p style="color: #ff6b6b; text-align:center;">채팅 서버에 연결할 수 없습니다. 페이지를 새로고침해주세요.</p>`;
             }
         );
     }
 
-    // 폼 전송 이벤트 리스너 (STOMP)
     chatSendForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = chatSendForm.querySelector('input[name="content"]');
@@ -201,16 +191,14 @@
         }
     });
 
-    // 페이지 로드 시 WebSocket 연결 시작
     document.addEventListener("DOMContentLoaded", () => {
         if (clubId && roomId) {
             connectWebSocket(clubId, roomId);
         } else {
-            chatMessages.innerHTML = '<p style="color: #f88;">채팅방 정보를 불러올 수 없습니다.</p>';
+            chatMessages.innerHTML = '<p style="color: #ff6b6b; text-align:center;">채팅방 정보를 불러올 수 없습니다.</p>';
         }
     });
 
-    // 페이지 이탈 시 연결 종료 (선택적)
     window.addEventListener("beforeunload", () => {
         if (stompClient !== null) {
             stompClient.disconnect();

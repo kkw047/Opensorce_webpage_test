@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <title th:text="${post.title} + ' - ' + ${club.name}"></title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .post-detail-content { color: var(--text-main); }
+        .profile-thumb-detail { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #eee; color: #aaa; display:flex; align-items:center; justify-content:center; font-size: 20px; }
+        .badge-owner { background: var(--primary-light); color: var(--primary-dark); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-left: 8px; }
+        .post-meta { color: var(--text-muted); margin-top: 10px; display: flex; align-items: center; gap: 12px; font-size: 0.9rem; }
+        .meta-divider { color: #ddd; }
+        .post-content { margin-top: 30px; line-height: 1.7; font-size: 1.05rem; white-space: pre-wrap; }
+
+        .comment-list { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
+        .comment-item { background: var(--bg-body); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .comment-header { display: flex; align-items: center; margin-bottom: 8px; }
+        .comment-content { color: var(--text-main); line-height: 1.5; }
+        .btn-comment-action { font-size: 0.8rem; color: var(--text-muted); background: none; border: none; cursor: pointer; margin-left: 8px; text-decoration: underline; }
+        .btn-comment-action:hover { color: var(--primary); }
+        .btn-comment-action.delete:hover { color: var(--danger); }
+
+        .image-viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .viewer-image { max-width: 90%; max-height: 90vh; box-shadow: 0 5px 30px rgba(0,0,0,0.5); transition: transform 0.1s; }
+        .viewer-close-btn { position: absolute; top: 20px; right: 30px; font-size: 40px; color: white; cursor: pointer; }
+    </style>
 </head>
 <body class="bg-deep"
       th:data-msg="${msg}"
@@ -26,20 +46,16 @@
             <div class="post-detail-content" th:object="${post}">
 
                 <div class="post-header">
-                    <h1 th:text="*{title}"></h1>
+                    <h1 th:text="*{title}" style="margin-bottom: 10px; color: var(--text-main);"></h1>
 
                     <div class="post-meta">
                         <div class="author-display" style="display: flex; align-items: center; gap: 10px;">
                             <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
-                            <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
+                            <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail">👤</div>
 
                             <div style="display: flex; align-items: center;">
-                                <span th:text="*{author.nickname}" style="font-weight: bold; font-size: 16px;">작성자명</span>
-
-                                <span class="badge-owner"
-                                      th:if="${post.author.id == club.ownerId}"
-                                      style="font-size: 13px;">[관리자]
-                                </span>
+                                <span th:text="*{author.nickname}" style="font-weight: bold; font-size: 1rem; color: var(--text-main);">작성자명</span>
+                                <span class="badge-owner" th:if="${post.author.id == club.ownerId}">[관리자]</span>
                             </div>
                         </div>
 
@@ -48,11 +64,13 @@
                     </div>
                 </div>
 
+                <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
+
                 <div th:if="${!post.images.isEmpty()}" style="margin-bottom: 20px;">
                     <div th:each="img : ${post.images}" style="margin-bottom: 10px;">
                         <img th:src="${img.imageUrl}"
                              alt="첨부 이미지"
-                             style="max-width: 100%; border-radius: 8px; border: 1px solid #1a332c; cursor: grab;"
+                             style="max-width: 100%; border-radius: 8px; border: 1px solid var(--border); cursor: zoom-in;"
                              onclick="openImageViewer(this.src)">
                     </div>
                 </div>
@@ -61,7 +79,7 @@
                     게시글 내용...
                 </div>
 
-                <div class="button-group" style="margin-top: 30px; border-top: 1px solid #1a332c; padding-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <div class="button-group" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
 
                     <a th:href="@{/clubs/{clubId}/board(clubId=${club.id})}" class="btn">목록</a>
 
@@ -69,14 +87,12 @@
                         <a th:href="@{/clubs/{clubId}/board/{postId}/edit(clubId=${club.id}, postId=${post.id})}" class="btn">수정</a>
                     </th:block>
 
-                        <th:block th:if="${session.LOGIN_USER_ID == post.author.id or session.LOGIN_USER_ID == club.ownerId}">
-
-                            <button type="button" class="btn btn-danger" onclick="openDeleteModal()">삭제</button>
-
-                            <form id="deleteForm"
-                                  th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${post.club.id}, postId=${post.id})}"
-                                  method="post" style="display:none;">
-                            </form>
+                    <th:block th:if="${session.LOGIN_USER_ID == post.author.id or session.LOGIN_USER_ID == club.ownerId}">
+                        <button type="button" class="btn btn-danger" onclick="openDeleteModal()">삭제</button>
+                        <form id="deleteForm"
+                              th:action="@{/clubs/{clubId}/board/{postId}/delete(clubId=${post.club.id}, postId=${post.id})}"
+                              method="post" style="display:none;">
+                        </form>
                     </th:block>
                 </div>
 
@@ -84,7 +100,7 @@
         </div>
 
         <div class="detail-card">
-            <h3>댓글 작성</h3>
+            <h3 style="margin-top: 0; color: var(--text-main);">댓글 작성</h3>
             <form th:action="@{/clubs/{clubId}/board/{postId}/comment(clubId=${club.id}, postId=${post.id})}"
                   th:object="${commentForm}" method="post">
 
@@ -95,7 +111,7 @@
                               placeholder="댓글을 입력하세요 (최대 300자)"
                               style="resize: none; width: 100%;"
                               class="form-control"></textarea>
-                    <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error-message"></div>
+                    <div th:if="${#fields.hasErrors('content')}" th:errors="*{content}" class="error-message" style="color: var(--danger); font-size: 0.9em;"></div>
                 </div>
 
                 <div style="text-align: right; margin-top: 10px;">
@@ -105,32 +121,32 @@
         </div>
 
         <div class="detail-card">
-            <h3>댓글 <span th:text="${#lists.size(comments)}">0</span>개</h3>
+            <h3 style="margin-top: 0; color: var(--text-main);">댓글 <span th:text="${#lists.size(comments)}">0</span>개</h3>
 
             <div class="comment-list">
-                <div th:if="${#lists.isEmpty(comments)}" style="color: #9ec8b8; padding: 20px 0; text-align: center;">
+                <div th:if="${#lists.isEmpty(comments)}" style="color: var(--text-muted); padding: 20px 0; text-align: center;">
                     아직 작성된 댓글이 없습니다.
                 </div>
 
                 <div class="comment-item" th:each="comment : ${comments}" th:object="${comment}">
                     <div class="comment-header">
                         <img th:if="*{author.imageUrl != null}" th:src="*{author.imageUrl}" class="profile-thumb-detail" alt="프로필">
-                        <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail default-icon">👤</div>
+                        <div th:unless="*{author.imageUrl != null}" class="profile-thumb-detail">👤</div>
 
-                        <strong th:text="*{author.nickname}" style="margin-left: 8px;">닉네임</strong>
+                        <strong th:text="*{author.nickname}" style="margin-left: 8px; color: var(--text-main);">닉네임</strong>
 
                         <span class="badge-owner"
                               th:if="${comment.author.id == club.ownerId}">
                             [관리자]
                         </span>
 
-                        <span style="font-size: 0.8em; color: #9ec8b8; margin-left: 4px;"
+                        <span style="font-size: 0.8em; color: var(--text-muted); margin-left: 6px;"
                               th:text="*{createdAt != null ? #temporals.format(createdAt, 'yyyy-MM-dd HH:mm') : ''}">날짜</span>
                     </div>
 
                     <div class="comment-content" th:text="*{content}">내용</div>
 
-                    <div class="comment-actions">
+                    <div class="comment-actions" style="text-align: right;">
                         <a th:if="${session.LOGIN_USER_ID == comment.author.id}"
                            th:href="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${club.id}, postId=${post.id}, commentId=*{id})}"
                            class="btn-comment-action">
@@ -159,8 +175,8 @@
 
 <div id="deleteModal" class="modal" style="display: none;">
     <div class="modal-card" style="text-align: center; width: 360px;">
-        <h3 style="margin-top: 0; color: #e7f3ee;">게시글 삭제</h3>
-        <p style="color: #b0c4de; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: var(--danger);">게시글 삭제</h3>
+        <p style="color: var(--text-muted); margin: 20px 0;">
             정말로 삭제하시겠습니까?<br>
             삭제된 글은 복구할 수 없습니다.
         </p>
@@ -173,8 +189,8 @@
 
 <div id="commentDeleteModal" class="modal" style="display: none;">
     <div class="modal-card" style="text-align: center; width: 360px;">
-        <h3 style="margin-top: 0; color: #e7f3ee;">댓글 삭제</h3>
-        <p style="color: #b0c4de; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: var(--danger);">댓글 삭제</h3>
+        <p style="color: var(--text-muted); margin: 20px 0;">
             정말로 댓글을 삭제하시겠습니까?
         </p>
         <div style="display: flex; justify-content: center; gap: 10px;">
@@ -211,9 +227,7 @@
 
     function openCommentDeleteModal(clubId, postId, commentId) {
         const form = document.getElementById('commentDeleteForm');
-
         form.action = `/clubs/${clubId}/board/${postId}/comment/${commentId}/delete`;
-
         document.getElementById('commentDeleteModal').style.display = 'flex';
     }
 
@@ -224,7 +238,6 @@
     window.addEventListener('click', function(event) {
         const postModal = document.getElementById('deleteModal');
         const commentModal = document.getElementById('commentDeleteModal');
-
         if (event.target === postModal) closeDeleteModal();
         if (event.target === commentModal) closeCommentDeleteModal();
     });
@@ -236,91 +249,35 @@
 </div>
 
 <script>
-    // 상태 변수들
-    let currentScale = 1; // 현재 배율
-    let currentX = 0;     // 현재 X 위치 (이동 거리)
-    let currentY = 0;     // 현재 Y 위치 (이동 거리)
-
-    // 드래그 관련 변수
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-
+    // 이미지 뷰어 로직 (기존 동일)
+    let currentScale = 1; let currentX = 0; let currentY = 0;
+    let isDragging = false; let startX = 0; let startY = 0;
     const viewer = document.getElementById('imageViewer');
     const img = document.getElementById('viewerImage');
-
-    // 브라우저의 고유 이미지 드래그 (복사) 기능 차단
     img.ondragstart = function() { return false; };
 
-    // 뷰어 열기 (열 때마다 상태 초기화)
     function openImageViewer(src) {
-        img.src = src;
-        viewer.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // 뒷배경 스크롤 방지
-
-        // 열 때마다 위치와 배율을 0, 1로 리셋
-        currentScale = 1;
-        currentX = 0;
-        currentY = 0;
-        img.style.cursor = 'grab';
-        updateTransform();
+        img.src = src; viewer.style.display = 'flex'; document.body.style.overflow = 'hidden';
+        currentScale = 1; currentX = 0; currentY = 0; img.style.cursor = 'grab'; updateTransform();
     }
-
-    // 뷰어 닫기
     function closeImageViewer() {
-        viewer.style.display = 'none';
-        document.body.style.overflow = 'auto'; // 스크롤 허용
+        viewer.style.display = 'none'; document.body.style.overflow = 'auto';
     }
+    function updateTransform() { img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`; }
 
-    // CSS 변형 적용 함수 (확대 + 이동 동시 적용)
-    function updateTransform() {
-        img.style.transform = `translate(${currentX}px, ${currentY}px) scale(${currentScale})`;
-    }
-
-    // 마우스 눌렀을 때 (시작)
     img.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        isDragging = true;
-        startX = e.clientX - currentX;
-        startY = e.clientY - currentY;
-
-        img.style.cursor = 'grabbing';
+        e.preventDefault(); isDragging = true; startX = e.clientX - currentX; startY = e.clientY - currentY; img.style.cursor = 'grabbing';
     });
-
-    // 마우스 움직일 때 (이동)
     window.addEventListener('mousemove', function(e) {
-        if (!isDragging) return;
-        e.preventDefault();
-        currentX = e.clientX - startX;
-        currentY = e.clientY - startY;
-
-        updateTransform();
+        if (!isDragging) return; e.preventDefault(); currentX = e.clientX - startX; currentY = e.clientY - startY; updateTransform();
     });
-
-    // 마우스 뗐을 때 (종료)
-    window.addEventListener('mouseup', function() {
-        if (isDragging) {
-            isDragging = false;
-            img.style.cursor = 'grab';
-        }
-    });
-
+    window.addEventListener('mouseup', function() { if (isDragging) { isDragging = false; img.style.cursor = 'grab'; } });
     viewer.addEventListener('wheel', function(event) {
         event.preventDefault();
-
-        if (event.deltaY < 0) {
-            currentScale += 0.1;
-        } else {
-            currentScale -= 0.1;
-        }
-
-        // 배율 제한 (0.5배 ~ 5배)
-        if (currentScale < 0.5) currentScale = 0.5;
-        if (currentScale > 5.0) currentScale = 5.0;
-
+        if (event.deltaY < 0) currentScale += 0.1; else currentScale -= 0.1;
+        if (currentScale < 0.5) currentScale = 0.5; if (currentScale > 5.0) currentScale = 5.0;
         updateTransform();
     }, { passive: false });
-
 </script>
 
 </body>
