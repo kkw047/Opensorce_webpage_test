@@ -13,13 +13,13 @@
 
     <main class="content">
         <div class="detail-card">
-            <h1 style="font-size: 1.5rem; margin-bottom: 16px;">댓글 수정</h1>
+            <h1 style="font-size: 1.5rem; margin-bottom: 16px; color: var(--text-main);">댓글 수정</h1>
 
             <form th:action="@{/clubs/{clubId}/board/{postId}/comment/{commentId}/edit(clubId=${clubId}, postId=${postId}, commentId=${commentId})}"
                   th:object="${commentForm}" method="post">
 
                 <div class="form-group" style="margin-bottom: 16px;">
-                    <label for="content" style="display: block; margin-bottom: 8px; font-weight: bold; color: #e7f3ee;">내용</label>
+                    <label for="content" style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-main);">내용</label>
 
                     <textarea id="content"
                               th:field="*{content}"
@@ -32,7 +32,7 @@
                     <div class="error-message"
                          th:if="${#fields.hasErrors('content')}"
                          th:errors="*{content}"
-                         style="color: #ff6b6b; font-size: 0.9em; margin-top: 4px;">
+                         style="color: var(--danger); font-size: 0.9em; margin-top: 4px;">
                     </div>
                 </div>
 

@@ -7,139 +7,119 @@
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
-        .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
-        .toolbar-right { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;}
-
-        /* --- 채팅방 목록 그리드 --- */
+        /* 채팅 목록 페이지 전용 스타일 */
+        .toolbar-right {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
         .chat-room-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 16px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
         }
-
         .chat-room-item {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: stretch;
-            background: #071b15;
-            border: 1px solid #153328;
-            border-radius: 10px;
-            padding: 12px;
-            transition: background 0.15s ease;
-            min-height: 100px;
-            position: relative;
+            display: flex; flex-direction: column; justify-content: space-between; align-items: stretch;
+            background: #ffffff; border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            min-height: 140px; position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
         }
-        .chat-room-item:hover { background: #12352b; }
-
-        .chat-room-item .room-link {
-            text-decoration: none;
-            color: #e7f3ee;
-            flex: 1;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
+        .chat-room-item:hover {
+            background: var(--bg-hover); transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-color: var(--primary);
         }
-
-        .chat-room-item .room-link-disabled {
-            text-decoration: none;
-            color: #9ec8b8;
-            flex: 1;
-            cursor: default;
-            display: flex;
-            flex-direction: column;
+        .chat-room-item .room-link, .chat-room-item .room-link-disabled {
+            text-decoration: none; color: var(--text-main); flex: 1; display: flex; flex-direction: column; cursor: pointer;
         }
+        .chat-room-item .room-link-disabled { cursor: default; color: var(--text-muted); }
+        .chat-room-item h4 { margin: 0 0 8px 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+        .chat-room-item .members { font-size: 0.85rem; color: var(--text-muted); margin-top: auto; }
+        .action-btn-area { position: absolute; top: 20px; right: 20px; }
 
-        .chat-room-item h4 { margin: 0 0 8px 0; }
-        .chat-room-item .members { font-size: 12px; color: #9ec8b8; margin-top: auto; }
-
-        /* 목록 내 버튼 위치 (가입 버튼 등) */
-        .chat-room-item .action-btn-area {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            margin: 0;
-        }
-
-        /* --- 채팅 모달 스타일 --- */
+        /* 채팅 모달 스타일 (최적화 적용) */
         .chat-modal-overlay {
-            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 100; display: none; pointer-events: none;
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 100;
+            display: none; align-items: center; justify-content: center;
+            /* 버벅임 방지: backdrop-filter 제거 혹은 최소화. 여기서는 제거함 */
+            /* backdrop-filter: blur(2px); */
         }
         .chat-modal-content {
-            background: #0f231e; border: 1px solid #1a332c; border-radius: 14px;
-            width: 500px; height: 600px; display: flex; flex-direction: column;
-            resize: both; overflow: auto; min-width: 350px; min-height: 300px;
-            pointer-events: auto; position: absolute; left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            background: #ffffff; border: 1px solid var(--border); border-radius: 16px;
+            width: 500px; height: 650px; display: flex; flex-direction: column;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            position: absolute; /* JS 드래그용 */
+            color: var(--text-main);
+
+            /* [최적화] 레이어 분리하여 렌더링 성능 향상 */
+            will-change: top, left, width, height;
+            transform: translate3d(0, 0, 0);
+
+            /* [기능 추가] 크기 조절 가능 */
+            resize: both;
+            overflow: hidden; /* resize 핸들이 보이려면 overflow가 visible이 아니어야 함 */
+            min-width: 350px;
+            min-height: 400px;
+            max-width: 95vw;
+            max-height: 95vh;
         }
         .chat-modal-header {
-            padding: 12px 16px; border-bottom: 1px solid #1a332c;
-            display: flex; justify-content: space-between; align-items: center; cursor: move;
-            background: #0c1f1a; border-radius: 14px 14px 0 0;
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-body); cursor: move;
+            flex-shrink: 0; /* 헤더 크기 고정 */
         }
-        .chat-modal-header h4 { margin: 0; font-size: 16px; color: #fff; }
-        .chat-modal-header .actions { display: flex; gap: 8px; }
-
-        .chat-modal-body { flex: 1; padding: 12px; overflow-y: auto; background: #071b15; }
-        .chat-modal-footer { padding: 12px; border-top: 1px solid #1a332c; background: #0c1f1a; border-radius: 0 0 14px 14px; }
-
-        .chat-modal-body .msg-item { margin-bottom: 10px; }
-        .chat-modal-body .msg-sender { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-        .chat-modal-body .msg-content {
-            background: #12352b; padding: 8px 12px; border-radius: 10px;
-            display: inline-block; max-width: 80%; word-wrap: break-word;
+        .chat-modal-header h4 { margin: 0; font-size: 1.1rem; color: var(--text-main); font-weight: 700; }
+        .chat-modal-body {
+            flex: 1; padding: 20px; overflow-y: auto; background: #fcfdfd;
+            display: flex; flex-direction: column; gap: 10px;
+            overscroll-behavior: contain; /* 스크롤 체이닝 방지 */
         }
-        .chat-modal-body .msg-time { font-size: 10px; color: #9ec8b8; margin-left: 8px; }
-        .chat-modal-body .msg-item.mine { text-align: right; }
-        .chat-modal-body .msg-item.mine .msg-content { background: #1db954; color: #04120e; }
+        .chat-modal-footer {
+            padding: 15px; border-top: 1px solid var(--border); background: #ffffff;
+            flex-shrink: 0; /* 푸터 크기 고정 */
+        }
 
-        .chat-input-form { display: flex; gap: 8px; }
-        .chat-input-form input { flex: 1; }
+        .msg-item { display: flex; flex-direction: column; max-width: 75%; margin-bottom: 5px; }
+        .msg-sender { font-size: 0.8rem; color: var(--text-muted); margin-left: 4px; margin-bottom: 4px; font-weight: 600; }
+        .msg-content {
+            background: #f0f0f0; padding: 10px 14px; border-radius: 16px; border-top-left-radius: 2px;
+            display: inline-block; word-wrap: break-word; color: #333; font-size: 0.95rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .msg-time { font-size: 0.7rem; color: #aaa; margin-left: 6px; margin-top: 2px; }
 
+        .msg-item.mine { align-self: flex-end; align-items: flex-end; text-align: right; }
+        .msg-item.mine .msg-content {
+            background: var(--primary); color: #fff; border-top-left-radius: 16px; border-top-right-radius: 2px;
+        }
+
+        .chat-input-form { display: flex; gap: 10px; }
+
+        /* 관리 뷰 */
         .chat-modal-manage-view {
-            flex: 1; padding: 12px; overflow-y: auto; background: #071b15;
-            display: flex; flex-direction: column; gap: 16px;
+            flex: 1; padding: 20px; overflow-y: auto; background: var(--bg-body);
+            display: flex; flex-direction: column; gap: 20px;
         }
-        .chat-modal-manage-view h4 { margin: 0 0 12px 0; }
-        .chat-modal-manage-view .member-list { display: flex; flex-direction: column; gap: 10px; }
-        .chat-modal-manage-view .member-item {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 8px 12px; background: #0f231e; border: 1px solid #153328; border-radius: 8px;
+        .member-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: #ffffff; border: 1px solid var(--border);
+            border-radius: 10px; margin-bottom: 8px;
         }
-        .chat-modal-manage-view .member-item form { margin: 0; }
-        .chat-modal-manage-view .btn-kick {
-            background: #5a2a2a; border-color: #7a3a3a; color: #fee; font-size: 12px; padding: 6px 10px;
+        .invite-list {
+            background: #ffffff; border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px; max-height: 200px; overflow-y: auto;
         }
-        .chat-modal-manage-view .btn-unban {
-            background: #2a4a5a; border-color: #3a6a7a; color: #eef; font-size: 12px; padding: 6px 10px;
-        }
-
-        .chat-modal-manage-view .invite-section { border-top: 1px solid #1a332c; padding-top: 16px; }
-        .chat-modal-manage-view .invite-list {
-            background: #071b15; border-radius: 10px; border: 1px solid #153328;
-            padding: 6px 8px; max-height: 150px; overflow-y: auto; margin-bottom: 12px;
+        .delete-section {
+            margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);
         }
 
-        .chat-modal-manage-view .delete-section {
-            margin-top: auto; padding-top: 16px; border-top: 1px solid #1a332c;
-        }
-        .chat-modal-manage-view .delete-section p { color: #c8b89e; font-size: 14px; margin-top: 0; }
-        .btn-danger { background: #a02c2c; border-color: #a02c2c; color: #fff; }
-        .btn-danger:hover { background: #c0392b; border-color: #c0392b; }
-
-        /* 커스텀 알림 모달 (중앙 정렬) */
+        /* 커스텀 알림창 */
         .custom-confirm-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 2000;
+            background: rgba(0,0,0,0.4); z-index: 2000; display: none;
+            align-items: center; justify-content: center;
         }
         .custom-confirm-content {
-            min-width: 300px; max-width: 400px; background: #0f231e; padding: 20px;
-            border-radius: 14px; border: 1px solid #4a635d; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            text-align: center;
+            width: 350px; background: #ffffff; padding: 25px; border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; color: var(--text-main);
         }
-        .custom-confirm-msg { color: #e7f3ee; margin-bottom: 20px; white-space: pre-wrap; line-height: 1.5; }
-        .custom-confirm-actions { display: flex; justify-content: center; gap: 10px; }
     </style>
 </head>
 <body class="bg-deep">
@@ -164,10 +144,10 @@
         <div class="detail-card">
             <div class="toolbar-right">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <h2 style="margin: 0;">채팅방 목록</h2>
-                    <label class="checkrow" style="padding: 0; font-size: 14px; cursor: pointer;">
+                    <h2 style="margin: 0; font-weight: 700; color: var(--text-main);">채팅방 목록</h2>
+                    <label class="checkrow" style="padding: 0; background: transparent; color: var(--text-main);">
                         <input type="checkbox" id="myChatsFilter" />
-                        <span style="cursor: pointer;">내 채팅방만 보기</span>
+                        <span style="cursor: pointer; font-size: 0.9rem;">내 채팅방만 보기</span>
                     </label>
                 </div>
                 <a th:href="@{/clubs/{id}/chat/create(id=${club.id})}" class="btn primary">채팅방 만들기</a>
@@ -206,22 +186,21 @@
                     </div>
                 </div>
 
-                <div th:if="${#lists.isEmpty(chatRooms)}" style="color: #9ec8b8; text-align: center; padding: 20px 0;">
-                    아직 개설된 채팅방이 없습니다.
+                <div th:if="${#lists.isEmpty(chatRooms)}" style="color: var(--text-muted); text-align: center; padding: 40px 0;">
+                    <p>아직 개설된 채팅방이 없습니다.</p>
                 </div>
             </div>
         </div>
     </main>
 </div>
 
-<div class="chat-modal-overlay" id="chatModal" style="display: none;">
+<div class="chat-modal-overlay" id="chatModal">
     <div class="chat-modal-content" data-club-id="" data-room-id="">
         <div class="chat-modal-header">
             <h4 id="modalRoomName">채팅방 이름</h4>
             <div class="actions">
                 <button class="btn" id="modalManageLink" style="display: none;">방 관리</button>
                 <button class="btn btn-danger" id="modalLeaveBtn" style="display: none;">나가기</button>
-
                 <button class="btn" id="modalCloseBtn">닫기</button>
             </div>
         </div>
@@ -229,42 +208,42 @@
         <div id="modalChatView" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
             <div class="chat-modal-body" id="modalMessages"></div>
             <div class="chat-modal-footer">
-                <form class="chat-input-form" id="modalSendForm" method="post">
-                    <input type="text" name="content" placeholder="메시지 입력..." autocomplete="off" required>
+                <form class="chat-input-form" id="modalSendForm" method="post" style="width:100%;">
+                    <input type="text" name="content" placeholder="메시지를 입력하세요..." autocomplete="off" required>
                     <button class="btn primary">전송</button>
                 </form>
             </div>
         </div>
 
         <div class="chat-modal-manage-view" id="modalManageView" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
-                <h3 style="margin: 0;">방 관리</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.1rem;">방 관리</h3>
                 <button class="btn" id="modalBackToChatBtn">채팅으로</button>
             </div>
 
             <div>
-                <h4>멤버 관리</h4>
+                <h4 style="margin-bottom: 10px;">멤버 관리</h4>
                 <div class="member-list" id="modalManageMemberList"></div>
             </div>
 
-            <div style="border-top: 1px solid #1a332c; padding-top: 16px;">
-                <h4>밴 목록 (해제 가능)</h4>
+            <div style="border-top: 1px solid var(--border); padding-top: 20px;">
+                <h4 style="margin-bottom: 10px;">밴 목록 (해제 가능)</h4>
                 <div class="member-list" id="modalBannedMemberList"></div>
             </div>
 
-            <div class="invite-section">
-                <h4>멤버 초대</h4>
+            <div class="invite-section" style="border-top: 1px solid var(--border); padding-top: 20px;">
+                <h4 style="margin-bottom: 10px;">멤버 초대</h4>
                 <form id="modalInviteForm" method="post" action="">
                     <div class="invite-list checklist scroll-y" id="modalInviteList"></div>
-                    <button type="submit" class="btn primary block">선택한 멤버 초대하기</button>
+                    <button type="submit" class="btn primary block" style="margin-top: 10px;">선택한 멤버 초대하기</button>
                 </form>
             </div>
 
             <div class="delete-section">
-                <h4>방 삭제</h4>
+                <h4 style="color: var(--danger);">방 삭제</h4>
                 <p>채팅방을 삭제하면 모든 대화 내역이 영구적으로 사라집니다.</p>
                 <form id="modalDeleteRoomForm" method="post" action="">
-                    <button type="submit" class="btn btn-danger">이 채팅방 삭제하기</button>
+                    <button type="submit" class="btn btn-danger block">이 채팅방 삭제하기</button>
                 </form>
             </div>
         </div>
@@ -273,11 +252,11 @@
 
 <div class="custom-confirm-overlay" id="customConfirmModal">
     <div class="custom-confirm-content">
-        <h3 style="color: #fff; margin-bottom: 10px;">알림</h3>
-        <div class="custom-confirm-msg" id="confirmMessage">내용</div>
-        <div class="custom-confirm-actions">
-            <button class="btn" id="btnConfirmCancel">취소</button>
-            <button class="btn primary" id="btnConfirmOk">확인</button>
+        <h3 style="margin-top: 0; margin-bottom: 15px; color: var(--text-main);">알림</h3>
+        <div class="custom-confirm-msg" id="confirmMessage" style="color: var(--text-muted); margin-bottom: 25px;">내용</div>
+        <div class="custom-confirm-actions" style="display: flex; justify-content: center; gap: 10px;">
+            <button class="btn" id="btnConfirmCancel" style="min-width: 80px;">취소</button>
+            <button class="btn primary" id="btnConfirmOk" style="min-width: 80px;">확인</button>
         </div>
     </div>
 </div>
@@ -286,12 +265,12 @@
 <div th:replace="~{fragments/common :: scripts}"></div>
 
 <script th:inline="javascript">
+    // ... (기존 JS 로직 유지) ...
     const currentNickname = /*[[${session.LOGIN_USER_NICKNAME}]]*/ null;
     const currentUserId = /*[[${session.LOGIN_USER_ID}]]*/ null;
     let stompClient = null;
     let currentRoomId = null;
 
-    // [커스텀] 브라우저 Confirm 대신 사용할 비동기 함수
     function openConfirm(message) {
         return new Promise((resolve) => {
             const modal = document.getElementById('customConfirmModal');
@@ -302,7 +281,6 @@
             msgEl.textContent = message;
             modal.style.display = 'flex';
 
-            // 기존 리스너 중복 방지를 위해 노드 복제 후 교체
             const newOk = btnOk.cloneNode(true);
             const newCancel = btnCancel.cloneNode(true);
             btnOk.parentNode.replaceChild(newOk, btnOk);
@@ -319,30 +297,69 @@
         });
     }
 
+    // [최적화] 드래그 기능: requestAnimationFrame 적용
     function makeDraggable(element, handle) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let isDragging = false;
+        let rafId = null;
+
         handle.onmousedown = dragMouseDown;
+
         function dragMouseDown(e) {
             e = e || window.event;
+            // resize 핸들러 클릭 시 드래그 방지 (우측 하단 15px 영역)
+            const rect = element.getBoundingClientRect();
+            if (e.clientX > rect.right - 20 && e.clientY > rect.bottom - 20) {
+                return; // 리사이즈 동작에 양보
+            }
+
             e.preventDefault();
-            if (element.style.transform !== 'none') {
-                const rect = element.getBoundingClientRect();
+
+            // transform이 아닌 top/left를 사용하기 위해 초기값 세팅
+            // (이미 중앙 정렬된 상태라면 computedStyle을 가져와서 top/left로 변환해야 부드러움)
+            if (element.style.transform && element.style.transform !== 'none') {
+                // 현재 위치 고정
                 element.style.left = rect.left + "px";
                 element.style.top = rect.top + "px";
-                element.style.transform = 'none';
+                element.style.transform = 'none'; // 중앙 정렬 해제
             }
-            pos3 = e.clientX; pos4 = e.clientY;
+
+            pos3 = e.clientX;
+            pos4 = e.clientY;
             document.onmouseup = closeDragElement;
             document.onmousemove = elementDrag;
+            isDragging = true;
         }
+
         function elementDrag(e) {
-            e = e || window.event; e.preventDefault();
-            pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
-            pos3 = e.clientX; pos4 = e.clientY;
-            element.style.top = (element.offsetTop - pos2) + "px";
-            element.style.left = (element.offsetLeft - pos1) + "px";
+            if (!isDragging) return;
+            e = e || window.event;
+            e.preventDefault();
+
+            // 최적화: requestAnimationFrame 사용
+            if (rafId) return;
+
+            rafId = requestAnimationFrame(() => {
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+                rafId = null;
+            });
         }
-        function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+
+        function closeDragElement() {
+            isDragging = false;
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -352,7 +369,7 @@
         if (!chatModalOverlay || !chatModalContent || !chatModalHeader) return;
 
         makeDraggable(chatModalContent, chatModalHeader);
-
+        // ... (나머지 이벤트 리스너들) ...
         const modalRoomName = document.getElementById("modalRoomName");
         const modalMessages = document.getElementById("modalMessages");
         const modalSendForm = document.getElementById("modalSendForm");
@@ -365,7 +382,6 @@
         const modalManageView = document.getElementById('modalManageView');
         const modalBackToChatBtn = document.getElementById('modalBackToChatBtn');
 
-        // 관리 탭 관련 요소
         const modalManageMemberList = document.getElementById('modalManageMemberList');
         const modalBannedMemberList = document.getElementById('modalBannedMemberList');
         const modalInviteList = document.getElementById('modalInviteList');
@@ -409,12 +425,19 @@
             modalManageView.style.display = 'none';
             chatModalOverlay.style.display = 'flex';
 
-            // 모달 중앙 정렬
-            chatModalContent.style.left = '50%'; chatModalContent.style.top = '50%';
+            // 모달 중앙 정렬 초기화 (JS로 위치 잡기)
+            // 처음 열릴 때만 중앙, 이후 드래그/리사이즈 된 위치 유지하려면 이 부분 조정 필요
+            // 여기서는 매번 열 때마다 중앙으로 리셋 (사용성 고려)
+            chatModalContent.style.left = '50%';
+            chatModalContent.style.top = '50%';
             chatModalContent.style.transform = 'translate(-50%, -50%)';
 
+            // 크기도 초기화하고 싶다면 아래 주석 해제
+            // chatModalContent.style.width = '500px';
+            // chatModalContent.style.height = '650px';
+
             modalRoomName.textContent = '연결 중...';
-            modalMessages.innerHTML = '<p>채팅방에 연결 중입니다...</p>';
+            modalMessages.innerHTML = '<p style="color:var(--text-muted); text-align:center;">채팅방에 연결 중입니다...</p>';
 
             modalManageLink.style.display = 'none';
             modalLeaveBtn.style.display = 'none';
@@ -446,7 +469,7 @@
                 stompClient = Stomp.over(socket);
                 stompClient.debug = null;
                 stompClient.connect({}, (frame) => {
-                    modalMessages.innerHTML = '<p>대화 내역을 불러오는 중입니다...</p>';
+                    modalMessages.innerHTML = '';
                     stompClient.subscribe('/topic/chat/' + roomId, (message) => {
                         appendMessage(JSON.parse(message.body));
                         scrollToBottom();
@@ -473,7 +496,7 @@
                 scrollToBottom();
                 modalSendForm.querySelector('input[name="content"]').focus();
             } catch (err) {
-                modalMessages.innerHTML = `<p style="color:#f88;">${err.message}</p>`;
+                modalMessages.innerHTML = `<p style="color:#ff6b6b;">${err.message}</p>`;
             }
         }
 
@@ -501,15 +524,11 @@
             e.target.reset(); input.focus();
         });
 
-        // === [관리 기능] ===
-
-        // DB에서 실시간 인원수를 가져와 배경 목록 업데이트
         async function refreshRoomListInfo(clubId, roomId) {
             try {
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}`);
                 if (res.ok) {
                     const data = await res.json();
-                    // data.memberCount (DTO에 추가된 필드)를 사용하여 업데이트
                     const roomLinkInList = document.querySelector(`.room-link[data-room-id="${roomId}"]`);
                     if (roomLinkInList) {
                         const countSpan = roomLinkInList.querySelector('.members .member-count');
@@ -523,7 +542,6 @@
             }
         }
 
-        // 나가기 (일반 멤버)
         modalLeaveBtn.addEventListener("click", async () => {
             const clubId = chatModalContent.dataset.clubId;
             const roomId = chatModalContent.dataset.roomId;
@@ -544,7 +562,6 @@
             }
         });
 
-        // 관리 탭 새로고침
         async function refreshManagementTab(clubId, roomId) {
             modalManageMemberList.innerHTML = '<p>로딩 중...</p>'; modalBannedMemberList.innerHTML = '<p>로딩 중...</p>'; modalInviteList.innerHTML = '<p>로딩 중...</p>';
             modalInviteForm.action = `/api/clubs/${clubId}/chat/${roomId}/invite`;
@@ -553,35 +570,32 @@
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/manage`);
                 const members = await res.json();
                 modalManageMemberList.innerHTML = '';
-                if (members.length === 0) modalManageMemberList.innerHTML = '<p style="color:#9ec8b8;">멤버 없음</p>';
+                if (members.length === 0) modalManageMemberList.innerHTML = '<p style="color:var(--text-muted);">멤버 없음</p>';
                 else {
                     members.forEach(m => {
                         const div = document.createElement('div'); div.className = 'member-item';
 
-                        // 관리자일 경우 버튼 영역 비우고, 이름 옆에 [관리자] 배지 추가
                         let btnHtml = '';
                         let badgeHtml = '';
 
                         if (m.role === 'MANAGER') {
-                            // 관리자: 버튼 없음, 초록색 관리자 텍스트 추가
                             btnHtml = '';
-                            badgeHtml = ` <span style="color: #2ecc71; font-size: 12px; font-weight: bold; margin-left: 4px;">[관리자]</span>`;
+                            badgeHtml = ` <span style="color: var(--primary); font-size: 12px; font-weight: bold; margin-left: 4px;">[관리자]</span>`;
                         } else {
-                            // 일반 멤버: 강퇴 버튼 생성
-                            btnHtml = `<button class="btn btn-kick" data-id="${m.id}">강퇴</button>`;
+                            // 인라인 스타일 제거: 기본 버튼 사용
+                            btnHtml = `<button class="btn btn-danger" data-id="${m.id}">강퇴</button>`;
                         }
 
                         div.innerHTML = `
                             <div>
                                 <span>${m.nickname}</span>
-                                <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span>${badgeHtml}
+                                <span style="font-size:12px;color:var(--text-muted);">(${m.email})</span>${badgeHtml}
                             </div>
                             ${btnHtml}
                         `;
                         modalManageMemberList.appendChild(div);
                     });
-                    // 버튼 이벤트 리스너 연결 (btn-kick이 존재하는 경우만)
-                    modalManageMemberList.querySelectorAll('.btn-kick').forEach(btn => {
+                    modalManageMemberList.querySelectorAll('.btn-danger').forEach(btn => {
                         btn.onclick = () => handleKick(clubId, roomId, btn.dataset.id);
                     });
                 }
@@ -591,14 +605,15 @@
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/banned-members`);
                 const banned = await res.json();
                 modalBannedMemberList.innerHTML = '';
-                if (banned.length === 0) modalBannedMemberList.innerHTML = '<p style="color:#9ec8b8;">밴 된 멤버 없음</p>';
+                if (banned.length === 0) modalBannedMemberList.innerHTML = '<p style="color:var(--text-muted);">밴 된 멤버 없음</p>';
                 else {
                     banned.forEach(m => {
                         const div = document.createElement('div'); div.className = 'member-item';
-                        div.innerHTML = `<div><span style="color:#ff7777">${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span></div><button class="btn btn-unban" data-id="${m.id}">해제</button>`;
+                        // 인라인 스타일 제거: 기본 버튼 사용
+                        div.innerHTML = `<div><span style="color:var(--danger)">${m.nickname}</span> <span style="font-size:12px;color:var(--text-muted);">(${m.email})</span></div><button class="btn" data-id="${m.id}">해제</button>`;
                         modalBannedMemberList.appendChild(div);
                     });
-                    modalBannedMemberList.querySelectorAll('.btn-unban').forEach(btn => { btn.onclick = () => handleUnban(clubId, roomId, btn.dataset.id); });
+                    modalBannedMemberList.querySelectorAll('.btn').forEach(btn => { btn.onclick = () => handleUnban(clubId, roomId, btn.dataset.id); });
                 }
             } catch(e) { modalBannedMemberList.innerHTML = '오류'; }
 
@@ -606,11 +621,11 @@
                 const res = await fetch(`/api/clubs/${clubId}/chat/${roomId}/invitable-members`);
                 const members = await res.json();
                 modalInviteList.innerHTML = '';
-                if(members.length === 0) modalInviteList.innerHTML = '<p style="color:#9ec8b8;">초대 가능 멤버 없음</p>';
+                if(members.length === 0) modalInviteList.innerHTML = '<p style="color:var(--text-muted);">초대 가능 멤버 없음</p>';
                 else {
                     members.forEach(m => {
                         const label = document.createElement('label'); label.className = 'checkrow';
-                        label.innerHTML = `<input type="checkbox" name="memberIds" value="${m.id}"><span>${m.nickname}</span> <span style="font-size:12px;color:#9ec8b8;">(${m.email})</span>`;
+                        label.innerHTML = `<input type="checkbox" name="memberIds" value="${m.id}"><span>${m.nickname}</span> <span style="font-size:12px;color:var(--text-muted);">(${m.email})</span>`;
                         modalInviteList.appendChild(label);
                     });
                 }
@@ -618,7 +633,6 @@
             modalDeleteRoomForm.action = `/api/clubs/${clubId}/chat/${roomId}/delete`;
         }
 
-        // 강퇴 처리
         async function handleKick(clubId, roomId, userId) {
             if(await openConfirm('이 멤버를 강퇴하시겠습니까?\n(강퇴 시 밴 처리되어 재가입이 불가능합니다.)')) {
                 try {
@@ -627,7 +641,6 @@
                     if(res.ok) {
                         showToast("멤버를 강퇴했습니다.", "success");
                         refreshManagementTab(clubId, roomId);
-                        // DB에서 최신 인원수 반영
                         refreshRoomListInfo(clubId, roomId);
                     } else {
                         showToast(await res.text(), "error");
@@ -636,7 +649,6 @@
             }
         }
 
-        // 밴 해제 처리
         async function handleUnban(clubId, roomId, userId) {
             if(await openConfirm('밴을 해제하시겠습니까?')) {
                 try {
@@ -679,7 +691,6 @@
                     const count = await res.json(); // 추가된 인원수
                     showToast(`${count}명 초대 완료`, "success");
                     refreshManagementTab(clubId, roomId);
-                    // DB에서 최신 인원수 반영
                     refreshRoomListInfo(clubId, roomId);
                 } else {
                     showToast(await res.text(), "error");
@@ -702,7 +713,6 @@
             }
         });
 
-        // 초기 로드
         const urlParams = new URLSearchParams(window.location.search);
         const roomToOpen = urlParams.get('openRoom');
         const clubIdMeta = /*[[${club.id}]]*/ null;
@@ -711,7 +721,6 @@
             openChatModal(clubIdMeta, roomToOpen);
         }
 
-        // 필터링 로직
         const filterCheckbox = document.getElementById('myChatsFilter');
         const roomListContainer = document.querySelector('.chat-room-list');
         if (filterCheckbox && roomListContainer) {

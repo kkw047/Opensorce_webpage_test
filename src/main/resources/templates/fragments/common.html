@@ -5,11 +5,11 @@
 <header class="topbar" th:fragment="topbar">
     <div class="logo">TEAM11</div>
     <div class="actions">
-          <span th:if="${session.LOGIN_USER_NICKNAME != null}">
-            안녕하세요, <b th:text="${session.LOGIN_USER_NICKNAME}">닉</b>님!
+          <span th:if="${session.LOGIN_USER_NICKNAME != null}" style="color: var(--text-main); font-weight: 600; margin-right: 10px;">
+            안녕하세요, <b th:text="${session.LOGIN_USER_NICKNAME}" style="color: var(--primary);">닉</b>님!
           </span>
         <button class="btn" id="openLoginBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">로그인</button>
-        <button class="btn" id="openRegisterBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">회원가입</button>
+        <button class="btn primary" id="openRegisterBtn" th:if="${session.LOGIN_USER_NICKNAME == null}">회원가입</button>
         <form th:if="${session.LOGIN_USER_NICKNAME != null}" th:action="@{/logout}" method="post" style="display:inline">
             <button class="btn">로그아웃</button>
         </form>
@@ -28,8 +28,8 @@
         <a class="menu-item" th:href="@{/clubs/myclubs}" th:classappend="${activeSidebarMenu == 'myclubs' ? 'active' : ''}">내모임</a>
     </nav>
 
-    <div th:if="${!#lists.isEmpty(myClubs)}" style="margin-top: 20px; margin-bottom: 10px;">
-        <div style="font-size: 12px; font-weight: bold; color: #9ec8b8; padding: 0 12px; margin-bottom: 8px;">
+    <div th:if="${!#lists.isEmpty(myClubs)}" style="margin-top: 10px; margin-bottom: 10px;">
+        <div style="font-size: 12px; font-weight: bold; color: var(--text-muted); padding: 0 12px; margin-bottom: 8px;">
             내 모임 바로가기
         </div>
         <nav class="menu-vert">
@@ -42,11 +42,11 @@
                 모임 이름
             </a>
         </nav>
-        <hr style="border: 0; border-top: 1px solid #29433b; margin: 12px 0;">
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 12px 0;">
     </div>
 
     <section class="card soft">
-        <h4 class="card-title">카테고리</h4>
+        <h4 class="card-title" style="color: var(--text-main);">카테고리</h4>
         <form id="categoryFilterForm" method="get" th:action="${searchActionUrl}">
             <input type="hidden" name="q" th:value="${q}">
             <input type="hidden" name="do" th:value="${selectedDo}">
@@ -66,13 +66,14 @@
 
     <button class="btn primary block mt12"
             id="openCreatePanelBtn"
+            style="padding: 12px; font-size: 1rem;"
             th:attr="data-logged-in=${session.LOGIN_USER_ID != null} ? 'true' : 'false'">
         모임 만들기
     </button>
 </aside>
 
 <form class="toolbar" th:fragment="searchbar" method="get" th:action="${searchActionUrl}">
-    <div>
+    <div style="min-width: 100px;">
         <div class="label">도(광역)</div>
         <select id="searchDo" name="do">
             <option value="">전체</option>
@@ -82,7 +83,7 @@
                     th:selected="${d == selectedDo}">충북</option>
         </select>
     </div>
-    <div>
+    <div style="min-width: 100px;">
         <div class="label">시/군/구</div>
         <select id="searchSi" name="si">
             <option value="">전체</option>
@@ -97,7 +98,7 @@
                th:each="cid : ${selectedCategoryIds}"
                th:value="${cid}">
     </div>
-    <button class="btn">검색</button>
+    <button class="btn primary" style="height: 42px; margin-top: 24px;">검색</button>
 </form>
 
 <form class="toolbar" th:fragment="searchbar" method="get" th:action="${searchActionUrl}">
@@ -134,15 +135,13 @@
 <div th:fragment="modals">
     <div class="modal" id="loginModal" hidden>
         <div class="modal-card">
-            <h3>로그인</h3>
-            <form class="form-grid" th:action="@{/login}" method="post">
+            <h3 style="margin-top: 0; text-align: center;">로그인</h3>
+            <form class="form-grid" th:action="@{/login}" method="post" style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="text" name="loginIdOrEmail" placeholder="아이디 또는 이메일" required>
-                <div style="display:flex; gap:8px; margin-top:6px;">
                 <input type="password" name="password" placeholder="비밀번호" required>
-                </div>
                 <div style="display:flex; gap:8px; margin-top:6px;">
-                <button class="btn primary">로그인</button>
-                <button class="btn" type="button" data-close="#loginModal">닫기</button>
+                    <button class="btn primary block flex1">로그인</button>
+                    <button class="btn block flex1" type="button" data-close="#loginModal">닫기</button>
                 </div>
             </form>
         </div>
@@ -152,11 +151,11 @@
     </div>
 
     <div class="modal" id="registerModal" hidden>
-        <div class="modal-card">
-            <h3>회원가입</h3>
-            <form class="form-grid" th:action="@{/register}" method="post">
+        <div class="modal-card" style="width: 480px;">
+            <h3 style="margin-top: 0; text-align: center;">회원가입</h3>
+            <form class="form-grid" th:action="@{/register}" method="post" style="display: flex; flex-direction: column; gap: 12px;">
                 <div>
-                    <div class="label">아이디</div>
+                    <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">아이디</div>
                     <div style="display:flex; gap:8px; align-items:center;">
                         <input type="text"
                                name="loginId"
@@ -174,7 +173,7 @@
                 </div>
 
                 <div>
-                    <div class="label">이메일</div>
+                    <div class="label" style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">이메일</div>
                     <input type="email"
                            name="email"
                            id="regEmailModal"
@@ -198,27 +197,27 @@
 
                     <input type="hidden" id="emailVerifiedModal" value="false">
                 </div>
-                <div style="display:flex; gap:8px; margin-top:6px;">
-                <input type="password" name="password" placeholder="비밀번호" required>
-                </div>
 
-                <div style="display:flex; gap:8px; margin-top:6px;">
+                <input type="password" name="password" placeholder="비밀번호" required>
                 <input type="text" name="nickname" placeholder="닉네임" required>
-                </div>
 
                 <div class="row-2" style="display:flex; gap:8px; margin-top:6px;">
                     <select id="regDo" name="regionDo" required><option value="">도 선택</option></select>
                     <select id="regSi" name="regionSi" required><option value="">시/군/구</option></select>
                 </div>
-                <div class="label mt8">선호 카테고리</div>
-                <div class="checklist scroll-y">
+
+                <div class="label mt8" style="font-size: 12px; color: var(--text-muted);">선호 카테고리</div>
+                <div class="checklist scroll-y" style="max-height: 150px;">
                     <label th:each="c : ${categories}" class="checkrow">
                         <input type="checkbox" name="categoryIds" th:value="${c.id}">
                         <span th:text="${c.name}">카테고리</span>
                     </label>
                 </div>
-                <button class="btn primary">가입</button>
-                <button class="btn" type="button" data-close="#registerModal">닫기</button>
+
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button class="btn primary block flex1">가입</button>
+                    <button class="btn block flex1" type="button" data-close="#registerModal">닫기</button>
+                </div>
             </form>
         </div>
     </div>
@@ -227,7 +226,7 @@
         <div class="overlay-backdrop" id="createBackdrop"></div>
         <aside class="create-panel">
             <div class="panel-head">
-                <h3>모임 만들기</h3>
+                <h3 style="margin: 0;">모임 만들기</h3>
                 <button class="iconbtn" id="closeCreatePanelBtn">✕</button>
             </div>
             <form id="createForm" th:action="@{/clubs}" method="post" enctype="multipart/form-data" class="panel-body">
@@ -245,14 +244,16 @@
                         </select>
                     </label>
                 </div>
-                <div class="preview" id="imagePreview">이미지 미리보기</div>
+                <div class="preview" id="imagePreview">
+                    <span style="font-size: 12px; color: var(--text-muted);">이미지 미리보기</span>
+                </div>
                 <label class="filebtn">
                     <input type="file" name="imageFile" id="imageFile" accept="image/*" hidden>
                     <span>📁 파일 선택</span>
                 </label>
-                <input type="text" name="name" placeholder="모임 이름" required>
+                <input type="text" name="name" placeholder="모임 이름" required style="font-weight: bold;">
                 <textarea name="description" placeholder="홍보/소개 문구" rows="4"></textarea>
-                <div class="label">카테고리</div>
+                <div class="label" style="margin-bottom: 4px; color: var(--text-muted);">카테고리</div>
                 <div class="checklist tall scroll-y">
                     <label th:each="c : ${categories}" class="checkrow">
                         <input type="checkbox" name="categoryIds" th:value="${c.id}">
@@ -265,7 +266,7 @@
                 </div>
                 <div id="newCategoryChips" class="chips"></div>
                 <div id="newCategoryHidden"></div>
-                <button class="btn primary block mt12" type="submit">생성</button>
+                <button class="btn primary block mt12" type="submit" style="padding: 12px;">생성</button>
             </form>
         </aside>
     </div>
@@ -291,9 +292,16 @@
 
         function showToast(message, isError) {
             const container = document.getElementById('toast-container');
-            const msgBox = document.getElementById('toast-message');
+            // 토스트 메시지 박스가 없으면 생성 (기존 js 로직 보완)
+            let msgBox = document.getElementById('toast-message');
 
-            if (!container || !msgBox) return;
+            if (!container) return;
+
+            if (!msgBox) {
+                msgBox = document.createElement('div');
+                msgBox.id = 'toast-message';
+                container.appendChild(msgBox);
+            }
 
             msgBox.textContent = message;
 

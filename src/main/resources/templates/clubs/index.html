@@ -20,7 +20,9 @@
         <div class="grid">
             <a class="card club" th:each="c : ${page.content}" th:href="@{/clubs/{id}(id=${c.id})}">
                 <img th:if="${c.imageUrl != null}" th:src="${c.imageUrl}" alt="모임 사진">
-                <div th:if="${c.imageUrl == null}" style="height: 160px; background: #0b1b17;"></div>
+                <div th:if="${c.imageUrl == null}" style="height: 160px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #aaa;">
+                    <span>이미지 없음</span>
+                </div>
                 <div class="card-body">
                     <div class="club-title" th:text="${c.name}">모임명</div>
                     <div class="muted" th:text="${c.regionDo + ' ' + c.regionSi}">지역</div>

@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <title>모임 관리</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <style>
+        .post-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: var(--primary);
+        }
+        .post-title { font-weight: 700; color: var(--text-main); }
+        .post-preview { color: var(--text-muted); font-size: 0.9rem; }
+    </style>
 </head>
 <body class="bg-deep"
       th:data-msg="${msg}"
@@ -21,7 +38,7 @@
         </div>
 
         <div class="detail-card" style="margin-top: 16px; margin-bottom: 16px;">
-            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">모임 관리</h2>
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: var(--text-main);">모임 관리</h2>
         </div>
 
         <div class="post-grid-container" style="display: flex; flex-direction: column; gap: 20px;">
@@ -54,18 +71,18 @@
                 <div class="card-content" style="display: flex; align-items: center; justify-content: space-between;">
                     <div>
                         <h3 class="post-title" style="margin-bottom: 6px; margin-top: 0;">멤버 관리</h3>
-                        <p class="post-preview" style="margin: 0;">멤버 목록을 확인하고 추방하거나 등급을 변경합니다.</p>
+                        <p class="post-preview" style="margin: 0;">멤버 목록을 확인하고 멤버를 추방하거나 차단합니다.</p>
                     </div>
                 </div>
             </div>
 
             <div class="post-card"
                  onclick="openClubDeleteModal()"
-                 style="cursor: pointer; border: 1px solid #5c2b2b; background: #1a0f0f;">
+                 style="cursor: pointer; border: 1px solid #ffcdd2; background: #fff0f0;">
                 <div class="card-content" style="display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <h3 class="post-title" style="color: #ff8a8a; margin-bottom: 6px; margin-top: 0;">모임 삭제</h3>
-                        <p class="post-preview" style="margin: 0; color: #d18e8e;">모임을 영구적으로 삭제합니다. (복구 불가)</p>
+                        <h3 class="post-title" style="color: var(--danger); margin-bottom: 6px; margin-top: 0;">모임 삭제</h3>
+                        <p class="post-preview" style="margin: 0; color: #e57373;">모임을 영구적으로 삭제합니다. (복구 불가)</p>
                     </div>
                 </div>
             </div>
@@ -73,9 +90,9 @@
         </div>
 
         <div id="clubDeleteModal" class="modal" style="display: none;">
-            <div class="modal-card" style="text-align: center; width: 400px; background: #1a0f0f; border: 1px solid #5c2b2b;">
-                <h3 style="margin-top: 0; color: #ff8a8a;">정말 모임을 삭제하시겠습니까?</h3>
-                <p style="color: #d18e8e; margin: 20px 0; font-size: 0.95rem; line-height: 1.5;">
+            <div class="modal-card" style="text-align: center; width: 400px; background: var(--bg-card); border: 1px solid var(--border);">
+                <h3 style="margin-top: 0; color: var(--danger);">정말 모임을 삭제하시겠습니까?</h3>
+                <p style="color: var(--text-muted); margin: 20px 0; font-size: 0.95rem; line-height: 1.5;">
                     모임을 삭제하면 모든 게시글, 사진, 채팅 내역이<br>
                     <strong>영구적으로 삭제</strong>되며 복구할 수 없습니다.
                 </p>
@@ -83,7 +100,7 @@
                 <div style="display: flex; justify-content: center; gap: 10px;">
                     <button type="button" class="btn" onclick="closeClubDeleteModal()">취소</button>
                     <form th:action="@{/clubs/{id}/delete(id=${club.id})}" method="post">
-                        <button type="submit" class="btn btn-danger" style="background: #8b0000; border-color: #5c2b2b;">네, 삭제합니다</button>
+                        <button type="submit" class="btn btn-danger">네, 삭제합니다</button>
                     </form>
                 </div>
             </div>

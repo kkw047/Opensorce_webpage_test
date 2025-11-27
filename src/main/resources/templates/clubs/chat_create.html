@@ -5,9 +5,9 @@
     <title>채팅방 만들기</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <style>
-        .detail-card { border: 1px solid #1a332c; border-radius: 14px; background: #0f231e; padding: 16px; margin-bottom: 16px; }
+        .detail-card { border: 1px solid var(--border); border-radius: 14px; background: #ffffff; padding: 16px; margin-bottom: 16px; }
         .form-grid { display: grid; gap: 12px; }
-        .form-label { font-weight: 600; margin-bottom: 4px; }
+        .form-label { font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
     </style>
 </head>
 <body class="bg-deep">
@@ -28,7 +28,7 @@
         </div>
 
         <div class="detail-card">
-            <h2 style="margin-top: 0;">채팅방 만들기</h2>
+            <h2 style="margin-top: 0; color: var(--text-main);">채팅방 만들기</h2>
 
             <form th:action="@{/clubs/{id}/chat/create(id=${club.id})}" method="post" class="form-grid" th:object="${requestDto}">
                 <div>
@@ -38,13 +38,13 @@
 
                 <div>
                     <div class="form-label">초대할 멤버 (최소 1명)</div>
-                    <div class="checklist scroll-y">
+                    <div class="checklist scroll-y" style="background: var(--bg-body); border-color: var(--border);">
                         <label th:each="member : ${club.members}"
                                th:if="${member.userId != session.LOGIN_USER_ID}"
-                               class="checkrow">
+                               class="checkrow" style="color: var(--text-main);">
                             <input type="checkbox" name="memberIds" th:value="${member.userId}" th:checked="${#lists.contains(requestDto.memberIds, member.userId)}">
                             <span th:text="${member.nickname}">멤버 닉네임</span>
-                            <span class="member-role" th:if="${member.role == 'ADMIN'}" style="font-size: 12px; color: #1db954;">[관리자]</span>
+                            <span class="member-role" th:if="${member.role == 'ADMIN'}" style="font-size: 12px; color: var(--primary); font-weight: bold;">[관리자]</span>
                         </label>
                     </div>
                 </div>
