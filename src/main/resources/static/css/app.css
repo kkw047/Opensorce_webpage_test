@@ -12,7 +12,7 @@
 
     --primary: #6FCF97;         /* 메인: 파스텔 그린 */
     --primary-dark: #57ad7b;    /* 메인 강조 (클릭 등) */
-    --primary-light: #e3fcef;   /* 메인 연한 배경 */
+    --primary-light: #e3ffeb;   /* 메인 연한 배경 */
 
     --text-main: #333333;       /* 본문 텍스트 (다크 그레이) */
     --text-muted: #888888;      /* 보조 텍스트 (회색) */
@@ -77,12 +77,27 @@ a { text-decoration: none; color: inherit; }
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
 }
 
-.logo {
+/*.logo {
     font-weight: 900;
     font-size: 1.2rem;
     color: var(--primary);
     letter-spacing: -0.5px;
+}*/
+
+.logo{
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    margin-right:16px;
 }
+
+.logo img{
+    height: 36px;
+    display: block;
+    object-fit: contain;
+}
+
+
 
 /* 3. 컴포넌트 */
 
@@ -163,6 +178,7 @@ input:focus, select:focus, textarea:focus {
     font-weight: 500;
     display: block;
     transition: all 0.2s;
+    text-align: center;
 }
 .menu-item:hover { border-color: var(--primary); color: var(--primary); }
 .menu-item.active {
@@ -377,4 +393,70 @@ input:focus, select:focus, textarea:focus {
     transform: translateZ(0); /* GPU 가속 */
     box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
     backface-visibility: hidden;
+}
+
+.topbar-nickname {
+    color: var(--primary);
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--primary-light);
+    margin: 0 4px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.topbar-nickname-text {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.topbar-nickname:hover {
+    background: var(--primary);
+    color: var(--text-white);
+}
+
+.topbar-nickname:hover {
+    opacity: 1;
+}
+
+.profile-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.profile-actions-right {
+    display: flex;
+    gap: 8px;
+}
+
+.profile-link-main {
+    background: transparent;
+    border: none;
+    padding-left: 0;
+    padding-right: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.profile-link-main:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.profile-btn-secondary {
+    min-width: 90px;
+}
+
+.profile-btn-primary {
+    min-width: 130px;
 }

@@ -193,6 +193,7 @@
                 }
             });
         }
+        setupRecommendTabs();
     });
 
     function setupLoginIdCheck(inputId, buttonId, helpId) {
@@ -379,4 +380,24 @@
         helpTextId: "emailHelpModal",
         verifiedHiddenId: "emailVerifiedModal"
     });
+
+    function setupRecommendTabs() {
+        const header = document.querySelector(".recommend-tab-header");
+        const sliderInner = document.querySelector(".recommend-slider-inner");
+        if (!header || !sliderInner) return;
+
+        const buttons = header.querySelectorAll(".recommend-tab-btn");
+
+        buttons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                const index = Number(btn.dataset.index || "0");
+
+                sliderInner.style.transform = `translateX(-${index * 100}%)`;
+
+                buttons.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            });
+        });
+    }
+
 })();

@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>추천 모임</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+
+    <style>
+        .recommend-page main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .recommend-header-card {
+            padding: 20px 24px;
+        }
+
+        .recommend-header-title {
+            margin: 0 0 6px;
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .recommend-header-sub {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .recommend-header-sub b {
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        .recommend-tabs-card {
+            padding: 22px 24px 26px;
+        }
+
+        .recommend-tabs-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        .recommend-tab-bar {
+            position: relative;
+            width: 100%;
+            max-width: 70%;
+            height: 64px;
+            border-radius: 999px;
+            background: #f3f6f4;
+            border: 1px solid var(--border);
+            padding: 6px;
+            display: flex;
+            align-items: stretch;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+        }
+
+        .recommend-tab-indicator {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            left: 6px;
+            width: calc((100% - 12px) / 3);
+            border-radius: 999px;
+            background: linear-gradient(135deg, #6FCF97, #27AE60);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.1);
+            transition: transform 0.22s ease, background 0.22s ease;
+            z-index: 0;
+        }
+
+        .recommend-tab-btn {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.02rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 16px;
+            border-radius: 999px;
+            letter-spacing: 0.02em;
+            outline: none;
+            transition: color 0.15s ease, transform 0.1s ease;
+        }
+
+        .recommend-tab-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .recommend-tab-btn.active {
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 0 0 4px rgba(0, 0, 0, 0.25);
+        }
+
+        .recommend-tab-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: currentColor;
+            opacity: 0.6;
+        }
+
+        .recommend-tab-btn.active .recommend-tab-dot {
+            background: #ffffff;
+            opacity: 1;
+        }
+
+        .recommend-tab-label {
+            position: relative;
+            top: 1px;
+        }
+
+        .recommend-list-card {
+            padding: 18px 24px 22px;
+        }
+
+        .recommend-panels {
+            margin-top: 4px;
+
+        }
+
+        .recommend-panel {
+            display: none;
+            animation: recommendFadeIn 0.18s ease-out;
+        }
+
+        .recommend-panel.active {
+            display: block;
+        }
+
+        @keyframes recommendFadeIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            margin-bottom: 6px;
+            border-width: 1px;
+            border-style: solid;
+        }
+
+        .panel-pill-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+        }
+
+        .panel-pill--reco {
+            background: rgba(111, 207, 151, 0.12);
+            border-color: rgba(111, 207, 151, 0.5);
+            color: #2f7b4d;
+        }
+        .panel-pill--reco .panel-pill-dot { background: #6FCF97; }
+
+        .panel-pill--pop {
+            background: rgba(255, 183, 77, 0.12);
+            border-color: rgba(255, 183, 77, 0.55);
+            color: #c77700;
+        }
+        .panel-pill--pop .panel-pill-dot { background: #ffb74d; }
+
+        .panel-pill--act {
+            background: rgba(79, 195, 247, 0.12);
+            border-color: rgba(79, 195, 247, 0.55);
+            color: #0277bd;
+        }
+        .panel-pill--act .panel-pill-dot { background: #4fc3f7; }
+
+        .panel-sub {
+            margin: 0 0 14px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .club-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 25px;
+        }
+
+        @media (min-width: 980px) {
+            .club-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .club-card {
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+        }
+
+        .club-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+            border-color: rgba(111, 207, 151, 0.8);
+        }
+
+        .club-card-link {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .club-card-image {
+            width: 100%;
+            padding-top: 40%;
+            background-size: cover;
+            background-position: center center;
+            background-color: #f1f4f3;
+        }
+
+        .club-card-image.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .club-card-body {
+            padding: 16px 18px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .club-card-title {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+
+        .club-card-desc {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            min-height: 2.4em; /* 2줄 정도 공간 */
+        }
+
+        .club-meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .club-meta-bottom {
+            margin-top: 4px;
+            justify-content: flex-end;
+            color: var(--text-muted);
+        }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+            background: #f7faf9;
+            white-space: nowrap;
+        }
+
+        .meta-pill.address {
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .meta-pill.stat-reco {
+            background: rgba(111, 207, 151, 0.12);
+            border-color: rgba(111, 207, 151, 0.6);
+            color: #2f7b4d;
+        }
+
+        .meta-pill.stat-pop {
+            background: rgba(255, 183, 77, 0.12);
+            border-color: rgba(255, 183, 77, 0.7);
+            color: #c77700;
+        }
+
+        .meta-pill.stat-act {
+            background: rgba(79, 195, 247, 0.12);
+            border-color: rgba(79, 195, 247, 0.7);
+            color: #0277bd;
+        }
+
+        .meta-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+        }
+
+        .meta-dot.reco { background: #6FCF97; }
+        .meta-dot.pop  { background: #ffb74d; }
+        .meta-dot.act  { background: #4fc3f7; }
+
+        .recent-label {
+            font-size: 0.78rem;
+        }
+
+        .empty-card {
+            border-radius: 18px;
+            border: 1px dashed var(--border);
+            background: #f9fcfb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .empty-card span {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 900px) {
+            .recommend-page main {
+                gap: 12px;
+            }
+            .recommend-header-card,
+            .recommend-tabs-card,
+            .recommend-list-card {
+                padding: 18px 24px 26px;
+                max-width: 900px;
+                margin: 0 auto 24px;
+            }
+            .recommend-tab-bar {
+                height: 56px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-deep">
+
+<header th:replace="~{fragments/common :: topbar}"></header>
+
+<div class="wrap recommend-page">
+    <aside th:replace="~{fragments/common :: sidebar}"></aside>
+
+    <main class="content">
+
+        <section class="detail-card recommend-header-card">
+            <h1 class="recommend-header-title">추천 모임</h1>
+            <p class="recommend-header-sub">
+                <b>선호 카테고리</b>와 <b>내 지역</b>을 기반으로 딱 맞는 모임을 보여드려요.
+            </p>
+        </section>
+
+        <section class="detail-card recommend-tabs-card">
+            <div class="recommend-tabs-wrapper">
+                <div class="recommend-tab-bar">
+                    <div class="recommend-tab-indicator"></div>
+
+                    <button class="recommend-tab-btn active" type="button" data-index="0">
+                        <span class="recommend-tab-dot"></span>
+                        <span class="recommend-tab-label">추천</span>
+                    </button>
+
+                    <button class="recommend-tab-btn" type="button" data-index="1">
+                        <span class="recommend-tab-dot"></span>
+                        <span class="recommend-tab-label">인기</span>
+                    </button>
+
+                    <button class="recommend-tab-btn" type="button" data-index="2">
+                        <span class="recommend-tab-dot"></span>
+                        <span class="recommend-tab-label">활동력</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="detail-card recommend-list-card">
+
+            <div class="recommend-panels">
+
+                <section class="recommend-panel active" data-index="0">
+                    <div>
+                        <div class="panel-pill panel-pill--reco">
+                            <span class="panel-pill-dot"></span>
+                            취향 기반 추천
+                        </div>
+                        <p class="panel-sub">내 선호 카테고리와 지역이 잘 맞는 모임을 우선으로 보여드려요.</p>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(recommendedClubs)}" class="club-grid">
+                        <div class="empty-card">
+                            추천할 모임이 아직 없습니다.
+                            <span>관심 있는 주제로 첫 모임을 만들어 보면 어떨까요?</span>
+                        </div>
+                    </div>
+
+                    <div class="club-grid" th:if="${!#lists.isEmpty(recommendedClubs)}">
+                        <article class="club-card" th:each="c : ${recommendedClubs}">
+                            <a class="club-card-link" th:href="@{/clubs/{id}(id=${c.clubId})}">
+                                <div th:if="${c.imageUrl != null}"
+                                     class="club-card-image"
+                                     th:style="'background-image:url(' + ${c.imageUrl} + ');'"></div>
+                                <div th:if="${c.imageUrl == null}" class="club-card-image placeholder">
+                                    NO IMAGE
+                                </div>
+
+                                <div class="club-card-body">
+                                    <h3 class="club-card-title" th:text="${c.name}">모임 이름</h3>
+                                    <p class="club-card-desc" th:text="${c.description}">설명</p>
+
+                                    <div class="club-meta-row">
+                    <span class="meta-pill address"
+                          th:text="${(c.regionSi != null and !#strings.isEmpty(c.regionSi)) ? c.regionDo + ' ' + c.regionSi : c.regionDo}">
+                      충청북도 청주시 서원구
+                    </span>
+
+                                        <span class="meta-pill stat-reco">
+                      <span class="meta-dot reco"></span>
+                      <span th:text="|관심사 ${c.matchedCategoryCount}개 일치|">관심사 1개 일치</span>
+                    </span>
+                                    </div>
+                                </div>
+                            </a>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="recommend-panel" data-index="1">
+                    <div>
+                        <div class="panel-pill panel-pill--pop">
+                            <span class="panel-pill-dot"></span>
+                            지금 가장 붐비는 모임
+                        </div>
+                        <p class="panel-sub">내 지역에서 참여 인원이 많은 순으로 정렬했어요.</p>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(popularClubs)}" class="club-grid">
+                        <div class="empty-card">
+                            표시할 인기 모임이 아직 없습니다.
+                        </div>
+                    </div>
+
+                    <div class="club-grid" th:if="${!#lists.isEmpty(popularClubs)}">
+                        <article class="club-card" th:each="c : ${popularClubs}">
+                            <a class="club-card-link" th:href="@{/clubs/{id}(id=${c.clubId})}">
+                                <div th:if="${c.imageUrl != null}"
+                                     class="club-card-image"
+                                     th:style="'background-image:url(' + ${c.imageUrl} + ');'"></div>
+                                <div th:if="${c.imageUrl == null}" class="club-card-image placeholder">
+                                    NO IMAGE
+                                </div>
+
+                                <div class="club-card-body">
+                                    <h3 class="club-card-title" th:text="${c.name}">모임 이름</h3>
+                                    <p class="club-card-desc" th:text="${c.description}">설명</p>
+
+                                    <div class="club-meta-row">
+                    <span class="meta-pill address"
+                          th:text="${(c.regionSi != null and !#strings.isEmpty(c.regionSi)) ? c.regionDo + ' ' + c.regionSi : c.regionDo}">
+                      충청북도 청주시 서원구
+                    </span>
+
+                                        <span class="meta-pill stat-pop">
+                      <span class="meta-dot pop"></span>
+                      <span th:text="|${c.memberCount}명 참여 중|">0명 참여 중</span>
+                    </span>
+                                    </div>
+                                </div>
+                            </a>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="recommend-panel" data-index="2">
+                    <div>
+                        <div class="panel-pill panel-pill--act">
+                            <span class="panel-pill-dot"></span>
+                            출석률이 높은 모임
+                        </div>
+                        <p class="panel-sub">최근 일정에서 실제로 많이 모인 순으로 정렬했어요.</p>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(activeClubs)}" class="club-grid">
+                        <div class="empty-card">
+                            최근 활동 데이터가 아직 없습니다.
+                        </div>
+                    </div>
+
+                    <div class="club-grid" th:if="${!#lists.isEmpty(activeClubs)}">
+                        <article class="club-card" th:each="c : ${activeClubs}">
+                            <a class="club-card-link" th:href="@{/clubs/{id}(id=${c.clubId})}">
+                                <div th:if="${c.imageUrl != null}"
+                                     class="club-card-image"
+                                     th:style="'background-image:url(' + ${c.imageUrl} + ');'"></div>
+                                <div th:if="${c.imageUrl == null}" class="club-card-image placeholder">
+                                    NO IMAGE
+                                </div>
+
+                                <div class="club-card-body">
+                                    <h3 class="club-card-title" th:text="${c.name}">모임 이름</h3>
+                                    <p class="club-card-desc" th:text="${c.description}">설명</p>
+
+                                    <div class="club-meta-row">
+                    <span class="meta-pill address"
+                          th:text="${(c.regionSi != null and !#strings.isEmpty(c.regionSi)) ? c.regionDo + ' ' + c.regionSi : c.regionDo}">
+                      충청북도 청주시 서원구
+                    </span>
+
+                                        <span class="meta-pill stat-act">
+                      <span class="meta-dot act"></span>
+                      참여율
+                      <span th:text="${#numbers.formatDecimal(c.attendanceRate, 1, 1)}">0.0</span>%
+                    </span>
+                                    </div>
+
+                                    <div class="club-meta-row club-meta-bottom">
+                    <span class="recent-label"
+                          th:if="${c.latestEndDate != null}"
+                          th:text="|최근 활동: ${#temporals.format(c.latestEndDate, 'yyyy-MM-dd')}|">
+                      최근 활동: 2025-11-27
+                    </span>
+                                    </div>
+                                </div>
+                            </a>
+                        </article>
+                    </div>
+                </section>
+
+            </div>
+        </section>
+
+    </main>
+</div>
+
+
+<div th:replace="~{fragments/common :: modals}"></div>
+<div th:replace="~{fragments/common :: scripts}"></div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tabButtons = document.querySelectorAll('.recommend-tab-btn');
+        const panels = document.querySelectorAll('.recommend-panel');
+        const indicator = document.querySelector('.recommend-tab-indicator');
+
+        if (!tabButtons.length || !indicator || !panels.length) return;
+
+        const indicatorColors = [
+            'linear-gradient(135deg, #6FCF97, #27AE60)',  // 추천
+            'linear-gradient(135deg, #FFB74D, #FF9800)',  // 인기
+            'linear-gradient(135deg, #4FC3F7, #2196F3)'   // 활동력
+        ];
+
+        function activateTab(index) {
+            tabButtons.forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+            panels.forEach((panel, i) => {
+                panel.classList.toggle('active', i === index);
+            });
+
+            indicator.style.transform = 'translateX(' + (index * 100) + '%)';
+            indicator.style.background = indicatorColors[index];
+        }
+
+        tabButtons.forEach(btn => {
+            const idx = Number(btn.getAttribute('data-index'));
+            btn.addEventListener('click', () => activateTab(idx));
+        });
+
+        activateTab(0);
+    });
+</script>
+
+</body>
+</html>
