@@ -9,7 +9,7 @@ public record ClubForm(
         String description,
         String regionDo,
         String regionSi,
+        MultipartFile imageFile,
         List<Long> categoryIds,
-        String newCategoryName,
-        MultipartFile imageFile
+        String newCategoryName
 ) {}
