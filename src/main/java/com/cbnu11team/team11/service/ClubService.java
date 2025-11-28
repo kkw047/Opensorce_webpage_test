@@ -232,6 +232,8 @@ public class ClubService {
                 club.getName(),
                 club.getDescription(),
                 club.getImageUrl(),
+                club.getRegionDo(),
+                club.getRegionSi(),
                 isOwner,
                 isManager,
                 isAlreadyMember,
@@ -288,6 +290,12 @@ public class ClubService {
                 .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
         club.setName(form.name());
         club.setDescription(form.description());
+        club.getCategories().clear();
+
+        if (form.categoryIds() != null && !form.categoryIds().isEmpty()) {
+            List<Category> newCategories = categoryRepository.findAllById(form.categoryIds());
+            club.getCategories().addAll(newCategories);
+        }
 
         if (form.imageFile() != null && !form.imageFile().isEmpty()) {
             String imageUrl = fileStorageService.save(form.imageFile());
@@ -371,5 +379,15 @@ public class ClubService {
                     );
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> getClubCategoryIds(Long clubId) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없습니다."));
+
+        return club.getCategories().stream()
+                .map(Category::getId)
+                .toList();
     }
 }
