@@ -389,5 +389,6 @@ public class ClubService {
         return club.getCategories().stream()
                 .map(Category::getId)
                 .toList();
+
     }
 }
