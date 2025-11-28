@@ -53,6 +53,23 @@
                     <textarea id="description" th:field="*{description}" rows="6" class="form-control" style="resize: none;" placeholder="우리 모임을 소개해주세요!"></textarea>
                 </div>
 
+                <div class="form-group" style="margin-bottom: 16px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; color: var(--text-main);">모임 카테고리</label>
+
+                    <div class="checklist scroll-y" style="max-height: 200px;">
+                        <label th:each="c : ${categories}" class="checkrow">
+                            <input type="checkbox"
+                                   th:field="*{categoryIds}"
+                                   th:value="${c.id}">
+                            <span th:text="${c.name}">카테고리명</span>
+                        </label>
+                    </div>
+                    <p class="muted" style="margin-top: 6px;">* 모임의 성격에 맞는 카테고리를 선택해주세요.</p>
+                </div>
+
                 <div style="display: flex; justify-content: flex-end; gap: 8px;">
                     <a th:href="@{/clubs/{id}/manager(id=${club.id})}" class="btn">취소</a>
                     <button type="submit" class="btn primary">수정 완료</button>

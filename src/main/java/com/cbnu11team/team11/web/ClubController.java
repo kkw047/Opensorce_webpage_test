@@ -919,13 +919,22 @@ public class ClubController {
         }
 
         ClubDetailDto club = optDto.get();
+
+        List<Long> currentCategoryIds = clubService.getClubCategoryIds(clubId);
+
         ClubForm form = new ClubForm(
-                club.name(), club.description(), null, null, null, null, null
+                club.name(),
+                club.description(),
+                club.regionDo(),
+                club.regionSi(),
+                null,
+                currentCategoryIds,
+                null
         );
 
         model.addAttribute("categories", clubService.getAllCategories());
         model.addAttribute("searchActionUrl", "/clubs");
-        model.addAttribute("selectedCategoryIds", new ArrayList<>());
+        model.addAttribute("selectedCategoryIds", new ArrayList<Long>());
         model.addAttribute("q", "");
         model.addAttribute("selectedDo", "");
         model.addAttribute("selectedSi", "");
@@ -950,6 +959,7 @@ public class ClubController {
             ra.addFlashAttribute("error", "수정 중 오류가 발생했습니다: " + e.getMessage());
             return "redirect:/clubs/" + clubId + "/manager/edit";
         }
+
         return "redirect:/clubs/" + clubId + "/manager";
     }
 
@@ -962,15 +972,27 @@ public class ClubController {
             ra.addFlashAttribute("error", "모임장 권한이 없습니다.");
             return "redirect:/clubs/" + clubId;
         }
+        ClubDetailDto club = optDto.get();
+        List<Long> currentCategoryIds = clubService.getClubCategoryIds(clubId);
+
+        ClubForm form = new ClubForm(
+                club.name(),
+                club.description(),
+                club.regionDo(),
+                club.regionSi(),
+                null,
+                currentCategoryIds,
+                null
+        );
 
         model.addAttribute("categories", clubService.getAllCategories());
         model.addAttribute("searchActionUrl", "/clubs");
-        model.addAttribute("selectedCategoryIds", new ArrayList<>());
         model.addAttribute("q", "");
         model.addAttribute("selectedDo", "");
         model.addAttribute("selectedSi", "");
 
-        model.addAttribute("club", optDto.get());
+        model.addAttribute("club", club);
+        model.addAttribute("clubForm", form);
         model.addAttribute("activeTab", "manager");
         return "clubs/manager_features";
     }
