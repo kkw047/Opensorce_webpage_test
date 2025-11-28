@@ -154,7 +154,19 @@
                     if (newCategoryChips) {
                         const chip = document.createElement("span");
                         chip.className = "chip";
-                        chip.textContent = "#" + cat.name;
+                        chip.dataset.catId = String(cat.id);   // 삭제 때 사용할 ID
+
+                        const label = document.createElement("span");
+                        label.textContent = "#" + cat.name;
+
+                        const removeBtn = document.createElement("button");
+                        removeBtn.type = "button";
+                        removeBtn.className = "chip-remove";
+                        removeBtn.textContent = "✕";
+
+                        chip.appendChild(label);
+                        chip.appendChild(removeBtn);
+
                         newCategoryChips.appendChild(chip);
                     }
 
@@ -192,7 +204,47 @@
                     newCategoryInput.value = "";
                 }
             });
+
+            if (newCategoryChips && newCategoryHidden) {
+                newCategoryChips.addEventListener("click", async (e) => {
+                    const removeBtn = e.target.closest(".chip-remove");
+                    if (!removeBtn) return;
+
+                    const chip = removeBtn.closest(".chip");
+                    if (!chip) return;
+
+                    const catId = chip.dataset.catId;
+                    if (!catId) {
+                        chip.remove();
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`/api/categories/${encodeURIComponent(catId)}`, {
+                            method: "DELETE"
+                        });
+
+                        if (!res.ok && res.status !== 404) {
+                            const text = await res.text();
+                            showToast(text || "카테고리를 삭제하는 데 실패했습니다.", "error");
+                            return;
+                        }
+
+                        chip.remove();
+
+                        newCategoryHidden
+                            .querySelectorAll(`input[type="hidden"][name="categoryIds"][value="${catId}"]`)
+                            .forEach(el => el.remove());
+
+                        showToast("카테고리가 삭제되었습니다.", "success");
+                    } catch (err) {
+                        console.error(err);
+                        showToast("카테고리 삭제 중 오류가 발생했습니다.", "error");
+                    }
+                });
+            }
         }
+
         setupRecommendTabs();
     });
 
