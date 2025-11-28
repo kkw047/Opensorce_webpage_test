@@ -56,7 +56,7 @@
 
 ## 접속 링크
 
-- [TEAM11 서비스 바로가기](https://namsanghyun.duckdns.org) 
+- [TEAM11 서비스 바로가기](https://yeoul.ddnsgeek.com/clubs) 
 
 
 도메인 추가 예정
