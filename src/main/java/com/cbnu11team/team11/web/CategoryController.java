@@ -1,10 +1,13 @@
 package com.cbnu11team.team11.web;
 
 import com.cbnu11team.team11.domain.Category;
+import com.cbnu11team.team11.repository.CategoryRepository;
 import com.cbnu11team.team11.service.ClubService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,9 +17,8 @@ import java.util.stream.Collectors;
 public class CategoryController {
 
     private final ClubService clubService;
+    private final CategoryRepository categoryRepository;
 
-    /* 새 카테고리 생성(들) – name 에 "게임, 공부, 독서" 처럼 쉼표로 여러개 가능
-       반환: [{id:1,name:"게임"}, {id:2,name:"공부"}, ...]  */
     @PostMapping("/api/categories")
     public ResponseEntity<List<CategoryDto>> create(@RequestBody NewCategoryReq req) {
         if (req == null || req.name() == null || req.name().isBlank()) {
@@ -35,6 +37,26 @@ public class CategoryController {
             out.add(new CategoryDto(c.getId(), c.getName()));
         }
         return ResponseEntity.ok(out);
+    }
+
+    @DeleteMapping("/api/categories/{id}")
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        if (id == null) {
+            return ResponseEntity.badRequest().body("잘못된 카테고리 ID 입니다.");
+        }
+
+        try {
+            if (!categoryRepository.existsById(id)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            categoryRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+
+        } catch (DataIntegrityViolationException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("이미 사용 중인 카테고리는 삭제할 수 없습니다.");
+        }
     }
 
     /* DTOs */
