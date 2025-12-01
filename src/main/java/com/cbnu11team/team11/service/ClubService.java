@@ -211,8 +211,14 @@ public class ClubService {
         boolean isAlreadyMember = false;
         boolean isManager = false;
         String myStatus = null;
+        boolean isMaster = false;
 
         if (currentUserId != null) {
+            User currentUser = userRepository.findById(currentUserId).orElse(null);
+            if (currentUser != null && currentUser.isMaster()) {
+                isMaster = true;
+            }
+
             ClubMemberId memberId = new ClubMemberId(clubId, currentUserId);
             Optional<ClubMember> memberOpt = clubMemberRepository.findById(memberId);
 
@@ -224,6 +230,8 @@ public class ClubService {
                 }
             }
         }
+
+        boolean canManage = isOwner || isManager || isMaster;
 
         List<ClubMember> activeMembers = club.getMembers().stream()
                 .filter(m -> m.getStatus() == ClubMemberStatus.ACTIVE)
@@ -237,7 +245,7 @@ public class ClubService {
                 club.getRegionDo(),
                 club.getRegionSi(),
                 isOwner,
-                isManager,
+                canManage,
                 isAlreadyMember,
                 club.getCategories().stream().map(Category::getName).toList(),
                 activeMembers.stream().map(ClubMemberDto::fromEntity).toList(),

@@ -21,6 +21,13 @@ public class CalendarService {
     private final UserRepository userRepository;
     private final ClubRepository clubRepository;
 
+    private boolean isMaster(Long userId) {
+        if (userId == null) return false;
+        return userRepository.findById(userId)
+                .map(User::isMaster)
+                .orElse(false);
+    }
+
     // [헬퍼] DTO 변환
     private ScheduleDto convertToDtoWithStatus(Calendar cal, Long userId) {
         ScheduleDto dto = new ScheduleDto(cal);
@@ -73,7 +80,9 @@ public class CalendarService {
         boolean isWriter = cal.getUser().getId().equals(currentUserId);
         boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(currentUserId));
         dto.setManager(isWriter || isClubOwner);
+        boolean master = isMaster(currentUserId);
 
+        dto.setManager(isWriter || isClubOwner || master);
         List<ScheduleDto.ParticipantDto> pList = cal.getParticipants().stream()
                 .map(ScheduleDto.ParticipantDto::new)
                 .collect(Collectors.toList());
@@ -127,7 +136,8 @@ public class CalendarService {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
         boolean isWriter = cal.getUser().getId().equals(userId);
         boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(userId));
-        if (!isWriter && !isClubOwner) throw new IllegalStateException("권한이 없습니다.");
+        boolean master = isMaster(userId);
+        if (!isWriter && !isClubOwner && !master) throw new IllegalStateException("권한이 없습니다.");
         calendarRepository.delete(cal);
     }
 
@@ -154,7 +164,10 @@ public class CalendarService {
         Calendar cal = calendarRepository.findById(scheduleId).orElseThrow();
         boolean isWriter = cal.getUser().getId().equals(userId);
         boolean isClubOwner = (cal.getClub() != null && cal.getClub().getOwner().getId().equals(userId));
-        if (!isWriter && !isClubOwner) throw new IllegalStateException("권한이 없습니다.");
+
+        boolean master = isMaster(userId);
+
+        if (!isWriter && !isClubOwner && !master) throw new IllegalStateException("권한이 없습니다.");
 
         cal.toggleAttendanceActive();
         return cal.isAttendanceActive();

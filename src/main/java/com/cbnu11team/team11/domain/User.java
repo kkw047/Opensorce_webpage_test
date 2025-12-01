@@ -62,4 +62,14 @@ public class User {
     @Builder.Default
     @ToString.Exclude
     private Set<ClubMember> clubMemberships = new LinkedHashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "global_role", length = 20, nullable = false)
+    @Builder.Default
+    private GlobalRole globalRole = GlobalRole.USER;
+
+    // 🔹 편의 메서드: 마스터 여부
+    public boolean isMaster() {
+        return this.globalRole == GlobalRole.MASTER;
+    }
 }
