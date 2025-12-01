@@ -3,6 +3,7 @@ package com.cbnu11team.team11.web;
 import com.cbnu11team.team11.domain.Category;
 import com.cbnu11team.team11.domain.User;
 import com.cbnu11team.team11.repository.CategoryRepository;
+import com.cbnu11team.team11.service.ClubService;
 import com.cbnu11team.team11.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 public class ProfileController {
 
     private final UserService userService;
-    private final CategoryRepository categoryRepository;
+    private final ClubService clubService;
 
     /**
      * 프로필 설정 화면 (GET /profile)
@@ -46,8 +47,10 @@ public class ProfileController {
         model.addAttribute("user", user);
         model.addAttribute("activeSidebarMenu", "profile");
 
-        List<Category> categories = categoryRepository.findAll();
+        List<Category> categories = clubService.getAllCategories();
         model.addAttribute("categories", categories);
+
+        model.addAttribute("dos", clubService.getAllDos());
 
         List<Long> userCategoryIds = user.getCategories()
                 .stream()

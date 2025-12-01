@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
+import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -71,6 +72,11 @@ public class RecommendService {
                         r.getImageUrl(),
                         r.getMatchedCategoryCount() == null ? 0L : r.getMatchedCategoryCount()
                 ))
+                .sorted(
+                        Comparator
+                                .comparingLong(RecommendClubView::getMatchedCategoryCount).reversed()
+                                .thenComparing(RecommendClubView::getName, String.CASE_INSENSITIVE_ORDER)
+                )
                 .toList();
     }
 
@@ -88,6 +94,11 @@ public class RecommendService {
                         r.getImageUrl(),
                         r.getMemberCount() == null ? 0L : r.getMemberCount()
                 ))
+                .sorted(
+                        Comparator
+                                .comparingLong(PopularClubView::getMemberCount).reversed()
+                                .thenComparing(PopularClubView::getName, String.CASE_INSENSITIVE_ORDER)
+                )
                 .toList();
     }
 
@@ -113,6 +124,15 @@ public class RecommendService {
                         r.getTotalCount() == null ? 0L : r.getTotalCount(),
                         r.getAttendanceRate() == null ? 0.0 : r.getAttendanceRate()
                 ))
+                .sorted(
+                        Comparator
+                                .comparingDouble(ActiveClubView::getAttendanceRate).reversed()
+                                .thenComparing(
+                                        ActiveClubView::getLatestEndDate,
+                                        Comparator.nullsLast(Comparator.reverseOrder())
+                                )
+                                .thenComparing(ActiveClubView::getName, String.CASE_INSENSITIVE_ORDER)
+                )
                 .toList();
     }
 }

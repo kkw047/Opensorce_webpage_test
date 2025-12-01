@@ -38,7 +38,9 @@ public class ClubService {
     public List<String> getSisByDo(String regionDo) { return regionKorRepository.findSisByDo(regionDo); }
 
     /* ===== Category ===== */
-    public List<Category> findAllCategories() { return categoryRepository.findAllOrderByNameAsc(); }
+    public List<Category> findAllCategories() {
+        return categoryRepository.findAllOrderByNameAsc();
+    }
 
     public Category createCategoryIfNotExists(String name) {
         if (name == null || name.isBlank()) throw new IllegalArgumentException("카테고리 이름이 비었습니다.");
@@ -337,7 +339,7 @@ public class ClubService {
 
     @Transactional(readOnly = true)
     public List<Category> getAllCategories() {
-        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+        return findAllCategories();
     }
 
     @Transactional

@@ -990,6 +990,7 @@ public class ClubController {
         model.addAttribute("q", "");
         model.addAttribute("selectedDo", "");
         model.addAttribute("selectedSi", "");
+        model.addAttribute("selectedCategoryIds", new ArrayList<Long>());
 
         model.addAttribute("club", club);
         model.addAttribute("clubForm", form);

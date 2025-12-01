@@ -1,7 +1,7 @@
 package com.cbnu11team.team11.web;
 
-import com.cbnu11team.team11.repository.CategoryRepository;
-import com.cbnu11team.team11.repository.RegionKorRepository;
+import com.cbnu11team.team11.service.ClubService;
+
 import com.cbnu11team.team11.service.RecommendService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +16,7 @@ import java.util.Collections;
 public class RecommendController {
 
     private final RecommendService recommendService;
-    private final CategoryRepository categoryRepository;
-    private final RegionKorRepository regionKorRepository;
+    private final ClubService clubService;
 
     @GetMapping("/recommend")
     public String recommend(HttpSession session, Model model) {
@@ -31,8 +30,8 @@ public class RecommendController {
         model.addAttribute("activeClubs",
                 recommendService.getActiveClubs(loginUserId));
 
-        model.addAttribute("categories", categoryRepository.findAll());
-        model.addAttribute("dos", regionKorRepository.findDistinctDos());
+        model.addAttribute("categories", clubService.getAllCategories());
+        model.addAttribute("dos", clubService.getAllDos());
         model.addAttribute("searchActionUrl", "/clubs");
         model.addAttribute("q", null);
         model.addAttribute("selectedDo", null);
