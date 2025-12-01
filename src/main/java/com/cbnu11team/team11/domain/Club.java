@@ -65,6 +65,11 @@ public class Club {
     @ToString.Exclude
     private List<ClubMember> members = new ArrayList<>();
 
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    private List<Post> posts = new ArrayList<>();
+
     @Enumerated(EnumType.STRING)
     @Column(name = "join_policy")
     @Builder.Default
