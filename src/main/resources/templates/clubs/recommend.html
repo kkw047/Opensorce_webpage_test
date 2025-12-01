@@ -249,6 +249,10 @@
             flex: 1;
         }
 
+        .club-card-body .club-meta-row:last-of-type {
+            margin-top: auto;
+        }
+
         .club-card-title {
             margin: 0;
             font-size: 1.05rem;
@@ -259,7 +263,11 @@
             margin: 0;
             font-size: 0.9rem;
             color: var(--text-muted);
-            min-height: 2.4em; /* 2줄 정도 공간 */
+            min-height: 3.4em; /* 2줄 공간 */
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .club-meta-row {
@@ -268,7 +276,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.8rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
 
         .club-meta-bottom {
@@ -294,6 +302,12 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .meta-pill.stat-reco,
+        .meta-pill.stat-pop,
+        .meta-pill.stat-act {
+            flex: 0 0 auto;
         }
 
         .meta-pill.stat-reco {
