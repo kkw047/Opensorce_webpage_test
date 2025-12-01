@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ko">
 <body>
 <header class="topbar" th:fragment="topbar">
-    <a th:href="@{/clubs}" class="logo"><img th:src="@{/image/Yeoul.png}" alt="Yeoul"></a>
+    <a th:href="@{/clubs/reset}" class="logo"><img th:src="@{/image/Yeoul.png}" alt="Yeoul"></a>
     <div class="actions">
           <span th:if="${session.LOGIN_USER_NICKNAME != null}" style="color: var(--text-main); font-weight: 600; margin-right: 10px;">
             안녕하세요,   <a th:href="@{/profile}" class="topbar-nickname" title="프로필 설정으로 이동"> <span class="topbar-nickname-text" th:text="${session.LOGIN_USER_NICKNAME}">닉</span></a> 님!
@@ -17,7 +17,7 @@
 
 <aside class="sidebar" th:fragment="sidebar">
     <nav class="menu-vert">
-        <a class="menu-item" th:classappend="${activeSidebarMenu == 'main' ? 'active' : ''}" th:href="@{/clubs}">메인</a>
+        <a class="menu-item" th:classappend="${activeSidebarMenu == 'main' ? 'active' : ''}" th:href="@{/clubs/reset}">메인</a>
         <a class="menu-item"
            th:href="@{/recommend}"
            th:classappend="${activeSidebarMenu == 'recommend' ? 'active' : ''}">
@@ -79,7 +79,7 @@
 <form class="toolbar" th:fragment="searchbar" method="get" th:action="${searchActionUrl}">
     <div style="min-width: 100px;">
         <div class="label">도(광역)</div>
-        <select id="searchDo" name="do">
+        <select id="searchDo" name="do" th:attr="data-selected-do=${selectedDo}">
             <option value="">전체</option>
             <option th:each="d : ${dos}"
                     th:text="${d}"
@@ -89,7 +89,7 @@
     </div>
     <div style="min-width: 100px;">
         <div class="label">시/군/구</div>
-        <select id="searchSi" name="si">
+        <select id="searchSi" name="si" th:attr="data-selected-si=${selectedSi}">
             <option value="">전체</option>
         </select>
     </div>
@@ -277,6 +277,11 @@
 </div>
 
 <div th:fragment="scripts">
+    <script th:inline="javascript">
+        window.selectedDo = /*[[${selectedDo}]]*/ '';
+        window.selectedSi = /*[[${selectedSi}]]*/ '';
+    </script>
+
     <script defer th:src="@{/js/region.js}"></script>
     <script defer th:src="@{/js/main.js}"></script>
 

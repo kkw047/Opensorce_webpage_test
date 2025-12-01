@@ -33,22 +33,32 @@ async function wireDoSi(doId, siId, opts = {}) {
     const phDo = doSel.dataset.placeholder || "전체";
     const phSi = siSel.dataset.placeholder || "전체";
 
+    const initialDo = opts.initialDo || doSel.dataset.selectedDo || doSel.value || "";
+    const initialSi = opts.initialSi || siSel.dataset.selectedSi || siSel.value || "";
+
     try {
         // 도 목록
-        const dos = await getJSON("/api/regions/dos");
-        fillSelect(doSel, dos, phDo);
+        let dos = null;
+        if (!opts.skipLoadDos) {
+            dos = await getJSON("/api/regions/dos");
+            fillSelect(doSel, dos, phDo);
 
-        if (opts.initialDo && dos.includes(opts.initialDo)) {
-            doSel.value = opts.initialDo;
+            if (initialDo && dos.includes(initialDo)) {
+                doSel.value = initialDo;
+            }
         }
 
         const refreshSi = async () => {
-            const selDo = doSel.value;
-            if (!selDo) { fillSelect(siSel, [], phSi); return; }
+            const selDo = doSel.value || initialDo;
+            if (!selDo) {
+                fillSelect(siSel, [], phSi);
+                return;
+            }
             const sis = await getJSON("/api/regions/si?do=" + encodeURIComponent(selDo));
             fillSelect(siSel, sis, phSi);
-            if (opts.initialSi && sis.includes(opts.initialSi)) {
-                siSel.value = opts.initialSi;
+
+            if (initialSi && sis.includes(initialSi)) {
+                siSel.value = initialSi;
             }
         };
 
@@ -61,7 +71,7 @@ async function wireDoSi(doId, siId, opts = {}) {
 
 document.addEventListener("DOMContentLoaded", () => {
     // 메인 검색바
-    wireDoSi("searchDo", "searchSi", { initialDo: window.selectedDo, initialSi: window.selectedSi });
+    wireDoSi("searchDo", "searchSi", { skipLoadDos: true });
     // 회원가입 모달
     wireDoSi("regDo", "regSi");
     // 우측 '모임 만들기' 패널

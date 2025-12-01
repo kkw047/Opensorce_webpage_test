@@ -44,17 +44,27 @@ public class ClubController {
                         @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
                         @RequestParam(value = "page", required = false, defaultValue = "0") int page,
                         @RequestParam(value = "size", required = false, defaultValue = "12") int size,
+                        HttpSession session,
                         Model model) {
 
+        FilterParams filters = resolveIndexFilters(q, regionDo, regionSi, categoryIds, session);
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        var result = clubService.search(q, regionDo, regionSi, categoryIds, pageable);
+        var result = clubService.search(
+                filters.q(),
+                filters.regionDo(),
+                filters.regionSi(),
+                filters.categoryIds(),
+                pageable
+        );
 
         model.addAttribute("dos", clubService.getAllDos());
         model.addAttribute("categories", clubService.findAllCategories());
-        model.addAttribute("selectedDo", regionDo);
-        model.addAttribute("selectedSi", regionSi);
-        model.addAttribute("selectedCategoryIds", categoryIds == null ? List.of() : categoryIds);
-        model.addAttribute("q", q);
+        model.addAttribute("selectedDo", filters.regionDo());
+        model.addAttribute("selectedSi", filters.regionSi());
+        model.addAttribute("selectedCategoryIds",
+                filters.categoryIds() == null ? List.of() : filters.categoryIds());
+        model.addAttribute("q", filters.q());
         model.addAttribute("page", result);
         model.addAttribute("activeSidebarMenu", "main");
         model.addAttribute("searchActionUrl", "/clubs");
@@ -625,6 +635,46 @@ public class ClubController {
         return out;
     }
 
+    private record FilterParams(String q, String regionDo, String regionSi, List<Long> categoryIds) {}
+
+    @SuppressWarnings("unchecked")
+    private FilterParams resolveIndexFilters(String q,
+                                             String regionDo,
+                                             String regionSi,
+                                             List<Long> categoryIds,
+                                             HttpSession session) {
+
+        boolean hasParam =
+                q != null ||
+                        regionDo != null ||
+                        regionSi != null ||
+                        categoryIds != null;
+
+        if (hasParam) {
+            session.setAttribute("INDEX_FILTER_Q", q);
+            session.setAttribute("INDEX_FILTER_DO", regionDo);
+            session.setAttribute("INDEX_FILTER_SI", regionSi);
+            session.setAttribute("INDEX_FILTER_CATEGORY_IDS", categoryIds);
+            return new FilterParams(q, regionDo, regionSi, categoryIds);
+        } else {
+            String savedQ = (String) session.getAttribute("INDEX_FILTER_Q");
+            String savedDo = (String) session.getAttribute("INDEX_FILTER_DO");
+            String savedSi = (String) session.getAttribute("INDEX_FILTER_SI");
+
+            List<Long> savedCategoryIds = null;
+            Object raw = session.getAttribute("INDEX_FILTER_CATEGORY_IDS");
+            if (raw instanceof List<?> list) {
+                try {
+                    savedCategoryIds = (List<Long>) list;
+                } catch (ClassCastException ignored) {
+                    savedCategoryIds = null;
+                }
+            }
+
+            return new FilterParams(savedQ, savedDo, savedSi, savedCategoryIds);
+        }
+    }
+
     // --- 채팅 목록 ---
     @GetMapping("/{clubId}/chat")
     public String getChatPage(@PathVariable Long clubId, Model model, RedirectAttributes ra, HttpSession session) {
@@ -1029,6 +1079,15 @@ public class ClubController {
             ra.addFlashAttribute("error", e.getMessage());
             return "redirect:/clubs/" + clubId;
         }
+        return "redirect:/clubs";
+    }
+
+    @GetMapping("/reset")
+    public String resetIndexFilters(HttpSession session) {
+        session.removeAttribute("INDEX_FILTER_Q");
+        session.removeAttribute("INDEX_FILTER_DO");
+        session.removeAttribute("INDEX_FILTER_SI");
+        session.removeAttribute("INDEX_FILTER_CATEGORY_IDS");
         return "redirect:/clubs";
     }
 }
