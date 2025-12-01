@@ -46,6 +46,7 @@
                         <p style="margin: 0; font-size: 13px; color: var(--text-muted);">현재 등록된 사진 (체크하면 삭제됩니다)</p>
 
                         <div th:each="img : ${post.images}"
+                             class="existing-image"
                              style="display: flex; align-items: center; gap: 15px; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; background: var(--bg-body);">
 
                             <img th:src="${img.imageUrl}" alt="기존 이미지" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;">
@@ -58,43 +59,101 @@
                     </div>
 
                     <div class="file-upload-wrapper">
-                        <label for="imageFiles" class="filebtn">사진 추가하기 (최대 10장)</label>
-                        <input type="file"
-                               id="imageFiles"
-                               th:field="*{imageFiles}"
-                               class="hidden-file-input"
-                               accept="image/*"
-                               multiple
-                               onchange="updateFileNames(this)" hidden>
-                        <span id="fileNameDisplay" class="file-name-display" style="margin-left: 8px; color: var(--text-muted); font-size: 0.9rem;">선택된 파일 없음</span>
+                        <label for="imageFiles" class="filebtn">
+                            <input type="file"
+                                   id="imageFiles"
+                                   th:field="*{imageFiles}"
+                                   class="hidden-file-input"
+                                   accept="image/*"
+                                   multiple
+                                   onchange="handleFileSelect(this)" hidden>
+                            <span>사진 추가하기 (기존 포함 최대 10장)</span>
+                        </label>
+
+                        <div id="fileList" class="file-list"></div>
+                        <p id="fileHelpText" class="muted" style="margin-top: 5px; font-size: 0.85rem; color: var(--text-muted);">추가된 파일 없음</p>
                     </div>
                     <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">사진을 추가하면 기존 사진 뒤에 붙습니다.</p>
                 </div>
 
                 <script>
-                    function updateFileNames(input) {
-                        const display = document.getElementById('fileNameDisplay');
+                    const dataTransfer = new DataTransfer();
 
-                        if (input.files && input.files.length > 0) {
-                            if (input.files.length > 10) {
-                                alert("사진은 최대 10장까지만 선택할 수 있습니다.");
+                    function handleFileSelect(input) {
+                        const newFiles = Array.from(input.files);
+
+                        const existingCount = document.querySelectorAll('.existing-image').length;
+
+                        // 전체 개수 체크 (기존 + 현재 대기중 + 새로 선택)
+                        const currentTotal = existingCount + dataTransfer.files.length + newFiles.length;
+
+                        if (currentTotal > 10) {
+                            showToast(`사진은 기존 사진 포함 최대 10장까지만 가능합니다. (현재: ${existingCount}장)`, true);
+                            input.value = "";
+                            return;
+                        }
+
+                        // 용량 체크
+                        const maxSize = 10 * 1024 * 1024;
+                        for (let file of newFiles) {
+                            if (file.size > maxSize) {
+                                showToast("파일 용량이 너무 큽니다. (최대 10MB)", true);
                                 input.value = "";
-                                display.textContent = "선택된 파일 없음";
                                 return;
                             }
-
-                            // 파일 이름 목록 만들기
-                            let names = [];
-                            for (let i = 0; i < input.files.length; i++) {
-                                names.push(input.files[i].name);
-                            }
-
-                            display.textContent = names.join(', ');
-                            display.style.color = "var(--primary)";
-                        } else {
-                            display.textContent = "변경할 파일 없음";
-                            display.style.color = "var(--text-muted)";
                         }
+
+                        // 장바구니에 담기
+                        newFiles.forEach(file => {
+                            const exists = Array.from(dataTransfer.files).some(f => f.name === file.name && f.size === file.size);
+                            if (!exists) {
+                                dataTransfer.items.add(file);
+                            }
+                        });
+
+                        document.getElementById('imageFiles').files = dataTransfer.files;
+                        renderFileList();
+                    }
+
+                    function renderFileList() {
+                        const fileListContainer = document.getElementById('fileList');
+                        const helpText = document.getElementById('fileHelpText');
+
+                        fileListContainer.innerHTML = "";
+
+                        if (dataTransfer.files.length === 0) {
+                            helpText.style.display = "block";
+                            return;
+                        } else {
+                            helpText.style.display = "none";
+                        }
+
+                        Array.from(dataTransfer.files).forEach((file, index) => {
+                            const chip = document.createElement('div');
+                            chip.className = 'file-chip';
+                            chip.innerHTML = `
+                                <span>${file.name}</span>
+                                <span class="remove-btn" onclick="removeFile(${index})">×</span>
+                            `;
+                            fileListContainer.appendChild(chip);
+                        });
+                    }
+
+                    function removeFile(index) {
+                        const dt = new DataTransfer();
+                        const currentFiles = dataTransfer.files;
+
+                        for (let i = 0; i < currentFiles.length; i++) {
+                            if (i !== index) dt.items.add(currentFiles[i]);
+                        }
+
+                        dataTransfer.items.clear();
+                        for (let i = 0; i < dt.files.length; i++) {
+                            dataTransfer.items.add(dt.files[i]);
+                        }
+
+                        document.getElementById('imageFiles').files = dataTransfer.files;
+                        renderFileList();
                     }
                 </script>
 
@@ -122,7 +181,8 @@
                     </a>
                     <button type="submit" class="btn primary">수정 완료</button>
                 </div>
-            </form> </div>
+            </form>
+        </div>
     </main>
 </div>
 

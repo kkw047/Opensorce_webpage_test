@@ -35,57 +35,108 @@
                     <label style="display: block; margin-bottom: 8px; font-weight: bold; color: var(--text-main);">사진 첨부</label>
 
                     <div class="file-upload-wrapper">
-                        <label for="imageFiles" class="filebtn">사진 선택하기 (최대 10장)</label>
-                        <input type="file"
-                               id="imageFiles"
-                               th:field="*{imageFiles}"
-                               class="hidden-file-input"
-                               accept="image/*"
-                               multiple
-                               onchange="updateFileNames(this)" hidden>
+                        <label for="imageFiles" class="filebtn">
+                            <input type="file"
+                                   id="imageFiles"
+                                   th:field="*{imageFiles}"
+                                   class="hidden-file-input"
+                                   accept="image/*"
+                                   multiple
+                                   onchange="handleFileSelect(this)" hidden>
+                            <span>사진 추가하기 (최대 10장)</span>
+                        </label>
 
-                        <span id="fileNameDisplay" class="file-name-display" style="margin-left: 8px; color: var(--text-muted); font-size: 0.9rem;">선택된 파일 없음</span>
+                        <div id="fileList" class="file-list"></div>
+                        <p id="fileHelpText" class="muted" style="margin-top: 5px; font-size: 0.85rem; color: var(--text-muted);">선택된 파일 없음</p>
                     </div>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">* 사진은 최대 10장까지 선택 가능합니다.</p>
                 </div>
 
                 <script>
-                    function updateFileNames(input) {
-                        const display = document.getElementById('fileNameDisplay');
+                    // 파일들을 담아둘 '가상의 장바구니' (전역 변수)
+                    const dataTransfer = new DataTransfer();
 
-                        // 파일이 선택되었을 때
-                        if (input.files && input.files.length > 0) {
-                            if (input.files.length > 10) {
-                                showToast("사진은 최대 10장까지만 선택할 수 있습니다.", true);
+                    function handleFileSelect(input) {
+                        const newFiles = Array.from(input.files);
+
+                        // 개수 체크 (기존 파일 + 새 파일)
+                        if (dataTransfer.files.length + newFiles.length > 10) {
+                            showToast("사진은 최대 10장까지만 선택할 수 있습니다.", true);
+                            input.value = ""; // 입력창 초기화 (장바구니는 유지)
+                            return;
+                        }
+
+                        // 용량 체크 (10MB)
+                        const maxSize = 10 * 1024 * 1024;
+                        for (let file of newFiles) {
+                            if (file.size > maxSize) {
+                                showToast("파일 용량이 너무 큽니다. (최대 10MB)", true);
                                 input.value = "";
-                                display.textContent = "선택된 파일 없음";
                                 return;
                             }
-
-                            const maxSize = 10 * 1024 * 1024;
-
-                            for (let i = 0; i < input.files.length; i++) {
-                                if (input.files[i].size > maxSize) {
-                                    showToast("파일 용량이 너무 큽니다. (최대 10MB)", true);
-
-                                    input.value = ""; // 초기화
-                                    display.textContent = "선택된 파일 없음";
-                                    return; // 함수 종료
-                                }
-                            }
-
-                            // 파일 이름들을 가져와서 쉼표로 연결
-                            let names = [];
-                            for (let i = 0; i < input.files.length; i++) {
-                                names.push(input.files[i].name);
-                            }
-
-                            display.textContent = names.join(', '); // "사진1.jpg, 사진2.png"
-                            display.style.color = "var(--primary)";
-                        } else {
-                            display.textContent = "선택된 파일 없음";
-                            display.style.color = "var(--text-muted)";
                         }
+
+                        // 장바구니(dataTransfer)에 새 파일 담기
+                        newFiles.forEach(file => {
+                            const exists = Array.from(dataTransfer.files).some(f => f.name === file.name && f.size === file.size);
+                            if (!exists) {
+                                dataTransfer.items.add(file);
+                            }
+                        });
+
+                        // input 태그의 파일 목록을 '장바구니' 내용으로 교체
+                        document.getElementById('imageFiles').files = dataTransfer.files;
+                        renderFileList();
+                    }
+
+                    function renderFileList() {
+                        const fileListContainer = document.getElementById('fileList');
+                        const helpText = document.getElementById('fileHelpText');
+
+                        fileListContainer.innerHTML = ""; // 화면 초기화
+
+                        if (dataTransfer.files.length === 0) {
+                            helpText.style.display = "block";
+                            return;
+                        } else {
+                            helpText.style.display = "none";
+                        }
+
+                        // 장바구니에 있는 파일들을 하나씩 화면에 그리기
+                        Array.from(dataTransfer.files).forEach((file, index) => {
+                            const chip = document.createElement('div');
+                            chip.className = 'file-chip'; // app.css에 추가한 클래스
+
+                            chip.innerHTML = `
+                                <span>${file.name}</span>
+                                <span class="remove-btn" onclick="removeFile(${index})">×</span>
+                            `;
+
+                            fileListContainer.appendChild(chip);
+                        });
+                    }
+
+                    function removeFile(index) {
+                        const dt = new DataTransfer();
+                        const currentFiles = dataTransfer.files;
+
+                        // 삭제하려는 인덱스만 빼고 나머지를 새 통에 담음
+                        for (let i = 0; i < currentFiles.length; i++) {
+                            if (i !== index) {
+                                dt.items.add(currentFiles[i]);
+                            }
+                        }
+
+                        // 전역 장바구니 업데이트
+                        dataTransfer.items.clear();
+                        for (let i = 0; i < dt.files.length; i++) {
+                            dataTransfer.items.add(dt.files[i]);
+                        }
+
+                        // input 태그 업데이트
+                        document.getElementById('imageFiles').files = dataTransfer.files;
+
+                        // 화면 다시 그리기
+                        renderFileList();
                     }
                 </script>
 
